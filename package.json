@@ -1,0 +1,16 @@
+{
+  "name": "calculaconfia-web",
+  "private": true,
+  "version": "1.0.0",
+  "description": "Static frontend for CalculaConfia",
+  "scripts": {
+    "start": "serve -s -l ${PORT:-3000} ."
+  },
+  "dependencies": {
+    "serve": "^14.2.1"
+  },
+  "engines": {
+    "node": ">=18"
+  }
+}
+
