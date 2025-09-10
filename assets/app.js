@@ -56,30 +56,23 @@
   }
 
   async function api(path, options = {}) {
-    try {
-      const res = await fetch(`${API}${path}`, {
-        ...options,
-        headers: {
-          ...(options.headers || {}),
-          Accept: 'application/json',
-          ...authHeader(),
-        },
-      });
-      if (!res.ok) {
-        const message = await parseError(res);
-        const error = new Error(message);
-        error.status = res.status;
-        throw error;
-      }
-      const ct = res.headers.get('content-type') || '';
-      if (ct.includes('application/json')) return res.json();
-      return res.text();
-    } catch (e) {
-      // Network/CORS handling
-      const err = new Error('Falha de conexão (CORS/Rede). Verifique se o domínio do frontend está autorizado na API.');
-      err.cause = e;
-      throw err;
+    const res = await fetch(`${API}${path}`, {
+      ...options,
+      headers: {
+        ...(options.headers || {}),
+        Accept: 'application/json',
+        ...authHeader(),
+      },
+    });
+    if (!res.ok) {
+      const message = await parseError(res);
+      const error = new Error(message);
+      error.status = res.status;
+      throw error;
     }
+    const ct = res.headers.get('content-type') || '';
+    if (ct.includes('application/json')) return res.json();
+    return res.text();
   }
 
   // ---- Icons & Swiper ----
@@ -276,25 +269,19 @@
 
   async function httpLogin({ email, password }) {
     const body = new URLSearchParams({ username: email, password });
-    try {
-      const res = await fetch(`${API}/login`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/x-www-form-urlencoded',
-          Accept: 'application/json',
-        },
-        body,
-      });
-      if (!res.ok) {
-        const msg = await parseError(res);
-        const err = new Error(msg); err.status = res.status; throw err;
-      }
-      return res.json();
-    } catch (e) {
-      const err = new Error('Falha de conexão (CORS/Rede). Se estiver em localhost, habilite CORS para http://localhost:3000 ou teste no domínio de produção.');
-      err.cause = e;
-      throw err;
+    const res = await fetch(`${API}/login`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/x-www-form-urlencoded',
+        Accept: 'application/json',
+      },
+      body,
+    });
+    if (!res.ok) {
+      const msg = await parseError(res);
+      const err = new Error(msg); err.status = res.status; throw err;
     }
+    return res.json();
   }
 
   async function httpSendVerificationCode(email) {
@@ -332,7 +319,7 @@
       } catch (err) {
         const status = err && err.status;
         let msg = err && err.message ? String(err.message) : 'Falha no login.';
-        const unverified = /verifi|inativ|ativar|unverified|verify/i.test(msg) || status === 403;
+        const unverified = /verifi|inativ|ativar|unverified|verify/i.test(msg) || status === 403 || (status === 401 && /inactive/i.test(msg));
         if (unverified) {
           try {
             const email = qs('#login-email').value.trim();
@@ -348,6 +335,8 @@
           msg = 'Sua conta ainda não está verificada. Enviamos um novo código.';
         } else if (status === 400 || status === 401) {
           msg = 'E-mail ou senha inválidos.';
+        } else if (!status) {
+          msg = 'Não foi possível conectar. Tente novamente.';
         }
         setText(loginError, msg);
       } finally {
