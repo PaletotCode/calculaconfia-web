@@ -83,11 +83,22 @@
   }
 
   // ---- Icons & Swiper ----
-  // Defer icon hydration until idle
-  try {
-    const runIcons = () => { if (window.lucide && lucide.createIcons) lucide.createIcons(); };
-    (window.requestIdleCallback || setTimeout)(runIcons, 1);
-  } catch (_) {}
+  // Ensure icons even if lucide loads later
+  (function ensureIcons(){
+    let attempts = 0;
+    const max = 40; // ~2s
+    function tick(){
+      attempts++;
+      if (window.lucide && typeof lucide.createIcons === 'function') {
+        try { lucide.createIcons(); } catch(_){}
+        return;
+      }
+      if (attempts < max) setTimeout(tick, 50);
+    }
+    if (document.readyState === 'complete' || document.readyState === 'interactive') tick();
+    else document.addEventListener('DOMContentLoaded', tick, { once: true });
+    window.addEventListener('load', tick, { once: true });
+  })();
 
   // Swiper: init when script ready (deferred) and after load fallback
   let swiper = null;
@@ -211,6 +222,7 @@
   if (openAuthBtn) openAuthBtn.addEventListener('click', openModalPreferredView);
   if (closeAuthBtn) closeAuthBtn.addEventListener('click', closeModal);
   // Não fecha ao clicar fora do card para evitar fechamento acidental
+  qsa('[data-close-modal]').forEach(btn => btn.addEventListener('click', closeModal));
 
   authTabs.forEach(tab => {
     tab.addEventListener('click', () => {
@@ -585,28 +597,71 @@
     }
   } catch (_) {}
 
-  // Lazy-load VanillaTilt only if pointer is fine
-  (function lazyTilt(){
-    const canTilt = matchMedia('(pointer: fine)').matches;
-    if (!canTilt) return;
-    let loaded = false;
+  // Tilt effects
+  (function tiltEffects(){
     function loadScript(src){ return new Promise((res, rej)=>{ const s=document.createElement('script'); s.src=src; s.async=true; s.onload=res; s.onerror=rej; document.head.appendChild(s); }); }
-    async function ensureTilt(){
-      if (loaded) return; loaded = true;
+    const pointerFine = matchMedia('(pointer: fine)').matches;
+
+    // Pointer devices: VanillaTilt
+    async function ensurePointerTilt(){
       try {
         if (!window.VanillaTilt) await loadScript('assets/vendor/vanilla-tilt.min.js');
         const opts = { max: 15, speed: 400, glare: true, 'max-glare': 0.5, scale: 1.05 };
         const lite = { max: 10, speed: 300, glare: false, scale: 1.03 };
-        VanillaTilt.init(qsa('.tilt-card'), LOW_SPEC ? lite : opts);
+        const conf = LOW_SPEC ? lite : opts;
+        VanillaTilt.init(qsa('.tilt-card, .faq-item-static'), conf);
       } catch(_){}
     }
+
+    // Coarse pointer (mobile): gyroscope-based 3D for tilt-card and FAQ items
+    function ensureGyroTilt(){
+      const els = qsa('.tilt-card, .faq-item-static');
+      els.forEach(el => el.classList.add('card-3d'));
+      let enabled = false, raf = null, last = { beta:0, gamma:0 };
+      const factor = 0.03; // sensitivity
+
+      function apply(){
+        raf = null;
+        els.forEach(el => {
+          el.classList.add('card-3d--active');
+          const rotX = Math.max(-15, Math.min(15, -last.beta * factor));
+          const rotY = Math.max(-15, Math.min(15, last.gamma * factor));
+          el.style.transform = `perspective(800px) rotateX(${rotX}deg) rotateY(${rotY}deg)`;
+        });
+      }
+      function onOrient(e){
+        last.beta = e.beta || 0; // front-back
+        last.gamma = e.gamma || 0; // left-right
+        if (!raf) raf = requestAnimationFrame(apply);
+      }
+      function start(){
+        if (enabled) return; enabled = true;
+        window.addEventListener('deviceorientation', onOrient);
+      }
+      // iOS permission flow
+      function requestPermIfNeeded(){
+        const D = window.DeviceOrientationEvent;
+        if (!D) { return start(); }
+        if (typeof D.requestPermission === 'function') {
+          D.requestPermission().then(state => { if (state === 'granted') start(); }).catch(()=>{});
+        } else { start(); }
+      }
+      // kick off on first user interaction to satisfy permissions without UI changes
+      document.addEventListener('touchstart', requestPermIfNeeded, { once: true, passive: true });
+      document.addEventListener('click', requestPermIfNeeded, { once: true });
+    }
+
     try {
       const io = new IntersectionObserver((entries)=>{
-        entries.forEach(e=>{ if (e.isIntersecting) { ensureTilt(); io.disconnect(); }});
+        entries.forEach(e=>{
+          if (!e.isIntersecting) return;
+          if (pointerFine) ensurePointerTilt(); else ensureGyroTilt();
+          io.disconnect();
+        });
       }, { rootMargin: '200px' });
-      const firstTilt = document.querySelector('.tilt-card');
-      if (firstTilt) io.observe(firstTilt);
-    } catch(_){ setTimeout(ensureTilt, 1200); }
+      const target = document.querySelector('.tilt-card') || document.querySelector('.faq-item-static');
+      if (target) io.observe(target);
+    } catch(_) { if (pointerFine) ensurePointerTilt(); else ensureGyroTilt(); }
   })();
 
   try {

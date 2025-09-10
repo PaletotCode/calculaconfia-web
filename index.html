@@ -214,6 +214,9 @@
             opacity: 1;
             transform: translateY(0);
         }
+        /* 3D interactive card (perf-friendly, no layout shift) */
+        .card-3d { transition: transform 120ms ease-out, box-shadow 200ms ease; will-change: transform; }
+        .card-3d--active { box-shadow: 0 12px 28px rgba(0,0,0,0.12), 0 4px 14px rgba(0,0,0,0.08); }
         /* Performance: avoid work for offscreen content */
         .cv-auto { content-visibility: auto; contain-intrinsic-size: 1px 1000px; }
     </style>
@@ -586,6 +589,9 @@
                     <div class="text-center mt-4">
                         <a href="#" id="forgot-password-link" class="text-sm font-medium text-green-600 hover:text-green-700">Esqueci minha senha</a>
                     </div>
+                    <div class="text-center mt-2">
+                        <button type="button" data-close-modal class="text-red-500 text-xs font-semibold hover:underline">Fechar janela</button>
+                    </div>
                 </form>
                 <div class="auth-footer">
                     <p>Ainda não tem conta? <a href="#" data-tab-link="register" class="font-bold text-green-600">Cadastrar</a></p>
@@ -634,6 +640,9 @@
                 </form>
                  <div class="auth-footer">
                     <p>Já tem conta? <a href="#" data-tab-link="login" class="font-bold text-green-600">Entrar</a></p>
+                    <div class="mt-2">
+                        <button type="button" data-close-modal class="text-red-500 text-xs font-semibold hover:underline">Fechar janela</button>
+                    </div>
                 </div>
             </div>
 
@@ -667,6 +676,9 @@
                 </form>
                 <div class="auth-footer">
                     <p><a href="#" data-tab-link="login" class="font-bold text-green-600">Voltar para o Login</a></p>
+                    <div class="mt-2">
+                        <button type="button" data-close-modal class="text-red-500 text-xs font-semibold hover:underline">Fechar janela</button>
+                    </div>
                 </div>
             </div>
             
@@ -688,6 +700,9 @@
                  </form>
                  <div class="auth-footer">
                     <p><a href="#" data-tab-link="login" class="font-bold text-green-600">Voltar para o Login</a></p>
+                    <div class="mt-2">
+                        <button type="button" data-close-modal class="text-red-500 text-xs font-semibold hover:underline">Fechar janela</button>
+                    </div>
                 </div>
             </div>
 
