@@ -85,19 +85,16 @@
   // ---- Icons & Swiper ----
   // Ensure icons even if lucide loads later
   (function ensureIcons(){
-    let attempts = 0;
-    const max = 40; // ~2s
-    function tick(){
-      attempts++;
-      if (window.lucide && typeof lucide.createIcons === 'function') {
-        try { lucide.createIcons(); } catch(_){}
-        return;
-      }
-      if (attempts < max) setTimeout(tick, 50);
-    }
-    if (document.readyState === 'complete' || document.readyState === 'interactive') tick();
-    else document.addEventListener('DOMContentLoaded', tick, { once: true });
-    window.addEventListener('load', tick, { once: true });
+    function run(){ try { if (window.lucide && lucide.createIcons) lucide.createIcons(); } catch(_){} }
+    // try on DOM ready and after load
+    if (document.readyState === 'complete' || document.readyState === 'interactive') run();
+    else document.addEventListener('DOMContentLoaded', run, { once: true });
+    window.addEventListener('load', run, { once: true });
+    // also when the lucide script tag finishes loading
+    const s = document.getElementById('lucide-script');
+    if (s) s.addEventListener('load', () => { run(); setTimeout(run, 500); setTimeout(run, 2000); });
+    // fallback periodic attempts in case of slow networks
+    let tries = 0; const iv = setInterval(()=>{ run(); if (++tries > 60) clearInterval(iv); }, 100);
   })();
 
   // Swiper: init when script ready (deferred) and after load fallback
@@ -166,6 +163,7 @@
   const authModalOverlay = qs('#auth-modal-overlay');
   const openAuthBtn = qs('#login-modal-btn');
   const closeAuthBtn = qs('#auth-close-btn');
+  const closeAuthTextBtn = qs('#auth-close-text');
   const authSpinner = qs('#auth-spinner');
 
   const loginView = qs('#login-view');
@@ -221,6 +219,7 @@
 
   if (openAuthBtn) openAuthBtn.addEventListener('click', openModalPreferredView);
   if (closeAuthBtn) closeAuthBtn.addEventListener('click', closeModal);
+  if (closeAuthTextBtn) closeAuthTextBtn.addEventListener('click', closeModal);
   // Não fecha ao clicar fora do card para evitar fechamento acidental
   qsa('[data-close-modal]').forEach(btn => btn.addEventListener('click', closeModal));
 
@@ -368,8 +367,8 @@
       const password = qs('#register-password').value;
       const passwordConfirm = qs('#register-password-confirm').value;
       if (password !== passwordConfirm) { setText(registerError, 'As senhas não coincidem.'); submitBtn && (submitBtn.disabled = false); return; }
-      // At least 6 chars, upper+lower letters
-      const passwordRegex = /^(?=.*[a-z])(?=.*[A-Z])[A-Za-z\d]{6,}$/;
+      // Ao menos 6 caracteres, exige minúscula e maiúscula; permite símbolos
+      const passwordRegex = /^(?=.*[a-z])(?=.*[A-Z]).{6,}$/u;
       if (!passwordRegex.test(password)) {
         setText(registerError, 'A senha deve ter no mínimo 6 caracteres, com letras maiúsculas e minúsculas.');
         submitBtn && (submitBtn.disabled = false);
