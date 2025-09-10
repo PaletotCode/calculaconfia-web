@@ -8,15 +8,17 @@
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;700;800;900&display=swap" rel="stylesheet">
-    <script src="https://unpkg.com/lucide@latest"></script>
-    <!-- Swiper.js for Carousel -->
-    <link rel="stylesheet" href="https://unpkg.com/swiper/swiper-bundle.min.css" />
-    <script src="https://unpkg.com/swiper/swiper-bundle.min.js"></script>
-    <!-- Vanta.js for Animated Background -->
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r134/three.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/vanta@latest/dist/vanta.net.min.js"></script>
-    <!-- Vanilla-Tilt.js for 3D Tilt Effect -->
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/vanilla-tilt/1.8.0/vanilla-tilt.min.js"></script>
+    <link rel="preconnect" href="https://unpkg.com" crossorigin>
+    <link rel="preconnect" href="https://cdnjs.cloudflare.com" crossorigin>
+    <link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin>
+    <!-- Self-hosted vendor bundles -->
+    <link rel="stylesheet" href="assets/vendor/swiper-bundle.min.css" />
+    <script src="assets/vendor/lucide.min.js" defer></script>
+    <script src="assets/vendor/swiper-bundle.min.js" defer></script>
+    
+    <!-- Security: CSP + Referrer Policy -->
+    <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' https://cdn.tailwindcss.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com data:; img-src 'self' data: https://i.imgur.com; media-src 'self' https://i.imgur.com; connect-src 'self' https://calculaconfia-production.up.railway.app http://localhost:3000 http://localhost:8000; frame-ancestors 'none'; base-uri 'self'; upgrade-insecure-requests">
+    <meta name="referrer" content="strict-origin-when-cross-origin">
     <style>
         :root {
             --primary-dark: #1e293b; /* Slate 800 */
@@ -132,7 +134,8 @@
         .step-card:nth-child(3) { transition-delay: 0.4s; }
 
         /* --- ESTILOS DO MODAL DE AUTENTICAÇÃO --- */
-        .auth-view { min-height: 500px; }
+        .auth-view { min-height: 560px; }
+        #auth-card { max-height: calc(100vh - 2rem); overflow: auto; -webkit-overflow-scrolling: touch; }
         .auth-tab { color: #475569; transition: all 0.2s ease-in-out; }
         .active-tab { background-color: white; color: var(--primary-accent); box-shadow: 0 1px 3px rgba(0,0,0,0.1); }
         .form-input-group label { display: block; margin-bottom: 0.5rem; }
@@ -211,6 +214,8 @@
             opacity: 1;
             transform: translateY(0);
         }
+        /* Performance: avoid work for offscreen content */
+        .cv-auto { content-visibility: auto; contain-intrinsic-size: 1px 1000px; }
     </style>
 </head>
 <body class="text-slate-900">
@@ -238,19 +243,19 @@
             <div class="swiper-container hero-carousel">
                 <div class="swiper-wrapper">
                     <div class="swiper-slide">
-                        <video class="absolute inset-0 w-full h-full object-cover" autoplay loop muted playsinline>
+                        <video class="absolute inset-0 w-full h-full object-cover" autoplay loop muted playsinline preload="auto">
                             <source src="https://i.imgur.com/QpHVTbh.mp4" type="video/mp4">
                         </video>
                         <div class="absolute inset-0 bg-slate-900/70"></div>
                     </div>
                     <div class="swiper-slide">
-                        <video class="absolute inset-0 w-full h-full object-cover" autoplay loop muted playsinline>
+                        <video class="absolute inset-0 w-full h-full object-cover" muted playsinline preload="metadata">
                             <source src="https://i.imgur.com/HlVQjpL.mp4" type="video/mp4">
                         </video>
                         <div class="absolute inset-0 bg-slate-900/70"></div>
                     </div>
                     <div class="swiper-slide">
-                        <video class="absolute inset-0 w-full h-full object-cover" autoplay loop muted playsinline>
+                        <video class="absolute inset-0 w-full h-full object-cover" muted playsinline preload="metadata">
                              <source src="https://i.imgur.com/CpSZTuu.mp4" type="video/mp4">
                         </video>
                         <div class="absolute inset-0 bg-slate-900/70"></div>
@@ -272,7 +277,7 @@
         </section>
         
         <!-- "Como Funciona" Section -->
-        <section id="comofunciona" class="py-16 md:py-24 bg-white relative overflow-hidden">
+        <section id="comofunciona" class="py-16 md:py-24 bg-white relative overflow-hidden cv-auto">
             <div class="container mx-auto px-6 relative z-10">
                 <div class="text-center max-w-3xl mx-auto">
                     <h2 class="text-3xl sm:text-4xl font-extrabold mb-4">Fácil como 1, 2, 3.</h2>
@@ -328,7 +333,7 @@
         </section>
 
         <!-- Pricing Section -->
-        <section id="preco" class="spotlight-section py-16 md:py-24">
+        <section id="preco" class="spotlight-section py-16 md:py-24 cv-auto">
             <div class="container mx-auto px-6 relative z-10">
                 <!-- Mobile First: Card on top -->
                 <div class="flex flex-col md:grid md:grid-cols-2 gap-12 md:gap-16 items-center max-w-6xl mx-auto">
@@ -391,7 +396,7 @@
         </section>
 
         <!-- Referral Section -->
-        <section id="referral" class="py-16 bg-slate-50">
+        <section id="referral" class="py-16 bg-slate-50 cv-auto">
             <div class="container mx-auto px-6 text-center max-w-3xl">
                 <i data-lucide="gift" class="w-12 h-12 text-yellow-500 mx-auto mb-4"></i>
                 <h2 class="text-3xl sm:text-4xl font-extrabold mb-4">Gostou? Indique e Ganhe!</h2>
@@ -400,7 +405,7 @@
         </section>
 
         <!-- Testimonials Section -->
-        <section id="testimonials" class="py-16 md:py-24 bg-white relative overflow-hidden">
+        <section id="testimonials" class="py-16 md:py-24 bg-white relative overflow-hidden cv-auto">
             <div class="container mx-auto px-6 relative z-10">
                 <h2 class="text-3xl sm:text-4xl font-extrabold mb-4 text-center">Milhares de Brasileiros <span class="keyword-highlight">Já Confiam</span></h2>
                 <p class="text-slate-700 md:text-lg max-w-2xl mx-auto mb-12 md:mb-16 text-center">Veja o que alguns de nossos usuários estão dizendo sobre a experiência com a <strong class="font-semibold text-slate-800">CalculaConfia</strong>.</p>
@@ -549,7 +554,7 @@
 
             <!-- Card Header -->
             <div class="p-6 border-b border-slate-200 text-center">
-                <img src="https://i.imgur.com/64Tovft.png" alt="Logotipo CalculaConfia" class="h-10 w-auto mx-auto mb-4">
+                <img src="https://i.imgur.com/64Tovft.png" alt="Logotipo CalculaConfia" class="h-10 w-auto mx-auto mb-4" loading="lazy" decoding="async">
                 <div class="inline-flex bg-slate-100 rounded-lg p-1">
                     <button data-tab="login" class="auth-tab active-tab px-6 py-1.5 font-semibold text-sm rounded-md">Entrar</button>
                     <button data-tab="register" class="auth-tab px-6 py-1.5 font-semibold text-sm rounded-md">Cadastrar</button>
@@ -576,6 +581,7 @@
                         </div>
                     </div>
                     <div id="login-error" class="error-message"></div>
+                    <div id="login-success" class="success-message"></div>
                     <button type="submit" class="auth-button mt-6">Entrar</button>
                     <div class="text-center mt-4">
                         <a href="#" id="forgot-password-link" class="text-sm font-medium text-green-600 hover:text-green-700">Esqueci minha senha</a>
@@ -613,6 +619,7 @@
                                 <i data-lucide="lock" class="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400"></i>
                                 <input type="password" id="register-password" class="has-icon" placeholder="Mínimo 6 dígitos" required>
                             </div>
+                            <div id="password-feedback" class="mt-1 text-xs text-slate-500" aria-live="polite"></div>
                         </div>
                          <div class="form-input-group">
                             <label for="register-password-confirm" class="text-sm font-medium text-slate-700">Confirmar Senha</label>
@@ -647,7 +654,7 @@
                             <label for="verify-code" class="text-sm font-medium text-slate-700">Código de Verificação</label>
                             <div class="relative">
                                 <i data-lucide="key-round" class="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400"></i>
-                                <input type="text" id="verify-code" class="has-icon" placeholder="Ex: 123456" maxlength="6" pattern="\\d{6}" required>
+                                <input type="text" id="verify-code" class="has-icon" placeholder="Ex: 123456" maxlength="6" pattern="[0-9]{6}" inputmode="numeric" required>
                             </div>
                         </div>
                     </div>
@@ -703,11 +710,8 @@
         </div>
     </footer>
 
-    <script>
-      window.ENV = {
-        NEXT_PUBLIC_API_URL: 'https://calculaconfia-production.up.railway.app/api/v1'
-      };
-    </script>
+    <!-- ENV config as JSON (safer for CSP) -->
+    <script type="application/json" id="env-config">{"NEXT_PUBLIC_API_URL":"https://calculaconfia-production.up.railway.app/api/v1"}</script>
     <script src="assets/app.js"></script>
     </body>
     </html>

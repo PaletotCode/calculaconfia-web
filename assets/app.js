@@ -12,9 +12,17 @@
   const hide = (el) => el && el.classList.add('hidden');
   const toggle = (el, on) => el && el.classList.toggle('hidden', !on);
 
-  // Environment config
-  const API = (window.ENV && (window.ENV.NEXT_PUBLIC_API_URL || window.ENV.NEXT_PUBLIC_API_BASE_URL))
-    || (location.hostname === 'localhost' || location.hostname === '127.0.0.1'
+  // Environment config (read from JSON script to be CSP-friendly)
+  function readEnv() {
+    try {
+      const el = document.getElementById('env-config');
+      if (el && el.textContent) return JSON.parse(el.textContent);
+    } catch (_) {}
+    return (window.ENV || {});
+  }
+  const ENV = readEnv();
+  const API = (ENV.NEXT_PUBLIC_API_URL || ENV.NEXT_PUBLIC_API_BASE_URL)
+    || ((location.hostname === 'localhost' || location.hostname === '127.0.0.1')
       ? 'http://localhost:8000/api/v1'
       : 'https://calculaconfia-production.up.railway.app/api/v1');
 
@@ -75,20 +83,43 @@
   }
 
   // ---- Icons & Swiper ----
-  try { if (window.lucide && lucide.createIcons) lucide.createIcons(); } catch (_) {}
-
-  let swiper = null;
+  // Defer icon hydration until idle
   try {
-    if (window.Swiper) {
-      swiper = new Swiper('.hero-carousel', {
-        loop: true,
-        autoplay: { delay: 5000, disableOnInteraction: false },
-        pagination: { el: '.swiper-pagination', clickable: true },
-        effect: 'fade',
-        fadeEffect: { crossFade: true },
-      });
-    }
+    const runIcons = () => { if (window.lucide && lucide.createIcons) lucide.createIcons(); };
+    (window.requestIdleCallback || setTimeout)(runIcons, 1);
   } catch (_) {}
+
+  // Swiper: init when script ready (deferred) and after load fallback
+  let swiper = null;
+  function initSwiperIfReady() {
+    try {
+      if (!swiper && window.Swiper) {
+        swiper = new Swiper('.hero-carousel', {
+          loop: true,
+          autoplay: { delay: 5000, disableOnInteraction: false },
+          pagination: { el: '.swiper-pagination', clickable: true },
+          effect: 'fade',
+          fadeEffect: { crossFade: true },
+        });
+        // Manage hero videos: play active, pause others
+        const slides = qsa('.hero-carousel .swiper-slide');
+        const getActiveVideo = () => {
+          const active = document.querySelector('.hero-carousel .swiper-slide-active video');
+          return active || null;
+        };
+        function syncVideos() {
+          qsa('.hero-carousel video').forEach(v => { try { v.pause(); } catch(_){} });
+          const v = getActiveVideo(); if (v) { try { v.play().catch(()=>{}); } catch(_){} }
+        }
+        swiper.on('init', syncVideos);
+        swiper.on('slideChangeTransitionEnd', syncVideos);
+        // Initial sync after next tick
+        setTimeout(syncVideos, 0);
+      }
+    } catch (_) {}
+  }
+  initSwiperIfReady();
+  window.addEventListener('load', initSwiperIfReady, { once: true });
 
   // ---- Smooth scroll for anchors ----
   qsa('a[href^="#"]').forEach(anchor => {
@@ -142,6 +173,7 @@
   const resendCodeBtn = qs('#resend-code-btn');
 
   const loginError = qs('#login-error');
+  const loginSuccessMsg = qs('#login-success');
   const registerError = qs('#register-error');
   const forgotError = qs('#forgot-error');
   const forgotSuccess = qs('#forgot-success');
@@ -178,7 +210,7 @@
 
   if (openAuthBtn) openAuthBtn.addEventListener('click', openModalPreferredView);
   if (closeAuthBtn) closeAuthBtn.addEventListener('click', closeModal);
-  if (authModalOverlay) authModalOverlay.addEventListener('click', (e) => { if (e.target === authModalOverlay) closeModal(); });
+  // Não fecha ao clicar fora do card para evitar fechamento acidental
 
   authTabs.forEach(tab => {
     tab.addEventListener('click', () => {
@@ -205,6 +237,11 @@
   }
 
   const showSpinner = (on) => toggle(authSpinner, on);
+
+  // ---- Performance heuristics ----
+  const LOW_SPEC = (navigator.deviceMemory && navigator.deviceMemory <= 2)
+    || (navigator.hardwareConcurrency && navigator.hardwareConcurrency <= 4);
+  const PREFERS_REDUCED = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
 
   // ---- Pricing CTA: Desbloquear Análise por R$5 → auth flow ----
   const pricingUnlockButtons = qsa('#preco .tilt-card a.cta-button');
@@ -270,6 +307,7 @@
     loginForm.addEventListener('submit', async (e) => {
       e.preventDefault();
       setText(loginError, '');
+      setText(loginSuccessMsg, '');
       const submitBtn = loginForm.querySelector('button[type="submit"]');
       submitBtn && (submitBtn.disabled = true);
       showSpinner(true);
@@ -278,11 +316,28 @@
         const password = qs('#login-password').value;
         const data = await httpLogin({ email, password });
         if (data && data.access_token) setToken(data.access_token);
-        closeModal();
+        setText(loginSuccessMsg, 'Login bem-sucedido! Bem-vindo de volta.');
+        setTimeout(() => { closeModal(); }, 1200);
       } catch (err) {
         const status = err && err.status;
         let msg = err && err.message ? String(err.message) : 'Falha no login.';
-        if (status === 400 || status === 401) msg = 'E-mail ou senha inválidos.';
+        const unverified = /verifi|inativ|ativar|unverified|verify/i.test(msg) || status === 403;
+        if (unverified) {
+          try {
+            const email = qs('#login-email').value.trim();
+            if (email) {
+              await httpSendVerificationCode(email);
+              localStorage.setItem('cc_pending_verify_email', email);
+              const vEmail = qs('#verify-email'); if (vEmail) vEmail.value = email;
+              setText(verifySuccess, 'Código reenviado. Verifique seu e-mail.');
+              showView(verifyView);
+              return;
+            }
+          } catch (_) {}
+          msg = 'Sua conta ainda não está verificada. Enviamos um novo código.';
+        } else if (status === 400 || status === 401) {
+          msg = 'E-mail ou senha inválidos.';
+        }
         setText(loginError, msg);
       } finally {
         showSpinner(false);
@@ -338,6 +393,34 @@
     });
   }
 
+  // ---- Password realtime feedback ----
+  (function passwordFeedback(){
+    const input = qs('#register-password');
+    const confirm = qs('#register-password-confirm');
+    const box = qs('#password-feedback');
+    if (!input || !box) return;
+    function render() {
+      const v = input.value || '';
+      const hasLower = /[a-z]/.test(v);
+      const hasUpper = /[A-Z]/.test(v);
+      const hasLen = v.length >= 6;
+      const lines = [
+        `${hasLen ? '✔️' : '✖️'} mínimo 6 caracteres`,
+        `${hasUpper ? '✔️' : '✖️'} inclui letra maiúscula`,
+        `${hasLower ? '✔️' : '✖️'} inclui letra minúscula`,
+      ];
+      box.textContent = lines.join(' • ');
+      if (confirm) {
+        if (confirm.value) {
+          const ok = v === confirm.value;
+          box.textContent += ` • ${ok ? '✔️ senhas iguais' : '✖️ senhas diferentes'}`;
+        }
+      }
+    }
+    input.addEventListener('input', render);
+    if (confirm) confirm.addEventListener('input', render);
+  })();
+
   if (forgotForm) {
     forgotForm.addEventListener('submit', async (e) => {
       e.preventDefault();
@@ -366,10 +449,12 @@
       try {
         const email = qs('#verify-email').value.trim();
         const code = qs('#verify-code').value.trim();
+        if (!/^\d{6}$/.test(code)) { throw Object.assign(new Error('Código deve ter 6 dígitos numéricos.'), { status: 422 }); }
         await httpVerifyAccount(email, code);
         setText(verifySuccess, 'Conta verificada com sucesso! Faça login para continuar.');
         // Prefill login email then show login
         const loginEmail = qs('#login-email'); if (loginEmail) loginEmail.value = email;
+        try { localStorage.removeItem('cc_pending_verify_email'); } catch(_){}
         showView(loginView);
       } catch (err) {
         const status = err && err.status;
@@ -384,51 +469,145 @@
   }
 
   if (resendCodeBtn) {
+    const STORAGE_KEY = 'cc_resend_meta';
+    const schedule = [120, 300, 1800]; // 2min, 5min, 30min
+    let intervalId = null;
+
+    const loadAll = () => { try { return JSON.parse(localStorage.getItem(STORAGE_KEY) || '{}'); } catch(_) { return {}; } };
+    const saveAll = (obj) => { try { localStorage.setItem(STORAGE_KEY, JSON.stringify(obj)); } catch(_){} };
+    const getMeta = (email) => (loadAll()[email] || { attempt: 0, nextAt: 0 });
+    const setMeta = (email, meta) => { const all = loadAll(); all[email] = meta; saveAll(all); };
+
+    function updateResendUI() {
+      const email = (qs('#verify-email')?.value || '').trim();
+      if (!email) return;
+      const { nextAt } = getMeta(email);
+      const now = Date.now();
+      if (now < nextAt) {
+        const remaining = Math.ceil((nextAt - now) / 1000);
+        resendCodeBtn.disabled = true;
+        resendCodeBtn.textContent = `Reenviar código em ${remaining}s`;
+      } else {
+        resendCodeBtn.disabled = false;
+        resendCodeBtn.textContent = 'Reenviar código';
+      }
+    }
+
+    function startCountdown() {
+      if (intervalId) clearInterval(intervalId);
+      intervalId = setInterval(updateResendUI, 1000);
+      updateResendUI();
+    }
+
     resendCodeBtn.addEventListener('click', async () => {
       setText(verifyError, '');
       setText(verifySuccess, '');
       const email = (qs('#verify-email')?.value || '').trim();
       if (!email) { setText(verifyError, 'Informe seu e-mail.'); return; }
+      const meta = getMeta(email);
+      const now = Date.now();
+      if (now < meta.nextAt) { updateResendUI(); return; }
+      const idx = Math.min(meta.attempt, schedule.length - 1);
+      const waitSec = schedule[idx];
       showSpinner(true);
       try {
         await httpSendVerificationCode(email);
         setText(verifySuccess, 'Código reenviado! Verifique sua caixa de entrada.');
+        setMeta(email, { attempt: meta.attempt + 1, nextAt: now + waitSec * 1000 });
+        startCountdown();
       } catch (err) {
         setText(verifyError, err && err.message ? String(err.message) : 'Falha ao reenviar código.');
-      } finally {
-        showSpinner(false);
-      }
+      } finally { showSpinner(false); }
     });
+
+    const vEmail = qs('#verify-email');
+    if (vEmail) vEmail.addEventListener('input', updateResendUI);
+    startCountdown();
   }
 
-  // ---- Visual effects kept unchanged ----
+  // Se houver verificação pendente, abrir diretamente a tela de verificação
   try {
-    const initVanta = () => {
-      if (!window.VANTA) return;
-      window.VANTA.NET({ el: '#comofunciona', mouseControls: true, touchControls: true, gyroControls: false, minHeight: 200.00, minWidth: 200.00, scale: 1.00, scaleMobile: 1.00, color: 0xcccccc, backgroundColor: 0xffffff, points: 11.00, maxDistance: 22.00, spacing: 18.00 });
-      window.VANTA.NET({ el: '#testimonials', mouseControls: true, touchControls: true, gyroControls: false, minHeight: 200.00, minWidth: 200.00, scale: 1.00, scaleMobile: 1.00, color: 0xcccccc, backgroundColor: 0xffffff, points: 11.00, maxDistance: 22.00, spacing: 18.00 });
-    };
-    setTimeout(initVanta, 500);
+    const pending = localStorage.getItem('cc_pending_verify_email');
+    if (pending) {
+      if (authModalOverlay) show(authModalOverlay);
+      const vEmail = qs('#verify-email'); if (vEmail) vEmail.value = pending;
+      showView(verifyView);
+    }
   } catch (_) {}
+
+  // ---- Visual effects kept unchanged ----
+  // ---- Lazy-load Vanta/Three only when sections approach viewport ----
+  (function lazyVanta(){
+    if (PREFERS_REDUCED) return; // respect user setting
+    let loaded = false;
+    function loadScript(src) {
+      return new Promise((resolve, reject) => {
+        const s = document.createElement('script'); s.src = src; s.async = true; s.onload = resolve; s.onerror = reject; document.head.appendChild(s);
+      });
+    }
+    async function ensureVanta() {
+      if (loaded) return; loaded = true;
+      try {
+        if (!window.THREE) await loadScript('assets/vendor/three.r134.min.js');
+        if (!window.VANTA) await loadScript('assets/vendor/vanta.net.min.js');
+        const opts = { mouseControls: true, touchControls: true, gyroControls: false, minHeight: 200.00, minWidth: 200.00, scale: 1.00, scaleMobile: 1.00, color: 0xcccccc, backgroundColor: 0xffffff, points: 11.00, maxDistance: 22.00, spacing: 18.00 };
+        const lite = { ...opts, points: 9.00, maxDistance: 18.00, spacing: 20.00 };
+        const conf = LOW_SPEC ? lite : opts;
+        if (document.querySelector('#comofunciona')) window.VANTA.NET({ el: '#comofunciona', ...conf });
+        if (document.querySelector('#testimonials')) window.VANTA.NET({ el: '#testimonials', ...conf });
+      } catch (_) {}
+    }
+    try {
+      const io = new IntersectionObserver((entries) => {
+        entries.forEach(e => { if (e.isIntersecting) { ensureVanta(); io.disconnect(); } });
+      }, { rootMargin: '200px' });
+      const t1 = document.getElementById('comofunciona');
+      const t2 = document.getElementById('testimonials');
+      if (t1) io.observe(t1); if (t2) io.observe(t2);
+    } catch (_) { setTimeout(ensureVanta, 1200); }
+  })();
 
   try {
     const heroText = qs('#hero-text-content');
-    if (heroText) {
+    if (heroText && !PREFERS_REDUCED) {
+      let ticking = false;
       window.addEventListener('scroll', () => {
-        const scrollPosition = window.scrollY;
-        if (scrollPosition < window.innerHeight) {
-          heroText.style.transform = `translateY(${scrollPosition * 0.5}px)`;
-          heroText.style.opacity = String(1 - (scrollPosition / (window.innerHeight / 1.5)));
-        }
-      });
+        if (ticking) return; ticking = true;
+        requestAnimationFrame(() => {
+          const scrollPosition = window.scrollY;
+          if (scrollPosition < window.innerHeight) {
+            heroText.style.transform = `translateY(${scrollPosition * 0.5}px)`;
+            heroText.style.opacity = String(1 - (scrollPosition / (window.innerHeight / 1.5)));
+          }
+          ticking = false;
+        });
+      }, { passive: true });
     }
   } catch (_) {}
 
-  try {
-    if (window.VanillaTilt) {
-      VanillaTilt.init(qsa('.tilt-card'), { max: 15, speed: 400, glare: true, 'max-glare': 0.5, scale: 1.05 });
+  // Lazy-load VanillaTilt only if pointer is fine
+  (function lazyTilt(){
+    const canTilt = matchMedia('(pointer: fine)').matches;
+    if (!canTilt) return;
+    let loaded = false;
+    function loadScript(src){ return new Promise((res, rej)=>{ const s=document.createElement('script'); s.src=src; s.async=true; s.onload=res; s.onerror=rej; document.head.appendChild(s); }); }
+    async function ensureTilt(){
+      if (loaded) return; loaded = true;
+      try {
+        if (!window.VanillaTilt) await loadScript('assets/vendor/vanilla-tilt.min.js');
+        const opts = { max: 15, speed: 400, glare: true, 'max-glare': 0.5, scale: 1.05 };
+        const lite = { max: 10, speed: 300, glare: false, scale: 1.03 };
+        VanillaTilt.init(qsa('.tilt-card'), LOW_SPEC ? lite : opts);
+      } catch(_){}
     }
-  } catch (_) {}
+    try {
+      const io = new IntersectionObserver((entries)=>{
+        entries.forEach(e=>{ if (e.isIntersecting) { ensureTilt(); io.disconnect(); }});
+      }, { rootMargin: '200px' });
+      const firstTilt = document.querySelector('.tilt-card');
+      if (firstTilt) io.observe(firstTilt);
+    } catch(_){ setTimeout(ensureTilt, 1200); }
+  })();
 
   try {
     const pricingDetails = qs('#pricing-details');
