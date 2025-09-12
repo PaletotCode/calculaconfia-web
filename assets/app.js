@@ -146,7 +146,8 @@
         try { const n = Number(data); if (!Number.isNaN(n)) num = n; } catch (_) {}
       }
       return Number.isFinite(num) ? num : 0;
-    } catch (_) {
+    } catch (err) {
+      if (err && err.status === 401) return -1; // sessão expirada / não autenticado
       return 0;
     }
   }
@@ -173,6 +174,9 @@
     const start = Date.now();
     while (Date.now() - start < timeoutMs) {
       const nowBal = await httpCreditsBalance();
+      if (nowBal === -1) { // unauthorized
+        const e = new Error('UNAUTH'); e.code = 'UNAUTH'; throw e;
+      }
       if (nowBal > (base ?? 0)) return nowBal;
       await new Promise(r => setTimeout(r, intervalMs));
     }
@@ -443,6 +447,8 @@
         const data = await httpLogin({ email, password });
         if (data && data.access_token) setToken(data.access_token);
         setText(loginSuccessMsg, 'Login bem-sucedido! Bem-vindo de volta.');
+        // notificar listeners (ex.: reautenticar watcher de pagamento)
+        try { window.dispatchEvent(new CustomEvent('cc:login-success')); } catch(_){}
         setTimeout(() => { closeModal(); }, 600);
         // After login, decide: go to platform or show payment card
         routeAfterAuth();
@@ -689,9 +695,20 @@
       setStatus('Verificando seu saldo...');
       const pending = getPendingPayment();
       const base = pending && typeof pending.baseBalance === 'number' ? pending.baseBalance : await httpCreditsBalance();
-      const changed = await pollCreditsUntilChange(base, { timeoutMs: 20000, intervalMs: 3000 });
-      if (changed && changed >= 1) { clearPendingPayment(); redirectToPlatform(); return; }
-      setStatus('Ainda não confirmado. Tente novamente em instantes.');
+      try {
+        const changed = await pollCreditsUntilChange(base, { timeoutMs: 20000, intervalMs: 3000 });
+        if (changed && changed >= 1) { clearPendingPayment(); redirectToPlatform(); return; }
+        setStatus('Ainda não confirmado. Tente novamente em instantes.');
+      } catch (err) {
+        if (err && (err.code === 'UNAUTH' || err.status === 401)) {
+          setStatus('Sessão expirada. Faça login para finalizar.');
+          openModalPreferredView && openModalPreferredView();
+          const once = () => { window.removeEventListener('cc:login-success', once); onCheckBalance(); };
+          window.addEventListener('cc:login-success', once, { once: true });
+        } else {
+          setStatus('Erro ao verificar saldo. Tente novamente.');
+        }
+      }
     }
 
     function onClose() { hidePaymentCard(); }
@@ -702,12 +719,26 @@
   })();
 
   // Resume payment watcher after returning from Mercado Pago
+  let paymentWatcherActive = false;
   async function resumePaymentWatcher(showUI = false) {
+    if (paymentWatcherActive) return;
     const pending = getPendingPayment();
     if (!pending || !getToken()) return;
+    paymentWatcherActive = true;
     if (showUI) showPaymentCard('Aguardando confirmação do pagamento (PIX)...');
-    const next = await pollCreditsUntilChange(pending.baseBalance ?? 0, { timeoutMs: 180000, intervalMs: 3000 });
-    if (next && next >= 1) { clearPendingPayment(); redirectToPlatform(); }
+    try {
+      const next = await pollCreditsUntilChange(pending.baseBalance ?? 0, { timeoutMs: 180000, intervalMs: 3000 });
+      if (next && next >= 1) { clearPendingPayment(); redirectToPlatform(); }
+    } catch (err) {
+      if (err && (err.code === 'UNAUTH' || err.status === 401)) {
+        showPaymentCard('Sessão expirada. Faça login para finalizar.');
+        openModalPreferredView && openModalPreferredView();
+        const once = async () => { window.removeEventListener('cc:login-success', once); paymentWatcherActive = false; await resumePaymentWatcher(true); };
+        window.addEventListener('cc:login-success', once, { once: true });
+        return;
+      }
+    }
+    paymentWatcherActive = false;
   }
 
   function isReturningFromMp() {
