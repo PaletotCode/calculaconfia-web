@@ -203,7 +203,12 @@
     if (!getToken()) return;
     try {
       const bal = await httpCreditsBalance();
-      if (bal >= 1) redirectToPlatform(); else showPaymentCard();
+      if (bal >= 1) {
+        clearPendingPayment();
+        redirectToPlatform();
+      } else {
+        showPaymentCard();
+      }
     } catch (_) { /* stay */ }
   }
 
@@ -751,14 +756,18 @@
 
   // Initial auth-based routing + pending payment resume
   (async function bootRouting(){
-    if (getToken()) {
-      // if we are returning from MP, prioritize payment watcher
-      if (isReturningFromMp()) { await resumePaymentWatcher(true); return; }
-      // if there is a pending payment (e.g., user refreshed), resume watcher
-      if (getPendingPayment()) { await resumePaymentWatcher(true); return; }
-      // otherwise, decide where to send the user
-      routeAfterAuth();
-    }
+    if (!getToken()) return;
+    // first, if credits already there, go straight to platform and clear any pending state
+    try {
+      const bal = await httpCreditsBalance();
+      if (bal >= 1) { clearPendingPayment(); redirectToPlatform(); return; }
+    } catch(_){}
+    // if we are returning from MP, prioritize payment watcher
+    if (isReturningFromMp()) { await resumePaymentWatcher(true); return; }
+    // if there is a pending payment (e.g., user refreshed), resume watcher
+    if (getPendingPayment()) { await resumePaymentWatcher(true); return; }
+    // otherwise, decide where to send the user
+    routeAfterAuth();
   })();
 
   // Se houver verificação pendente, abrir diretamente a tela de verificação
