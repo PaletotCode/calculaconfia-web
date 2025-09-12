@@ -201,7 +201,16 @@
     return null;
   }
 
+  function isOnPlatform() {
+    try {
+      const p = location.pathname.replace(/\/+$/, '');
+      return /\/platform(\.html)?$/.test(p);
+    } catch(_) { return false; }
+  }
+
   function redirectToPlatform() {
+    if (isOnPlatform()) return; // avoid reload loops
+    // Prefer explicit file to bypass SPA fallback; if host rewrites, this will be ignored gracefully
     window.location.assign('platform.html');
   }
 
@@ -775,18 +784,11 @@
   }
 
   // Initial auth-based routing + pending payment resume
-  function ensurePlatformAlias() {
-    try {
-      const path = location.pathname;
-      if (/\/platform\/?$/.test(path) && !/platform\.html$/.test(path)) {
-        // redirect alias to the actual file to avoid SPA fallback loops
-        window.location.replace('platform.html');
-      }
-    } catch(_){}
-  }
+  function ensurePlatformAlias() { /* disabled to avoid external rewrites causing loops */ }
 
   (async function bootRouting(){
     ensurePlatformAlias();
+    if (isOnPlatform() && !getToken()) return; // allow viewing shell until login opens as needed
     if (!getToken()) return;
     // first, if credits already there, go straight to platform and clear any pending state
     try {
