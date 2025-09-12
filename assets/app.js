@@ -201,16 +201,26 @@
     return null;
   }
 
-  function isOnPlatform() {
-    try {
-      const p = location.pathname.replace(/\/+$/, '');
-      return /\/platform(\.html)?$/.test(p);
-    } catch(_) { return false; }
+  function isOnPlatformHtml() {
+    try { return /\/platform\.html$/.test(location.pathname); } catch(_) { return false; }
   }
 
   function redirectToPlatform() {
-    if (isOnPlatform()) return; // avoid reload loops
-    // Prefer explicit file to bypass SPA fallback; if host rewrites, this will be ignored gracefully
+    try {
+      const path = location.pathname.replace(/\/+$/, '');
+      // If currently at clean URL "/platform", force a one-time replace to platform.html
+      if (/\/platform$/.test(path) && !/platform\.html$/.test(path)) {
+        const guard = sessionStorage.getItem('cc_platform_fix');
+        if (!guard) {
+          sessionStorage.setItem('cc_platform_fix', '1');
+          window.location.replace('platform.html');
+          return;
+        }
+        // already attempted once; avoid loop
+        return;
+      }
+      if (isOnPlatformHtml()) return; // already on the final page
+    } catch(_) {}
     window.location.assign('platform.html');
   }
 
