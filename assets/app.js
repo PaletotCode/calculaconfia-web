@@ -73,17 +73,28 @@
   }
 
   async function openCheckout(preferenceId, initPoint) {
-    // Prefer SDK; fallback to init_point redirect.
+    // Prefer SDK; add autoOpen and a safety fallback redirect
     const ready = await ensureMpSdk();
+    let navigated = false;
+
+    function markNavigated() { navigated = true; }
+    try {
+      document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'hidden') markNavigated(); }, { once: true });
+      window.addEventListener('pagehide', markNavigated, { once: true });
+    } catch(_){}
+
     if (ready && MP_PUBLIC_KEY) {
       try {
         const mp = getMp();
         if (mp && preferenceId) {
-          // open checkout; safe even if it triggers navigation
-          mp.checkout({ preference: { id: preferenceId } });
+          mp.checkout({ preference: { id: preferenceId }, autoOpen: true });
+          // fallback timer if SDK couldn't open (CSP/popup)
+          if (initPoint) {
+            setTimeout(() => { if (!navigated) window.location.href = initPoint; }, 1200);
+          }
           return;
         }
-      } catch (_) {}
+      } catch (_) { /* will fallback below */ }
     }
     if (initPoint) { window.location.href = initPoint; }
   }
