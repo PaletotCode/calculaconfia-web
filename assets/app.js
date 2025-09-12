@@ -29,12 +29,15 @@
 
   const TOKEN_KEY = 'cc_token';
   const RETURNING_KEY = 'cc_isReturningUser';
+  const LIFETIME_KEY = 'cc_lifetime_access';
 
   const getToken = () => {
     try { return localStorage.getItem(TOKEN_KEY); } catch (_) { return null; }
   };
   const setToken = (t) => { try { localStorage.setItem(TOKEN_KEY, t); } catch (_) {} };
   const setReturning = () => { try { localStorage.setItem(RETURNING_KEY, 'true'); } catch (_) {} };
+  const hasLifetimeFlag = () => { try { return localStorage.getItem(LIFETIME_KEY) === '1'; } catch(_) { return false; } };
+  const setLifetimeFlag = () => { try { localStorage.setItem(LIFETIME_KEY, '1'); } catch(_){} };
   const isReturning = () => {
     try {
       if (getToken()) return true; // logged or was logged before
@@ -156,6 +159,21 @@
     try { return await api('/me', { method: 'GET' }); } catch (_) { return null; }
   }
 
+  async function httpCreditsHistoryHasPurchase() {
+    try {
+      const data = await api('/credits/history', { method: 'GET' });
+      const list = Array.isArray(data)
+        ? data
+        : (Array.isArray(data?.items) ? data.items : (Array.isArray(data?.transactions) ? data.transactions : []));
+      const ok = list.some(it => {
+        const t = (it?.transaction_type || it?.type || '').toString().toLowerCase();
+        return t === 'purchase' || t === 'compra';
+      });
+      if (ok) setLifetimeFlag();
+      return ok;
+    } catch(_) { return false; }
+  }
+
   async function httpCreateOrder() {
     const data = await api('/payments/create-order', { method: 'POST' });
     const preference_id = data.preference_id || data.id || data.preferenceId || null;
@@ -202,13 +220,15 @@
   async function routeAfterAuth() {
     if (!getToken()) return;
     try {
-      const bal = await httpCreditsBalance();
-      if (bal >= 1) {
+      // lifetime wins over balance check
+      if (hasLifetimeFlag() || await httpCreditsHistoryHasPurchase()) {
         clearPendingPayment();
         redirectToPlatform();
-      } else {
-        showPaymentCard();
+        return;
       }
+      const bal = await httpCreditsBalance();
+      if (bal >= 1) { clearPendingPayment(); redirectToPlatform(); return; }
+      showPaymentCard();
     } catch (_) { /* stay */ }
   }
 
@@ -733,7 +753,7 @@
     if (showUI) showPaymentCard('Aguardando confirmação do pagamento (PIX)...');
     try {
       const next = await pollCreditsUntilChange(pending.baseBalance ?? 0, { timeoutMs: 180000, intervalMs: 3000 });
-      if (next && next >= 1) { clearPendingPayment(); redirectToPlatform(); }
+      if (next && next >= 1) { setLifetimeFlag(); clearPendingPayment(); redirectToPlatform(); }
     } catch (err) {
       if (err && (err.code === 'UNAUTH' || err.status === 401)) {
         showPaymentCard('Sessão expirada. Faça login para finalizar.');
@@ -755,10 +775,24 @@
   }
 
   // Initial auth-based routing + pending payment resume
+  function ensurePlatformAlias() {
+    try {
+      const path = location.pathname;
+      if (/\/platform\/?$/.test(path) && !/platform\.html$/.test(path)) {
+        // redirect alias to the actual file to avoid SPA fallback loops
+        window.location.replace('platform.html');
+      }
+    } catch(_){}
+  }
+
   (async function bootRouting(){
+    ensurePlatformAlias();
     if (!getToken()) return;
     // first, if credits already there, go straight to platform and clear any pending state
     try {
+      if (hasLifetimeFlag() || await httpCreditsHistoryHasPurchase()) {
+        clearPendingPayment(); redirectToPlatform(); return;
+      }
       const bal = await httpCreditsBalance();
       if (bal >= 1) { clearPendingPayment(); redirectToPlatform(); return; }
     } catch(_){}
