@@ -25,6 +25,7 @@
     || ((location.hostname === 'localhost' || location.hostname === '127.0.0.1')
       ? 'http://localhost:8000/api/v1'
       : 'https://calculaconfia-production.up.railway.app/api/v1');
+  const MP_PUBLIC_KEY = ENV.NEXT_PUBLIC_MERCADO_PAGO_PUBLIC_KEY || '';
 
   const TOKEN_KEY = 'cc_token';
   const RETURNING_KEY = 'cc_isReturningUser';
@@ -43,6 +44,49 @@
 
   const headersJson = (extra = {}) => ({ 'Content-Type': 'application/json', ...extra });
   const authHeader = () => (getToken() ? { Authorization: `Bearer ${getToken()}` } : {});
+
+  // Lazy script loader (for robustness if SDK not yet ready)
+  function loadScript(src) {
+    return new Promise((resolve, reject) => {
+      const s = document.createElement('script');
+      s.src = src; s.async = true; s.onload = resolve; s.onerror = reject;
+      document.head.appendChild(s);
+    });
+  }
+
+  async function ensureMpSdk() {
+    if (window.MercadoPago) return true;
+    try {
+      await loadScript('https://sdk.mercadopago.com/js/v2');
+      return !!window.MercadoPago;
+    } catch (_) {
+      return false;
+    }
+  }
+
+  function getMp() {
+    try {
+      if (!MP_PUBLIC_KEY) return null;
+      if (!window.MercadoPago) return null;
+      return new window.MercadoPago(MP_PUBLIC_KEY, { locale: 'pt-BR' });
+    } catch (_) { return null; }
+  }
+
+  async function openCheckout(preferenceId, initPoint) {
+    // Prefer SDK; fallback to init_point redirect.
+    const ready = await ensureMpSdk();
+    if (ready && MP_PUBLIC_KEY) {
+      try {
+        const mp = getMp();
+        if (mp && preferenceId) {
+          // open checkout; safe even if it triggers navigation
+          mp.checkout({ preference: { id: preferenceId } });
+          return;
+        }
+      } catch (_) {}
+    }
+    if (initPoint) { window.location.href = initPoint; }
+  }
 
   async function parseError(res) {
     const text = await res.text().catch(() => '');
@@ -73,6 +117,79 @@
     const ct = res.headers.get('content-type') || '';
     if (ct.includes('application/json')) return res.json();
     return res.text();
+  }
+
+  // ---- Payment + Credits helpers ----
+  async function httpCreditsBalance() {
+    try {
+      const data = await api('/credits/balance', { method: 'GET' });
+      const pick = (obj) => {
+        if (typeof obj === 'number') return obj;
+        if (!obj || typeof obj !== 'object') return NaN;
+        const keys = ['balance', 'credits', 'creditos', 'valid_credits', 'saldo'];
+        for (const k of keys) { if (typeof obj[k] === 'number') return obj[k]; }
+        return NaN;
+      };
+      let num = pick(data);
+      if (Number.isNaN(num)) {
+        try { const n = Number(data); if (!Number.isNaN(n)) num = n; } catch (_) {}
+      }
+      return Number.isFinite(num) ? num : 0;
+    } catch (_) {
+      return 0;
+    }
+  }
+
+  async function httpMe() {
+    try { return await api('/me', { method: 'GET' }); } catch (_) { return null; }
+  }
+
+  async function httpCreateOrder() {
+    const data = await api('/payments/create-order', { method: 'POST' });
+    const preference_id = data.preference_id || data.id || data.preferenceId || null;
+    const init_point = data.init_point || data.initPoint || data.sandbox_init_point || null;
+    if (!preference_id && !init_point) throw new Error('Não foi possível criar a ordem de pagamento.');
+    return { preference_id, init_point };
+  }
+
+  // Pending payment state in localStorage (for reliable resume after redirect)
+  const PENDING_KEY = 'cc_pending_payment';
+  function setPendingPayment(state) { try { localStorage.setItem(PENDING_KEY, JSON.stringify(state)); } catch(_){} }
+  function getPendingPayment() { try { return JSON.parse(localStorage.getItem(PENDING_KEY) || 'null'); } catch(_) { return null; } }
+  function clearPendingPayment() { try { localStorage.removeItem(PENDING_KEY); } catch(_){} }
+
+  async function pollCreditsUntilChange(base, { timeoutMs = 120000, intervalMs = 2500 } = {}) {
+    const start = Date.now();
+    while (Date.now() - start < timeoutMs) {
+      const nowBal = await httpCreditsBalance();
+      if (nowBal > (base ?? 0)) return nowBal;
+      await new Promise(r => setTimeout(r, intervalMs));
+    }
+    return null;
+  }
+
+  function redirectToPlatform() {
+    window.location.assign('platform.html');
+  }
+
+  function showPaymentCard(message) {
+    const overlay = qs('#payment-card-overlay');
+    const status = qs('#payment-card-status');
+    if (!overlay) return;
+    if (message) { status && (status.textContent = message) && status.classList.remove('hidden'); }
+    overlay.classList.remove('hidden');
+    try { if (window.lucide && window.lucide.createIcons) window.lucide.createIcons(); } catch(_){}
+  }
+  function hidePaymentCard() {
+    const overlay = qs('#payment-card-overlay'); if (overlay) overlay.classList.add('hidden');
+  }
+
+  async function routeAfterAuth() {
+    if (!getToken()) return;
+    try {
+      const bal = await httpCreditsBalance();
+      if (bal >= 1) redirectToPlatform(); else showPaymentCard();
+    } catch (_) { /* stay */ }
   }
 
   // ---- Icons & Swiper ----
@@ -315,7 +432,9 @@
         const data = await httpLogin({ email, password });
         if (data && data.access_token) setToken(data.access_token);
         setText(loginSuccessMsg, 'Login bem-sucedido! Bem-vindo de volta.');
-        setTimeout(() => { closeModal(); }, 1200);
+        setTimeout(() => { closeModal(); }, 600);
+        // After login, decide: go to platform or show payment card
+        routeAfterAuth();
       } catch (err) {
         const status = err && err.status;
         let msg = err && err.message ? String(err.message) : 'Falha no login.';
@@ -524,6 +643,81 @@
     if (vEmail) vEmail.addEventListener('input', updateResendUI);
     startCountdown();
   }
+
+  // ---- Payment Card events ----
+  (function setupPaymentCard(){
+    const overlay = qs('#payment-card-overlay');
+    if (!overlay) return;
+    const buyBtn = qs('#buy-credits-btn');
+    const closeBtn = qs('#payment-card-close');
+    const checkBtn = qs('#check-balance-btn');
+    const statusBox = qs('#payment-card-status');
+
+    const setStatus = (msg) => { if (!statusBox) return; if (msg) { statusBox.textContent = msg; statusBox.classList.remove('hidden'); } else { statusBox.textContent = ''; statusBox.classList.add('hidden'); } };
+
+    async function onBuyCredits() {
+      if (!getToken()) { openModalPreferredView && openModalPreferredView(); return; }
+      try {
+        buyBtn && (buyBtn.disabled = true);
+        setStatus('Criando ordem de pagamento e abrindo o checkout...');
+        const base = await httpCreditsBalance();
+        const { preference_id, init_point } = await httpCreateOrder();
+        setPendingPayment({ startedAt: Date.now(), baseBalance: base });
+        // Start a background watcher (in case user doesn\'t leave this page)
+        try { resumePaymentWatcher(true); } catch(_){}
+        await openCheckout(preference_id, init_point);
+      } catch (err) {
+        setStatus(err && err.message ? String(err.message) : 'Não foi possível iniciar o pagamento.');
+      } finally {
+        buyBtn && (buyBtn.disabled = false);
+      }
+    }
+
+    async function onCheckBalance() {
+      if (!getToken()) { openModalPreferredView && openModalPreferredView(); return; }
+      setStatus('Verificando seu saldo...');
+      const pending = getPendingPayment();
+      const base = pending && typeof pending.baseBalance === 'number' ? pending.baseBalance : await httpCreditsBalance();
+      const changed = await pollCreditsUntilChange(base, { timeoutMs: 20000, intervalMs: 3000 });
+      if (changed && changed >= 1) { clearPendingPayment(); redirectToPlatform(); return; }
+      setStatus('Ainda não confirmado. Tente novamente em instantes.');
+    }
+
+    function onClose() { hidePaymentCard(); }
+
+    buyBtn && buyBtn.addEventListener('click', onBuyCredits);
+    checkBtn && checkBtn.addEventListener('click', onCheckBalance);
+    closeBtn && closeBtn.addEventListener('click', onClose);
+  })();
+
+  // Resume payment watcher after returning from Mercado Pago
+  async function resumePaymentWatcher(showUI = false) {
+    const pending = getPendingPayment();
+    if (!pending || !getToken()) return;
+    if (showUI) showPaymentCard('Aguardando confirmação do pagamento (PIX)...');
+    const next = await pollCreditsUntilChange(pending.baseBalance ?? 0, { timeoutMs: 180000, intervalMs: 3000 });
+    if (next && next >= 1) { clearPendingPayment(); redirectToPlatform(); }
+  }
+
+  function isReturningFromMp() {
+    try {
+      const p = new URLSearchParams(location.search);
+      const keys = ['preference_id','payment_id','collection_id','merchant_order_id','payment_status','status'];
+      return keys.some(k => p.get(k));
+    } catch(_) { return false; }
+  }
+
+  // Initial auth-based routing + pending payment resume
+  (async function bootRouting(){
+    if (getToken()) {
+      // if we are returning from MP, prioritize payment watcher
+      if (isReturningFromMp()) { await resumePaymentWatcher(true); return; }
+      // if there is a pending payment (e.g., user refreshed), resume watcher
+      if (getPendingPayment()) { await resumePaymentWatcher(true); return; }
+      // otherwise, decide where to send the user
+      routeAfterAuth();
+    }
+  })();
 
   // Se houver verificação pendente, abrir diretamente a tela de verificação
   try {

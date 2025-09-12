@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Pagamento em processamento - CalculaConfia</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline' https://cdn.tailwindcss.com https://sdk.mercadopago.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com data:; img-src 'self' data:; connect-src 'self' https://calculaconfia-production.up.railway.app http://localhost:3000 http://localhost:8000 https://api.mercadopago.com https://sdk.mercadopago.com; frame-src 'self' https://*.mercadopago.com https://*.mercadopago.com.br; base-uri 'self'; upgrade-insecure-requests" />
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;700;800;900&display=swap" rel="stylesheet">
+  <script src="assets/vendor/lucide.min.js?v=1" defer></script>
+  <script src="https://sdk.mercadopago.com/js/v2" defer></script>
+</head>
+<body class="min-h-screen bg-slate-100 text-slate-900 flex items-center justify-center p-6">
+  <div class="bg-white w-full max-w-lg rounded-2xl shadow-2xl p-6 md:p-8">
+    <div class="flex items-center justify-between mb-2">
+      <h1 class="text-xl font-bold">Estamos processando seu pagamento</h1>
+    </div>
+    <p class="text-slate-700">Pode levar alguns segundos. Assim que confirmado, vamos te levar automaticamente para a plataforma.</p>
+    <div id="payment-card-status" class="mt-4 p-3 rounded-lg bg-slate-100 text-slate-700 text-sm"></div>
+    <div class="mt-6 flex gap-3">
+      <button id="check-balance-btn" class="flex-1 bg-green-600 hover:bg-green-700 text-white font-semibold py-2.5 rounded-lg">Verificar saldo agora</button>
+      <a href="index.html" class="flex-1 text-center bg-slate-200 hover:bg-slate-300 text-slate-800 font-semibold py-2.5 rounded-lg">Voltar ao início</a>
+    </div>
+  </div>
+
+  <script type="application/json" id="env-config">{"NEXT_PUBLIC_API_URL":"https://calculaconfia.com.br/api/v1","NEXT_PUBLIC_MERCADO_PAGO_PUBLIC_KEY":"APP_USR-07c4af2e-52c5-4b7e-b46c-94715c52e515"}</script>
+  <script src="assets/app.js?v=1"></script>
+  <script>
+    // Abre o card (status) e começa o watcher assim que possível
+    document.addEventListener('DOMContentLoaded', function(){
+      const status = document.getElementById('payment-card-status');
+      if (status) status.textContent = 'Aguardando confirmação do pagamento (PIX)...';
+      // Se houver sessão e pagamento pendente, o app.js retoma o watcher
+    });
+  </script>
+</body>
+</html>

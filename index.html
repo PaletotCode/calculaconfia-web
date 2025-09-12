@@ -15,9 +15,11 @@
     <link rel="stylesheet" href="assets/vendor/swiper-bundle.min.css?v=1" />
     <script src="assets/vendor/lucide.min.js?v=1" id="lucide-script" defer></script>
     <script src="assets/vendor/swiper-bundle.min.js?v=1" defer></script>
+    <!-- Mercado Pago SDK v2 (Checkout Pro) -->
+    <script src="https://sdk.mercadopago.com/js/v2" defer></script>
     
     <!-- Security: CSP + Referrer Policy -->
-    <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline' https://cdn.tailwindcss.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com data:; img-src 'self' data: https://i.imgur.com; media-src 'self' https://i.imgur.com; connect-src 'self' https://calculaconfia-production.up.railway.app http://localhost:3000 http://localhost:8000; base-uri 'self'; upgrade-insecure-requests">
+    <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline' https://cdn.tailwindcss.com https://sdk.mercadopago.com https://*.mercadopago.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com data:; img-src 'self' data: https://i.imgur.com; media-src 'self' https://i.imgur.com; connect-src 'self' https://calculaconfia-production.up.railway.app http://localhost:3000 http://localhost:8000 https://api.mercadopago.com https://sdk.mercadopago.com https://*.mercadopago.com; frame-src 'self' https://*.mercadopago.com https://*.mercadopago.com.br; base-uri 'self'; upgrade-insecure-requests">
     <meta name="referrer" content="strict-origin-when-cross-origin">
     <style>
         :root {
@@ -698,6 +700,32 @@
 
         </div>
     </div>
+    <!-- Payment Card Overlay -->
+    <div id="payment-card-overlay" class="fixed inset-0 z-[60] hidden">
+      <div class="absolute inset-0 bg-black/60"></div>
+      <div class="relative z-10 min-h-full flex items-center justify-center p-4">
+        <div class="bg-white w-full max-w-md rounded-2xl shadow-2xl p-6 md:p-8">
+          <div class="flex items-center justify-between mb-4">
+            <h3 class="text-lg font-bold text-slate-800">Comprar Créditos</h3>
+            <button id="payment-card-close" class="text-slate-500 hover:text-slate-700" title="Fechar">
+              <i data-lucide="x" class="w-5 h-5"></i>
+            </button>
+          </div>
+          <p class="text-slate-700 mb-6">Obrigado por se cadastrar! Estamos prontos para começar agora.</p>
+
+          <div id="payment-card-status" class="hidden p-3 rounded-lg bg-slate-100 text-slate-700 text-sm mb-4"></div>
+
+          <button id="buy-credits-btn" class="w-full bg-[var(--primary-accent)] hover:bg-[var(--primary-accent-hover)] text-white font-semibold py-3 rounded-lg transition-colors">
+            Comprar créditos!
+          </button>
+
+          <div class="mt-4 text-center">
+            <button id="check-balance-btn" class="text-sm font-medium text-green-700 hover:text-green-800">Já paguei, verificar saldo</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
     <!-- Footer -->
     <footer class="bg-slate-900 text-white py-12 md:py-16">
         <div class="container mx-auto px-6 text-center">
@@ -716,7 +744,7 @@
     </footer>
 
     <!-- ENV config as JSON (safer for CSP) -->
-    <script type="application/json" id="env-config">{"NEXT_PUBLIC_API_URL":"https://calculaconfia-production.up.railway.app/api/v1"}</script>
+    <script type="application/json" id="env-config">{"NEXT_PUBLIC_API_URL":"https://calculaconfia.com.br/api/v1","NEXT_PUBLIC_MERCADO_PAGO_PUBLIC_KEY":"APP_USR-07c4af2e-52c5-4b7e-b46c-94715c52e515"}</script>
     <script src="assets/app.js?v=1"></script>
     </body>
     </html>
