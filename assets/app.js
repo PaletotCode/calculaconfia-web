@@ -541,12 +541,11 @@
   // ---- Pricing CTA: Desbloquear Análise por R$5 → auth flow ----
   const pricingUnlockButtons = qsa('#preco .tilt-card a.cta-button');
   pricingUnlockButtons.forEach(btn => {
-    if ((btn.getAttribute('href') || '#') === '#') {
-      btn.addEventListener('click', (e) => {
-        e.preventDefault();
-        if (isReturning()) openModalForce(loginView); else openModalForce(registerView);
-      });
-    }
+    btn.addEventListener('click', (e) => {
+      // Regra fixa: todos CTAs levam ao cadastro
+      e.preventDefault();
+      openModalForce(registerView);
+    });
   });
 
   // ---- HTTP calls per FRONTEND.md ----
