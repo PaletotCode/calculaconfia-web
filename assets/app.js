@@ -137,6 +137,7 @@
   async function httpCreditsBalance() {
     try {
       const data = await api('/credits/balance', { method: 'GET' });
+      try { window.CCRouter && CCRouter.log('api:credits_balance:ok', { data }); } catch(_){}
       const pick = (obj) => {
         if (typeof obj === 'number') return obj;
         if (!obj || typeof obj !== 'object') return NaN;
@@ -150,18 +151,20 @@
       }
       return Number.isFinite(num) ? num : 0;
     } catch (err) {
+      try { window.CCRouter && CCRouter.log('api:credits_balance:error', { status: err?.status, message: String(err?.message || '') }); } catch(_){}
       if (err && err.status === 401) return -1; // sessão expirada / não autenticado
       return 0;
     }
   }
 
   async function httpMe() {
-    try { return await api('/me', { method: 'GET' }); } catch (_) { return null; }
+    try { const me = await api('/me', { method: 'GET' }); try { window.CCRouter && CCRouter.log('api:me:ok', { me: !!me }); } catch(_){} return me; } catch (e) { try { window.CCRouter && CCRouter.log('api:me:error', { status: e?.status, message: String(e?.message || '') }); } catch(_){} return null; }
   }
 
   async function httpCreditsHistoryHasPurchase() {
     try {
       const data = await api('/credits/history', { method: 'GET' });
+      try { window.CCRouter && CCRouter.log('api:credits_history:ok', { items: Array.isArray(data) ? data.length : (Array.isArray(data?.items) ? data.items.length : null) }); } catch(_){}
       const list = Array.isArray(data)
         ? data
         : (Array.isArray(data?.items) ? data.items : (Array.isArray(data?.transactions) ? data.transactions : []));
@@ -171,11 +174,12 @@
       });
       if (ok) setLifetimeFlag();
       return ok;
-    } catch(_) { return false; }
+    } catch(err) { try { window.CCRouter && CCRouter.log('api:credits_history:error', { status: err?.status, message: String(err?.message || '') }); } catch(_){} return false; }
   }
 
   async function httpCreateOrder() {
     const data = await api('/payments/create-order', { method: 'POST' });
+    try { window.CCRouter && CCRouter.log('api:create_order', { ok: !!data }); } catch(_){}
     const preference_id = data.preference_id || data.id || data.preferenceId || null;
     const init_point = data.init_point || data.initPoint || data.sandbox_init_point || null;
     if (!preference_id && !init_point) throw new Error('Não foi possível criar a ordem de pagamento.');
@@ -260,16 +264,20 @@
         lifetime ? Promise.resolve(true) : httpCreditsHistoryHasPurchase().catch(() => false),
         httpCreditsBalance().catch(() => 0),
       ]);
+      try { window.CCRouter && CCRouter.log('routeAfterAuth:computed', { lifetime, purchased, balance }); } catch(_){}
 
       if (lifetime || purchased || balance >= 1) {
+        try { window.CCRouter && CCRouter.log('routeAfterAuth:redirect'); } catch(_){}
         clearPendingPayment();
         redirectToPlatform();
       } else {
+        try { window.CCRouter && CCRouter.log('routeAfterAuth:show_payment'); } catch(_){}
         showPaymentCard();
       }
     } catch (_) {
       // Any unexpected error should still allow the user to reach the
       // platform instead of leaving them on a broken screen.
+      try { window.CCRouter && CCRouter.log('routeAfterAuth:error_fallback'); } catch(_){}
       redirectToPlatform();
     }
   }
@@ -511,8 +519,10 @@
       try {
         const email = qs('#login-email').value.trim();
         const password = qs('#login-password').value;
+        try { window.CCRouter && CCRouter.log('login:attempt', { email: email || '(empty)' }); } catch(_){}
         const data = await httpLogin({ email, password });
         if (data && data.access_token) setToken(data.access_token);
+        try { window.CCRouter && CCRouter.log('login:success', { gotToken: !!(data && data.access_token) }); } catch(_){}
         setText(loginSuccessMsg, 'Login bem-sucedido! Bem-vindo de volta.');
         // notificar listeners (ex.: reautenticar watcher de pagamento)
         try { window.dispatchEvent(new CustomEvent('cc:login-success')); } catch(_){}
@@ -520,6 +530,7 @@
         // After login, decide: go to platform or show payment card
         routeAfterAuth();
       } catch (err) {
+        try { window.CCRouter && CCRouter.log('login:error', { status: err?.status, message: String(err?.message || '') }); } catch(_){}
         const status = err && err.status;
         let msg = err && err.message ? String(err.message) : 'Falha no login.';
         const unverified = /verifi|inativ|ativar|unverified|verify/i.test(msg) || status === 403 || (status === 401 && /inactive/i.test(msg));
@@ -792,12 +803,14 @@
     const pending = getPendingPayment();
     if (!pending || !getToken()) return;
     paymentWatcherActive = true;
+    try { window.CCRouter && CCRouter.log('paymentWatcher:start', { base: pending.baseBalance }); } catch(_){}
     if (showUI) showPaymentCard('Aguardando confirmação do pagamento (PIX)...');
     try {
       const next = await pollCreditsUntilChange(pending.baseBalance ?? 0, { timeoutMs: 180000, intervalMs: 3000 });
-      if (next && next >= 1) { setLifetimeFlag(); clearPendingPayment(); redirectToPlatform(); }
+      if (next && next >= 1) { try { window.CCRouter && CCRouter.log('paymentWatcher:credits_detected', { next }); } catch(_){} setLifetimeFlag(); clearPendingPayment(); redirectToPlatform(); }
     } catch (err) {
       if (err && (err.code === 'UNAUTH' || err.status === 401)) {
+        try { window.CCRouter && CCRouter.log('paymentWatcher:unauth'); } catch(_){}
         showPaymentCard('Sessão expirada. Faça login para finalizar.');
         openModalPreferredView && openModalPreferredView();
         const once = async () => { window.removeEventListener('cc:login-success', once); paymentWatcherActive = false; await resumePaymentWatcher(true); };
@@ -821,21 +834,26 @@
 
   (async function bootRouting(){
     ensurePlatformAlias();
+    try { window.CCRouter && CCRouter.log('bootRouting:start', { path: location.pathname }); } catch(_){}
     if (isOnPlatform() && !getToken()) return; // allow viewing shell until login opens as needed
     if (!getToken()) return;
     // first, if credits already there, go straight to platform and clear any pending state
     try {
-      if (hasLifetimeFlag() || await httpCreditsHistoryHasPurchase()) {
+      const lifetime = hasLifetimeFlag(); let hasPurchase = false; if (!lifetime) hasPurchase = await httpCreditsHistoryHasPurchase();
+      window.CCRouter && CCRouter.log('bootRouting:flags', { lifetime, hasPurchase });
+      if (lifetime || hasPurchase) {
         clearPendingPayment(); redirectToPlatform(); return;
       }
       const bal = await httpCreditsBalance();
+      window.CCRouter && CCRouter.log('bootRouting:balance', { bal });
       if (bal >= 1) { clearPendingPayment(); redirectToPlatform(); return; }
     } catch(_){}
     // if we are returning from MP, prioritize payment watcher
-    if (isReturningFromMp()) { await resumePaymentWatcher(true); return; }
+    if (isReturningFromMp()) { window.CCRouter && CCRouter.log('bootRouting:returning_from_mp'); await resumePaymentWatcher(true); return; }
     // if there is a pending payment (e.g., user refreshed), resume watcher
-    if (getPendingPayment()) { await resumePaymentWatcher(true); return; }
+    if (getPendingPayment()) { window.CCRouter && CCRouter.log('bootRouting:has_pending_payment'); await resumePaymentWatcher(true); return; }
     // otherwise, decide where to send the user
+    window.CCRouter && CCRouter.log('bootRouting:routeAfterAuth');
     routeAfterAuth();
   })();
 
