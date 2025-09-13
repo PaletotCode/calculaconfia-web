@@ -1,29 +1,33 @@
 {
+  "public": ".",
+  "rewrites": [
+    {
+      "source": "/platform",
+      "destination": "/platform.html"
+    },
+    {
+      "source": "/platform/",
+      "destination": "/platform/index.html"
+    }
+  ],
   "headers": [
     {
-      "source": "index.html",
+      "source": "**/*.@(js|css|png|jpg|jpeg|gif|svg|woff|woff2|ttf|eot|ico|webp|mp4|webm)",
       "headers": [
-        { "key": "Cache-Control", "value": "no-cache, no-store, must-revalidate" }
+        {
+          "key": "Cache-Control",
+          "value": "public, max-age=31536000, immutable"
+        }
       ]
     },
     {
-      "source": "assets/app.js",
+      "source": "**/*.@(html|json)",
       "headers": [
-        { "key": "Cache-Control", "value": "public, max-age=60, must-revalidate" }
-      ]
-    },
-    {
-      "source": "assets/vendor/*",
-      "headers": [
-        { "key": "Cache-Control", "value": "public, max-age=600" }
-      ]
-    },
-    {
-      "source": "**/*.css",
-      "headers": [
-        { "key": "Cache-Control", "value": "public, max-age=600" }
+        {
+          "key": "Cache-Control",
+          "value": "public, max-age=0, must-revalidate"
+        }
       ]
     }
   ]
 }
-

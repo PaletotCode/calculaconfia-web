@@ -1,129 +1,173 @@
-// Centralized, defensive routing helpers for CalculaConfia
-// Purpose: avoid redirect loops and normalize platform route handling
-(function(){
+// CalculaConfia Centralized Router v2.1 (Fixed)
+// Handles platform redirection with proper server configuration
+
+(function () {
   'use strict';
 
-  const STORAGE_KEY = 'cc_nav_platform_guard';
-  const DEBUG_KEY = 'cc_debug_router';
-  const DOM_GUARD_KEY = 'cc_platform_dom_loaded';
+  const VERSION = '2.1';
 
-  function now(){ return new Date().toISOString(); }
-  function isDebug(){
+  // Global namespace
+  window.CCRouter = window.CCRouter || {};
+  const R = window.CCRouter;
+
+  // Logs storage and debug utilities
+  window.__cc_logs = window.__cc_logs || [];
+
+  R.version = VERSION;
+
+  // Debug utilities
+  R.isDebug = function() {
     try {
-      if (typeof window.CC_DEBUG === 'boolean') return !!window.CC_DEBUG;
-      const fromLs = (localStorage.getItem(DEBUG_KEY) || sessionStorage.getItem(DEBUG_KEY) || '').toString().toLowerCase();
-      return fromLs === '1' || fromLs === 'true';
+      const v = (localStorage.getItem('cc_debug_router') || sessionStorage.getItem('cc_debug_router') || '').toString().toLowerCase();
+      return v === '1' || v === 'true';
     } catch(_) { return false; }
-  }
-  function setDebug(on){
-    try { localStorage.setItem(DEBUG_KEY, on ? '1' : '0'); } catch(_){}
-    try { sessionStorage.setItem(DEBUG_KEY, on ? '1' : '0'); } catch(_){}
-  }
-  function log(event, data){
-    try {
-      window.__cc_logs = window.__cc_logs || [];
-      const payload = { ts: now(), scope: 'router', event, data };
-      window.__cc_logs.push(payload);
-      if (isDebug() && console && console.info) console.info('[CC][router]', event, data || '');
-    } catch(_){}
-  }
-
-  function readGuard(){
-    try { return JSON.parse(sessionStorage.getItem(STORAGE_KEY) || 'null'); } catch(_) { return null; }
-  }
-  function writeGuard(obj){
-    try { sessionStorage.setItem(STORAGE_KEY, JSON.stringify(obj)); } catch(_){}
-  }
-  function clearGuard(){
-    try { sessionStorage.removeItem(STORAGE_KEY); } catch(_){}
-  }
-
-  function cleanPath(){
-    try { return location.pathname.replace(/\/+$/, ''); } catch(_) { return ''; }
-  }
-
-  function isOnPlatformHtml(){
-    try { return /\/platform\.html$/.test(cleanPath()); } catch(_) { return false; }
-  }
-  function isOnPlatformClean(){
-    try { return /\/platform$/.test(cleanPath()); } catch(_) { return false; }
-  }
-  function isOnPlatform(){
-    return isOnPlatformHtml() || isOnPlatformClean();
-  }
-
-  function hasPlatformDom(){
-    try { return !!(document.querySelector('#page-container') || document.querySelector('#calculate-container')); } catch(_) { return false; }
-  }
-
-  async function ensurePlatformDom(){
-    try {
-      if (!isOnPlatform()) return;
-      if (hasPlatformDom()) { log('platform_dom:present'); return; }
-      log('platform_dom:missing');
-      const guard = sessionStorage.getItem(DOM_GUARD_KEY);
-      if (guard === '1') { log('platform_dom:guard_block'); return; }
-      sessionStorage.setItem(DOM_GUARD_KEY, '1');
-
-      const res = await fetch('/platform.html', { cache: 'no-store' });
-      const html = await res.text();
-      const doc = new DOMParser().parseFromString(html, 'text/html');
-      if (doc.title) document.title = doc.title;
-      const body = doc.body; if (!body) throw new Error('no-body');
-      document.body.innerHTML = body.innerHTML;
-      // re-exec scripts
-      const scripts = Array.from(document.body.querySelectorAll('script'));
-      for (const s of scripts) {
-        const n = document.createElement('script');
-        if (s.src) { n.src = s.getAttribute('src'); n.defer = s.defer; n.async = s.async; }
-        else { n.text = s.textContent || ''; }
-        const t = s.getAttribute('type'); if (t) n.setAttribute('type', t);
-        document.body.appendChild(n);
-      }
-      log('platform_dom:mounted');
-    } catch(e) {
-      log('platform_dom:error', { message: String(e && e.message || e) });
-    }
-  }
-
-  // Hard guard against infinite refresh loops across misconfigured rewrites
-  // Allows at most 2 redirect attempts within 10s
-  function shouldAttempt(){
-    const now = Date.now();
-    const g = readGuard() || { attempts: 0, lastAt: 0 };
-    if (g.attempts >= 2 && (now - g.lastAt) < 10000) { log('guard:block', g); return false; }
-    writeGuard({ attempts: (g.attempts || 0) + 1, lastAt: now });
-    log('guard:attempt', { attempts: (g.attempts || 0) + 1 });
-    return true;
-  }
-
-  function redirectToPlatform(){
-    try {
-      log('redirect:called', { path: cleanPath(), onHtml: isOnPlatformHtml(), onClean: isOnPlatformClean() });
-      // Prefer the clean path now that we have /platform/index.html
-      if (isOnPlatformHtml() || isOnPlatformClean()) { log('redirect:noop_already_on_platform'); try { ensurePlatformDom(); } catch(_){} return; }
-      if (!shouldAttempt()) return; // stop potential loops
-      log('redirect:assign_to_clean');
-      window.location.assign('/platform');
-    } catch(_) {}
-  }
-
-  // Expose
-  window.CCRouter = {
-    setDebug,
-    isDebug,
-    log,
-    isOnPlatformHtml,
-    isOnPlatformClean,
-    isOnPlatform,
-    redirectToPlatform,
-    resetGuard: clearGuard,
-    ensurePlatformDom,
-    _dbg: { readGuard, writeGuard, clearGuard, shouldAttempt, cleanPath },
   };
 
-  // Initial debug banner
-  log('init', { path: cleanPath(), userAgent: navigator.userAgent });
-  // If page loads at /platform due to rewrites but without platform DOM, attempt mount
-  try { if (isOnPlatform()) ensurePlatformDom(); } catch(_){}
+  R.setDebug = function(on) {
+    try { localStorage.setItem('cc_debug_router', on ? '1' : '0'); } catch(_){}
+    try { sessionStorage.setItem('cc_debug_router', on ? '1' : '0'); } catch(_){}
+    if (console && console.info) console.info('[CC][router] debug =', !!on);
+  };
+
+  R.log = function(event, data) {
+    try {
+      window.__cc_logs.push({ 
+        ts: new Date().toISOString(), 
+        scope: 'router', 
+        version: VERSION,
+        event, 
+        data: data || null 
+      });
+      if (R.isDebug() && console && console.info) {
+        console.info('[CC][router]', event, data || '');
+      }
+    } catch(_){}
+  };
+
+  // Path utilities
+  R.isOnPlatformHtml = function() {
+    try {
+      return /\/platform\.html(\?.*)?$/i.test(location.pathname);
+    } catch(_) { return false; }
+  };
+
+  R.isOnPlatform = function() {
+    try {
+      const path = location.pathname.replace(/\/+$/, '');
+      return /\/platform(\.html)?$/i.test(path);
+    } catch(_) { return false; }
+  };
+
+  R.isOnPlatformPath = function() {
+    try {
+      const path = location.pathname.replace(/\/+$/, '');
+      return path === '/platform' || path === '/platform.html';
+    } catch(_) { return false; }
+  };
+
+  R.shouldRedirectToPlatform = function(userHasCredits) {
+    if (!userHasCredits) return false;
+    const path = location.pathname.replace(/\/+$/, '');
+    // Redirect to platform if user is on landing page and has credits
+    return path === '' || path === '/' || path === '/index.html';
+  };
+
+  // Platform DOM verification
+  R.ensurePlatformDom = function() {
+    try {
+      if (!R.isOnPlatform()) return;
+      
+      const hasPlatformElements = !!(
+        document.querySelector('#page-container') &&
+        document.querySelector('#calculate-container') &&
+        document.querySelector('.nav-container')
+      );
+      
+      if (hasPlatformElements) {
+        R.log('ensurePlatformDom:already_correct');
+        return true;
+      }
+
+      R.log('ensurePlatformDom:wrong_dom_detected', {
+        path: location.pathname,
+        title: document.title
+      });
+
+      // Force reload to correct page
+      if (location.pathname === '/platform') {
+        R.log('ensurePlatformDom:force_reload_platform_html');
+        location.replace('/platform.html');
+        return false;
+      }
+      
+      return false;
+    } catch(error) {
+      R.log('ensurePlatformDom:error', { error: error.message });
+      return false;
+    }
+  };
+
+  // Anti-loop protection
+  let redirectCount = 0;
+  const MAX_REDIRECTS = 2;
+  const REDIRECT_RESET_TIME = 10000; // 10 seconds
+
+  R.resetRedirectCount = function() {
+    redirectCount = 0;
+  };
+
+  // Auto-reset redirect count periodically
+  setInterval(R.resetRedirectCount, REDIRECT_RESET_TIME);
+
+  // Main redirect function
+  R.redirectToPlatform = function() {
+    try {
+      if (redirectCount >= MAX_REDIRECTS) {
+        R.log('guard:max_redirects_reached', { count: redirectCount });
+        return;
+      }
+
+      redirectCount++;
+      
+      const currentPath = location.pathname.replace(/\/+$/, '');
+      R.log('redirect:called', { 
+        path: currentPath, 
+        count: redirectCount 
+      });
+
+      // If already on platform path, ensure DOM is correct
+      if (R.isOnPlatform()) {
+        if (R.ensurePlatformDom()) {
+          R.log('redirect:noop_already_on_platform');
+          return;
+        }
+        // ensurePlatformDom handles the redirect if needed
+        return;
+      }
+
+      // Redirect to platform.html (most reliable)
+      R.log('redirect:executing', { 
+        from: currentPath, 
+        to: '/platform.html' 
+      });
+      
+      location.assign('/platform.html');
+      
+    } catch(error) {
+      R.log('redirect:error', { error: error.message });
+    }
+  };
+
+  // Initialize
+  R.log('router:initialized', { 
+    version: VERSION,
+    path: location.pathname,
+    isOnPlatform: R.isOnPlatform()
+  });
+
+  // Export for debugging
+  if (R.isDebug()) {
+    console.info('[CC][router] Router v' + VERSION + ' loaded. Use CCRouter.setDebug(false) to disable logs.');
+  }
+
 })();

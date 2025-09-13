@@ -1,15 +1,18 @@
 {
-  "name": "calculaconfia-web",
-  "private": true,
+  "name": "calculaconfia-frontend",
   "version": "1.0.0",
-  "description": "Static frontend for CalculaConfia",
+  "description": "Frontend estático para CalculaConfia",
+  "main": "index.html",
   "scripts": {
-    "start": "serve -s -l $PORT"
+    "dev": "serve -l 3000",
+    "start": "serve -l 3000",
+    "build": "echo 'Frontend estático - sem build necessário'",
+    "preview": "serve -l 4173"
   },
   "dependencies": {
-    "serve": "^14.2.1"
+    "serve": "^14.2.5"
   },
-  "engines": {
-    "node": ">=18"
-  }
+  "keywords": ["calculaconfia", "frontend", "static"],
+  "author": "CalculaConfia Team",
+  "license": "MIT"
 }
