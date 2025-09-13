@@ -338,6 +338,8 @@
             if ($logout) {
                 $logout.addEventListener('click', (e) => {
                     e.preventDefault();
+                    // Pausa o redirecionamento automático para a plataforma ao voltar para a home
+                    try { sessionStorage.setItem('cc_pause_auto_platform', String(Date.now())); } catch(_){}
                     // Apenas sair da plataforma (sem deslogar). Logout real é no card flutuante da landing.
                     window.location.replace('/');
                 });

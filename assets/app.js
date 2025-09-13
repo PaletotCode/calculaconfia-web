@@ -334,6 +334,7 @@
 
   async function routeAfterAuth() {
     if (!getToken()) return;
+    try { if (isAutoPlatformPaused()) { window.CCRouter && CCRouter.log && CCRouter.log('routeAfterAuth:paused'); return; } } catch(_){ }
     try {
       // Run balance and history checks in parallel so a slow endpoint does
       // not block the navigation.  Network failures fail open and still
@@ -615,6 +616,7 @@
         setText(loginSuccessMsg, 'Login bem-sucedido! Bem-vindo de volta.');
         // notificar listeners (ex.: reautenticar watcher de pagamento)
         try { window.dispatchEvent(new CustomEvent('cc:login-success')); } catch(_){}
+        try { sessionStorage.removeItem('cc_pause_auto_platform'); } catch(_){}
         setTimeout(() => { closeModal(); }, 600);
         // After login, decide: go to platform or show payment card
         routeAfterAuth();
@@ -956,6 +958,7 @@
     try { window.CCRouter && CCRouter.log('bootRouting:start', { path: location.pathname }); } catch(_){}
     if (isOnPlatform() && !getToken()) return; // allow viewing shell until login opens as needed
     if (!getToken()) return;
+    try { if (isAutoPlatformPaused()) { window.CCRouter && CCRouter.log && CCRouter.log('bootRouting:paused'); return; } } catch(_){ }
     // first, if credits already there, go straight to platform and clear any pending state
     try {
       const lifetime = hasLifetimeFlag(); let hasPurchase = false; if (!lifetime) hasPurchase = await httpCreditsHistoryHasPurchase();
