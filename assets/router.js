@@ -1,5 +1,5 @@
 // CalculaConfia Centralized Router v2.1 (Fixed)
-// Handles platform redirection with proper server configuration
+// Handles platform redirection with proper server configuration // test
 
 (function () {
   'use strict';
