@@ -323,7 +323,7 @@
                 <a href="#history" data-color="#8b5cf6" data-index="2" class="nav-link p-2 rounded-lg" title="Histórico"><div class="flex flex-col items-center gap-1 text-slate-300 hover:text-hover-hist"><i data-lucide="history" class="w-6 h-6"></i><span class="text-xs font-medium">Histórico</span></div></a>
                 <a href="#credits" data-color="#ca8a04" data-index="3" class="nav-link p-2 rounded-lg" title="Créditos"><div class="flex flex-col items-center gap-1 text-slate-300 hover:text-hover-wallet"><i data-lucide="wallet" class="w-6 h-6"></i><span class="text-xs font-medium">Créditos</span></div></a>
                 <div class="w-px h-8 bg-slate-700"></div>
-                <a href="#" class="nav-link p-2 rounded-lg" title="Sair"><div class="flex flex-col items-center gap-1 text-slate-300 hover:text-hover-logout"><i data-lucide="log-out" class="w-6 h-6"></i><span class="text-xs font-medium">Sair</span></div></a>
+                <a href="#" id="logout-btn-platform" class="nav-link p-2 rounded-lg" title="Sair"><div class="flex flex-col items-center gap-1 text-slate-300 hover:text-hover-logout"><i data-lucide="log-out" class="w-6 h-6"></i><span class="text-xs font-medium">Sair</span></div></a>
             </div>
         </nav>
     </div>
@@ -332,6 +332,20 @@
         document.addEventListener('DOMContentLoaded', () => {
             lucide.createIcons();
             flatpickr.localize(flatpickr.l10ns.pt);
+
+            // Logout handler (Sair)
+            const $logout = document.getElementById('logout-btn-platform');
+            if ($logout) {
+                $logout.addEventListener('click', (e) => {
+                    e.preventDefault();
+                    try {
+                        localStorage.removeItem('cc_token');
+                        localStorage.removeItem('cc_isReturningUser');
+                        localStorage.removeItem('cc_lifetime_access');
+                    } catch(_){}
+                    window.location.replace('/');
+                });
+            }
 
             // --- MÓDULO DE ESTADO DA APLICAÇÃO ---
             const State = {

@@ -82,6 +82,17 @@
   const headersJson = (extra = {}) => ({ 'Content-Type': 'application/json', ...extra });
   const authHeader = () => (getToken() ? { Authorization: `Bearer ${getToken()}` } : {});
 
+  // Logout util (shared)
+  function logoutRedirectHome() {
+    try {
+      localStorage.removeItem(TOKEN_KEY);
+      localStorage.removeItem(RETURNING_KEY);
+      localStorage.removeItem(LIFETIME_KEY);
+    } catch(_){}
+    try { if (window.CCRouter && CCRouter.log) CCRouter.log('logout:done'); } catch(_){}
+    window.location.replace('/');
+  }
+
   // Lazy script loader (for robustness if SDK not yet ready)
   function loadScript(src) {
     return new Promise((resolve, reject) => {
@@ -287,6 +298,26 @@
     const overlay = qs('#payment-card-overlay'); if (overlay) overlay.classList.add('hidden');
   }
 
+  // ---- Login badge on header ----
+  async function updateLoginBadge() {
+    try {
+      const badge = qs('#logged-badge');
+      const nameEl = qs('#logged-name');
+      const loginBtn = qs('#login-modal-btn');
+      const logoutBtn = qs('#logout-btn-index');
+      if (!badge) return;
+      if (!getToken()) { badge.classList.add('hidden'); loginBtn && (loginBtn.classList.remove('hidden')); return; }
+      const me = await httpMe();
+      if (!me) { badge.classList.add('hidden'); loginBtn && (loginBtn.classList.remove('hidden')); return; }
+      // pick first name
+      let first = me.first_name || me.firstname || (me.name ? String(me.name).split(/\s+/)[0] : 'Usuário');
+      nameEl && (nameEl.textContent = `Logado como ${first}`);
+      badge.classList.remove('hidden');
+      loginBtn && loginBtn.classList.add('hidden');
+      if (logoutBtn && !logoutBtn._wired) { logoutBtn._wired = true; logoutBtn.addEventListener('click', (e)=>{ e.preventDefault(); logoutRedirectHome(); }); }
+    } catch(_){}
+  }
+
   async function routeAfterAuth() {
     if (!getToken()) return;
     try {
@@ -426,6 +457,7 @@
   const views = [loginView, registerView, forgotView, verifyView];
 
   function showView(viewToShow) {
+    try { document.body.classList.add('animate-switch'); setTimeout(()=>document.body.classList.remove('animate-switch'), 180); } catch(_){}
     views.forEach(v => v && v.classList.add('hidden'));
     if (viewToShow) viewToShow.classList.remove('hidden');
     // tabs reflect only login/register
@@ -434,13 +466,15 @@
       if (viewToShow && viewToShow.id.includes(tab.dataset.tab)) tab.classList.add('active-tab');
     });
     [loginError, registerError, forgotError, forgotSuccess, verifyError, verifySuccess].forEach(el => setText(el, ''));
+    // Reset wizard to step 1 if switching to register
+    if (viewToShow === registerView) try { setRegisterStep(1); } catch(_){}
   }
 
   function openModalPreferredView() {
     show(authModalOverlay);
-    // first-time users → register, returning users → login
-    if (isReturning()) showView(loginView); else showView(registerView);
-    setReturning(); // after first open, treat as returning next time
+    // Regra: sempre abrir no Cadastro (independente se é primeira vez)
+    showView(registerView);
+    setReturning();
   }
 
   function openModalForce(view) {
@@ -457,6 +491,13 @@
   // Não fecha ao clicar fora do card para evitar fechamento acidental
   qsa('[data-close-modal]').forEach(btn => btn.addEventListener('click', closeModal));
 
+  // Header login badge initialization
+  try {
+    if (document.readyState === 'complete' || document.readyState === 'interactive') updateLoginBadge();
+    else document.addEventListener('DOMContentLoaded', updateLoginBadge, { once: true });
+    window.addEventListener('cc:login-success', updateLoginBadge);
+  } catch(_){}
+
   authTabs.forEach(tab => {
     tab.addEventListener('click', () => {
       const viewId = `${tab.dataset.tab}-view`;
@@ -464,6 +505,15 @@
       showView(view);
     });
   });
+
+  // Intercept CTAs para abrir cadastro (regra: sempre ir para cadastro)
+  try {
+    qsa('a[href="#preco"]').forEach(a => a.addEventListener('click', (e) => {
+      e.preventDefault();
+      openModalForce && openModalForce(registerView);
+      try { setRegisterStep(1); } catch(_){}
+    }));
+  } catch(_){}
 
   tabLinks.forEach(link => {
     link.addEventListener('click', (e) => {
@@ -641,6 +691,30 @@
     });
   }
 
+  // ---- Register Wizard logic ----
+  function setRegisterStep(step) {
+    const steps = [qs('#reg-step-1'), qs('#reg-step-2'), qs('#reg-step-3')];
+    steps.forEach((el, idx) => { if (el) el.classList.toggle('hidden', idx !== (step-1)); });
+    const bar = qs('#reg-progress'); if (bar) { const pct = step===1?33:(step===2?66:100); bar.style.width = pct + '%'; }
+  }
+  try {
+    const n1 = qs('#reg-next-1'); const n2 = qs('#reg-next-2'); const b2 = qs('#reg-back-2'); const b3 = qs('#reg-back-3');
+    if (n1) n1.addEventListener('click', ()=>{
+      const fn = qs('#register-firstname').value.trim();
+      const ln = qs('#register-lastname').value.trim();
+      if (!fn || !ln) { setText(registerError, 'Informe nome e sobrenome.'); return; }
+      setText(registerError, ''); setRegisterStep(2);
+    });
+    if (b2) b2.addEventListener('click', ()=>{ setRegisterStep(1); });
+    if (n2) n2.addEventListener('click', ()=>{
+      const email = qs('#register-email').value.trim();
+      const ok = /.+@.+\..+/.test(email);
+      if (!ok) { setText(registerError, 'Informe um e‑mail válido.'); return; }
+      setText(registerError, ''); setRegisterStep(3);
+    });
+    if (b3) b3.addEventListener('click', ()=>{ setRegisterStep(2); });
+  } catch(_){}
+
   // ---- Password realtime feedback ----
   (function passwordFeedback(){
     const input = qs('#register-password');
@@ -652,21 +726,26 @@
       const hasLower = /[a-z]/.test(v);
       const hasUpper = /[A-Z]/.test(v);
       const hasLen = v.length >= 6;
-      const lines = [
-        `${hasLen ? '✔️' : '✖️'} mínimo 6 caracteres`,
-        `${hasUpper ? '✔️' : '✖️'} inclui letra maiúscula`,
-        `${hasLower ? '✔️' : '✖️'} inclui letra minúscula`,
+      const checks = [
+        { ok: hasLen, text: 'Mínimo 6 caracteres' },
+        { ok: hasUpper, text: 'Inclui letra maiúscula' },
+        { ok: hasLower, text: 'Inclui letra minúscula' },
       ];
-      box.textContent = lines.join(' • ');
-      if (confirm) {
-        if (confirm.value) {
-          const ok = v === confirm.value;
-          box.textContent += ` • ${ok ? '✔️ senhas iguais' : '✖️ senhas diferentes'}`;
-        }
+      const html = checks.map(c => `<div class="pw-check ${c.ok ? 'pw-good' : 'pw-bad'}"><i data-lucide="${c.ok ? 'check-circle-2' : 'x-circle'}"></i><span>${c.text}</span></div>`).join('');
+      let matchHtml = '';
+      if (confirm && confirm.value) {
+        const ok = v === confirm.value;
+        matchHtml = `<div class="pw-check ${ok ? 'pw-good' : 'pw-bad'}"><i data-lucide="${ok ? 'check-circle-2' : 'x-circle'}"></i><span>${ok ? 'Senhas iguais' : 'Senhas diferentes'}</span></div>`;
       }
+      box.innerHTML = html + matchHtml;
+      try { if (window.lucide && lucide.createIcons) lucide.createIcons(); } catch(_){}
+      // Confirm só habilita após digitar a senha
+      if (confirm) confirm.disabled = v.length === 0;
     }
     input.addEventListener('input', render);
     if (confirm) confirm.addEventListener('input', render);
+    // Estado inicial
+    render();
   })();
 
   if (forgotForm) {

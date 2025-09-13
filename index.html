@@ -135,10 +135,10 @@
         .step-card:nth-child(2) { transition-delay: 0.2s; }
         .step-card:nth-child(3) { transition-delay: 0.4s; }
 
-        /* --- ESTILOS DO MODAL DE AUTENTICAÇÃO --- */
-        /* Auth modal sizing: identical height for all tabs, compact with inner scroll */
-        .auth-view { height: 520px; display: flex; flex-direction: column; }
+        /* --- ESTILOS DO MODAL DE AUTENTICAÇÃO (refatorado) --- */
+        /* Tamanho mais flexível e com conteúdo interno rolável quando necessário */
         #auth-card { max-height: calc(100vh - 2rem); overflow: hidden; -webkit-overflow-scrolling: touch; }
+        .auth-view { min-height: 460px; display: flex; flex-direction: column; }
         .auth-view form { flex: 1 1 auto; display: flex; flex-direction: column; min-height: 0; }
         .auth-view form > .space-y-4 { flex: 1 1 auto; overflow: auto; min-height: 0; padding-right: 2px; }
         .auth-view .auth-footer { margin-top: auto; }
@@ -149,11 +149,16 @@
         .form-input-group .has-icon { padding-left: 2.5rem; }
         .form-input-group input:focus { outline: none; border-color: var(--primary-accent); box-shadow: 0 0 0 2px rgba(22, 163, 74, 0.2); }
         .form-input-group input.error { border-color: #ef4444; }
-        .auth-button { width: 100%; background-color: var(--primary-accent); color: white; font-weight: bold; padding: 0.8rem; border-radius: 0.5rem; transition: background-color 0.2s ease-in-out; }
-        .auth-button:hover { background-color: var(--primary-accent-hover); }
-        .auth-footer { text-align: center; margin-top: 1.5rem; padding-top: 1rem; border-top: 1px solid #e2e8f0; font-size: 0.875rem; color: #475569; }
-        .error-message { color: #ef4444; font-size: 0.875rem; text-align: center; margin-top: 1rem; min-height: 20px; }
-        .success-message { color: #22c55e; font-size: 0.875rem; text-align: center; margin-top: 1rem; min-height: 20px; }
+        .auth-button { width: 100%; background: linear-gradient(90deg,#16a34a,#22c55e); color: white; font-weight: 800; padding: 0.9rem; border-radius: 0.75rem; transition: transform .15s ease, box-shadow .2s ease; box-shadow: 0 10px 18px -10px rgba(34,197,94,.6); }
+        .auth-button:hover { transform: translateY(-1px); box-shadow: 0 14px 24px -10px rgba(34,197,94,.7); }
+        .auth-footer { text-align: center; margin-top: 1.25rem; padding-top: 0.75rem; border-top: 1px solid #e2e8f0; font-size: 0.9rem; color: #475569; }
+        .error-message { color: #ef4444; font-size: 0.9rem; text-align: center; margin-top: 0.75rem; min-height: 20px; }
+        .success-message { color: #22c55e; font-size: 0.9rem; text-align: center; margin-top: 0.75rem; min-height: 20px; }
+        /* Password checklist visual */
+        .pw-check { display:flex; align-items:center; gap:.5rem; color:#475569; font-size:.9rem; }
+        .pw-check i { width:18px; height:18px; }
+        .pw-good { color:#16a34a; }
+        .pw-bad { color:#ef4444; }
         
         /* --- ESTILOS EFEITO 3D "TILT" --- */
         .tilt-card { transform-style: preserve-3d; will-change: transform; }
@@ -225,6 +230,17 @@
         .card-3d--active { box-shadow: 0 12px 28px rgba(0,0,0,0.12), 0 4px 14px rgba(0,0,0,0.08); }
         /* Performance: avoid work for offscreen content */
         .cv-auto { content-visibility: auto; contain-intrinsic-size: 1px 1000px; }
+        /* --- Auth refinements & wizard --- */
+        #auth-card { transition: transform .18s ease; }
+        .animate-switch #auth-card { transform: scale(0.99); }
+        .pw-check { display:flex; align-items:center; gap:.5rem; color:#475569; font-size:.9rem; }
+        .pw-check i { width:18px; height:18px; }
+        .pw-good { color:#16a34a; }
+        .pw-bad { color:#ef4444; }
+        .wizard-progress { height: 6px; background: #e2e8f0; border-radius: 9999px; overflow: hidden; }
+        .wizard-bar { height: 100%; background: linear-gradient(90deg,#16a34a,#22c55e); width: 33%; transition: width .3s ease; }
+        .wizard-step { transition: opacity .2s ease, transform .2s ease; }
+        .wizard-step.hidden { opacity: 0; transform: translateY(6px); }
     </style>
 </head>
 <body class="text-slate-900">
@@ -237,7 +253,13 @@
                 <h1 class="hidden sm:block text-2xl font-bold text-slate-800">Calcula<span class="text-[var(--primary-accent)]">Confia</span></h1>
             </div>
             <!-- Unified Menu -->
-            <div class="flex items-center">
+            <div class="flex items-center gap-3">
+                <div id="logged-badge" class="hidden bg-white/90 border border-slate-200 rounded-xl px-3 py-1.5 shadow-sm backdrop-blur-md flex items-center gap-2 text-sm">
+                    <i data-lucide="user" class="w-4 h-4 text-green-600"></i>
+                    <span id="logged-name" class="font-semibold text-slate-700">Logado</span>
+                    <span class="text-slate-300">•</span>
+                    <button id="logout-btn-index" class="text-red-600 hover:text-red-700 font-semibold">Sair</button>
+                </div>
                 <button id="login-modal-btn" class="btn-shine text-slate-800 font-bold rounded-lg hover:bg-slate-200 transition-colors text-xs py-1.5 px-3 sm:text-sm sm:py-2 sm:px-4 mr-2">Entre Agora</button>
                 <a href="#preco" class="cta-button text-white font-bold rounded-lg shadow-md text-xs py-1.5 px-3 sm:text-sm sm:py-2 sm:px-4">
                     Iniciar Análise
@@ -599,10 +621,15 @@
                 </div>
             </div>
 
-            <!-- Register Form -->
+            <!-- Register Form (Wizard) -->
             <div id="register-view" class="p-8 hidden auth-view">
                 <form id="register-form">
-                    <div class="space-y-4">
+                    <div class="text-center mb-4">
+                      <h3 class="text-xl font-extrabold text-slate-800">Antes de começarmos, vamos criar sua conta</h3>
+                      <p class="text-slate-600 text-sm">Leva menos de 1 minuto. Depois você já segue para a sua análise.</p>
+                    </div>
+                    <div class="wizard-progress mb-4"><div id="reg-progress" class="wizard-bar"></div></div>
+                    <div id="reg-step-1" class="wizard-step">
                         <div class="grid grid-cols-2 gap-4">
                             <div class="form-input-group">
                                 <label for="register-firstname" class="text-sm font-medium text-slate-700">Nome</label>
@@ -613,35 +640,45 @@
                                 <input type="text" id="register-lastname" placeholder="Seu sobrenome" required>
                             </div>
                         </div>
+                        <button type="button" id="reg-next-1" class="auth-button mt-6">Próximo</button>
+                    </div>
+                    <div id="reg-step-2" class="wizard-step hidden">
                         <div class="form-input-group">
-                            <label for="register-email" class="text-sm font-medium text-slate-700">E-mail</label>
+                            <label for="register-email" class="text-sm font-medium text-slate-700">Nos diga seu melhor e‑mail</label>
                             <div class="relative">
                                 <i data-lucide="mail" class="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400"></i>
                                 <input type="email" id="register-email" class="has-icon" placeholder="seu@email.com" required>
                             </div>
                         </div>
+                        <div class="flex gap-3 mt-6">
+                          <button type="button" id="reg-back-2" class="w-1/2 bg-slate-200 text-slate-800 font-semibold py-2.5 rounded-lg">Voltar</button>
+                          <button type="button" id="reg-next-2" class="w-1/2 auth-button">Próximo</button>
+                        </div>
+                    </div>
+                    <div id="reg-step-3" class="wizard-step hidden">
                         <div class="form-input-group">
-                            <label for="register-password" class="text-sm font-medium text-slate-700">Senha</label>
+                            <label for="register-password" class="text-sm font-medium text-slate-700">Crie sua senha</label>
                             <div class="relative">
                                 <i data-lucide="lock" class="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400"></i>
                                 <input type="password" id="register-password" class="has-icon" placeholder="Mínimo 6 dígitos" required>
                             </div>
-                            <div id="password-feedback" class="mt-1 text-xs text-slate-500" aria-live="polite"></div>
+                            <div id="password-feedback" class="mt-2 text-xs text-slate-500" aria-live="polite"></div>
                         </div>
-                         <div class="form-input-group">
-                            <label for="register-password-confirm" class="text-sm font-medium text-slate-700">Confirmar Senha</label>
+                        <div class="form-input-group">
+                            <label for="register-password-confirm" class="text-sm font-medium text-slate-700">Confirmar senha</label>
                             <div class="relative">
                                 <i data-lucide="lock" class="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400"></i>
-                                <input type="password" id="register-password-confirm" class="has-icon" placeholder="Confirme sua senha" required>
+                                <input type="password" id="register-password-confirm" class="has-icon" placeholder="Confirme sua senha" required disabled>
                             </div>
+                        </div>
+                        <div class="flex gap-3 mt-6">
+                          <button type="button" id="reg-back-3" class="w-1/2 bg-slate-200 text-slate-800 font-semibold py-2.5 rounded-lg">Voltar</button>
+                          <button type="submit" id="reg-create-btn" class="w-1/2 auth-button">Criar Conta</button>
                         </div>
                     </div>
                     <div id="register-error" class="error-message"></div>
-                    <button type="submit" class="auth-button mt-6">Criar Conta</button>
                 </form>
-                 <div class="auth-footer">
-                    <p>Já tem conta? <a href="#" data-tab-link="login" class="font-bold text-green-600">Entrar</a></p>
-                </div>
+                <div class="auth-footer"><p>Já tem conta? <a href="#" data-tab-link="login" class="font-bold text-green-600">Entrar</a></p></div>
             </div>
 
             <!-- Verify Account Form -->
