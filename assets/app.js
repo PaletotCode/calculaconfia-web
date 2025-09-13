@@ -5,6 +5,40 @@
   'use strict';
 
   // ---- Utilities ----
+  // Ensure a minimal CCRouter shim exists even if router.js didn't load
+  (function ensureRouterShim(){
+    try {
+      if (!window.CCRouter) window.CCRouter = {};
+      const R = window.CCRouter;
+      if (typeof R.isDebug !== 'function') {
+        R.isDebug = function(){
+          try {
+            const v = (localStorage.getItem('cc_debug_router') || sessionStorage.getItem('cc_debug_router') || '').toString().toLowerCase();
+            return v === '1' || v === 'true';
+          } catch(_) { return false; }
+        };
+      }
+      if (typeof R.setDebug !== 'function') {
+        R.setDebug = function(on){
+          try { localStorage.setItem('cc_debug_router', on ? '1' : '0'); } catch(_){}
+          try { sessionStorage.setItem('cc_debug_router', on ? '1' : '0'); } catch(_){}
+          if (console && console.info) console.info('[CC][router] debug =', !!on);
+        };
+      }
+      if (typeof R.log !== 'function') {
+        R.log = function(event, data){
+          try {
+            window.__cc_logs = window.__cc_logs || [];
+            window.__cc_logs.push({ ts: new Date().toISOString(), scope: 'router', event, data });
+            if (R.isDebug() && console && console.info) console.info('[CC][router]', event, data || '');
+          } catch(_){}
+        };
+      }
+      if (typeof R.redirectToPlatform !== 'function') {
+        R.redirectToPlatform = function(){ try { window.location.assign('/platform.html'); } catch(_){} };
+      }
+    } catch(_){}
+  })();
   const qs = (sel, ctx = document) => ctx.querySelector(sel);
   const qsa = (sel, ctx = document) => Array.from(ctx.querySelectorAll(sel));
   const setText = (el, msg = '') => { if (el) el.textContent = String(msg || ''); };
@@ -840,20 +874,20 @@
     // first, if credits already there, go straight to platform and clear any pending state
     try {
       const lifetime = hasLifetimeFlag(); let hasPurchase = false; if (!lifetime) hasPurchase = await httpCreditsHistoryHasPurchase();
-      window.CCRouter && CCRouter.log('bootRouting:flags', { lifetime, hasPurchase });
+      if (window.CCRouter && typeof CCRouter.log === 'function') CCRouter.log('bootRouting:flags', { lifetime, hasPurchase });
       if (lifetime || hasPurchase) {
         clearPendingPayment(); redirectToPlatform(); return;
       }
       const bal = await httpCreditsBalance();
-      window.CCRouter && CCRouter.log('bootRouting:balance', { bal });
+      if (window.CCRouter && typeof CCRouter.log === 'function') CCRouter.log('bootRouting:balance', { bal });
       if (bal >= 1) { clearPendingPayment(); redirectToPlatform(); return; }
     } catch(_){}
     // if we are returning from MP, prioritize payment watcher
-    if (isReturningFromMp()) { window.CCRouter && CCRouter.log('bootRouting:returning_from_mp'); await resumePaymentWatcher(true); return; }
+    if (isReturningFromMp()) { if (window.CCRouter && typeof CCRouter.log === 'function') CCRouter.log('bootRouting:returning_from_mp'); await resumePaymentWatcher(true); return; }
     // if there is a pending payment (e.g., user refreshed), resume watcher
-    if (getPendingPayment()) { window.CCRouter && CCRouter.log('bootRouting:has_pending_payment'); await resumePaymentWatcher(true); return; }
+    if (getPendingPayment()) { if (window.CCRouter && typeof CCRouter.log === 'function') CCRouter.log('bootRouting:has_pending_payment'); await resumePaymentWatcher(true); return; }
     // otherwise, decide where to send the user
-    window.CCRouter && CCRouter.log('bootRouting:routeAfterAuth');
+    if (window.CCRouter && typeof CCRouter.log === 'function') CCRouter.log('bootRouting:routeAfterAuth');
     routeAfterAuth();
   })();
 
