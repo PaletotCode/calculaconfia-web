@@ -5,6 +5,20 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Plataforma - CalculaConfia</title>
+    <script>
+      // Gate de autenticação para rota limpa /platform
+      (function(){
+        try {
+          var TOKEN_KEY = 'cc_token';
+          var token = localStorage.getItem(TOKEN_KEY);
+          if (!token) { window.location.replace('/'); return; }
+          var API = 'https://calculaconfia-production.up.railway.app/api/v1';
+          fetch(API + '/me', { headers: { Authorization: 'Bearer ' + token } })
+            .then(function(r){ if (!r.ok) throw 0; })
+            .catch(function(){ try{ localStorage.removeItem(TOKEN_KEY); }catch(_){} window.location.replace('/'); });
+        } catch(_) { try{ localStorage.removeItem('cc_token'); }catch(_){} window.location.replace('/'); }
+      })();
+    </script>
     <script src="https://cdn.tailwindcss.com"></script>
     <script>
         tailwind.config = {
