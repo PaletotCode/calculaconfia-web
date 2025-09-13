@@ -338,11 +338,7 @@
             if ($logout) {
                 $logout.addEventListener('click', (e) => {
                     e.preventDefault();
-                    try {
-                        localStorage.removeItem('cc_token');
-                        localStorage.removeItem('cc_isReturningUser');
-                        localStorage.removeItem('cc_lifetime_access');
-                    } catch(_){}
+                    // Apenas sair da plataforma (sem deslogar). Logout real é no card flutuante da landing.
                     window.location.replace('/');
                 });
             }

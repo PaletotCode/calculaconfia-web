@@ -301,20 +301,34 @@
   // ---- Login badge on header ----
   async function updateLoginBadge() {
     try {
-      const badge = qs('#logged-badge');
-      const nameEl = qs('#logged-name');
+      const toggle = qs('#session-toggle');
+      const panel = qs('#session-panel');
+      const nameEl = qs('#session-name');
+      const statusEl = qs('#session-status');
+      const logoutBtn = qs('#session-logout');
       const loginBtn = qs('#login-modal-btn');
-      const logoutBtn = qs('#logout-btn-index');
-      if (!badge) return;
-      if (!getToken()) { badge.classList.add('hidden'); loginBtn && (loginBtn.classList.remove('hidden')); return; }
+      if (!toggle || !statusEl) return;
+      // Wire toggle once
+      if (!toggle._wired) {
+        toggle._wired = true;
+        toggle.addEventListener('click', ()=>{ if (panel) panel.classList.toggle('hidden'); });
+      }
+      if (logoutBtn && !logoutBtn._wired) {
+        logoutBtn._wired = true;
+        logoutBtn.addEventListener('click', (e)=>{ e.preventDefault(); logoutRedirectHome(); });
+      }
+      if (!getToken()) {
+        statusEl.textContent = 'Não logado';
+        nameEl && (nameEl.textContent = 'Você não está logado');
+        loginBtn && (loginBtn.classList.remove('hidden'));
+        return;
+      }
       const me = await httpMe();
-      if (!me) { badge.classList.add('hidden'); loginBtn && (loginBtn.classList.remove('hidden')); return; }
-      // pick first name
+      if (!me) { statusEl.textContent = 'Não logado'; nameEl && (nameEl.textContent = 'Você não está logado'); loginBtn && (loginBtn.classList.remove('hidden')); return; }
       let first = me.first_name || me.firstname || (me.name ? String(me.name).split(/\s+/)[0] : 'Usuário');
-      nameEl && (nameEl.textContent = `Logado como ${first}`);
-      badge.classList.remove('hidden');
-      loginBtn && loginBtn.classList.add('hidden');
-      if (logoutBtn && !logoutBtn._wired) { logoutBtn._wired = true; logoutBtn.addEventListener('click', (e)=>{ e.preventDefault(); logoutRedirectHome(); }); }
+      statusEl.textContent = `Logado como ${first}`;
+      nameEl && (nameEl.textContent = `Você está logado como ${first}`);
+      // login button segue visível conforme sua regra visual; não vamos esconder
     } catch(_){}
   }
 
@@ -496,6 +510,8 @@
     if (document.readyState === 'complete' || document.readyState === 'interactive') updateLoginBadge();
     else document.addEventListener('DOMContentLoaded', updateLoginBadge, { once: true });
     window.addEventListener('cc:login-success', updateLoginBadge);
+    const openLoginBtn = qs('#open-login-btn');
+    if (openLoginBtn) openLoginBtn.addEventListener('click', (e)=>{ e.preventDefault(); openModalForce && openModalForce(loginView); });
   } catch(_){}
 
   authTabs.forEach(tab => {
@@ -506,14 +522,7 @@
     });
   });
 
-  // Intercept CTAs para abrir cadastro (regra: sempre ir para cadastro)
-  try {
-    qsa('a[href="#preco"]').forEach(a => a.addEventListener('click', (e) => {
-      e.preventDefault();
-      openModalForce && openModalForce(registerView);
-      try { setRegisterStep(1); } catch(_){}
-    }));
-  } catch(_){}
+  // CTAs gerais agora apenas rolam até #preco (smooth scroll já cobre) — nenhuma interceptação aqui
 
   tabLinks.forEach(link => {
     link.addEventListener('click', (e) => {
@@ -539,14 +548,11 @@
   const PREFERS_REDUCED = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
 
   // ---- Pricing CTA: Desbloquear Análise por R$5 → auth flow ----
-  const pricingUnlockButtons = qsa('#preco .tilt-card a.cta-button');
-  pricingUnlockButtons.forEach(btn => {
-    btn.addEventListener('click', (e) => {
-      // Regra fixa: todos CTAs levam ao cadastro
-      e.preventDefault();
-      openModalForce(registerView);
-    });
-  });
+  // ÚNICO botão que abre cadastro: "Desbloquear Análise por R$5"
+  try {
+    const unlock = qs('#unlock-cta');
+    if (unlock) unlock.addEventListener('click', (e)=>{ e.preventDefault(); openModalForce(registerView); try { setRegisterStep(1); } catch(_){} });
+  } catch(_){}
 
   // ---- HTTP calls per FRONTEND.md ----
   async function httpRegister({ email, password, first_name, last_name, applied_referral_code }) {
