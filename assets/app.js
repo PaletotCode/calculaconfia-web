@@ -213,6 +213,15 @@
     } catch(_) { return false; }
   }
 
+  // Some older integrations look for a global `isOtpPlatform` helper.
+  // Provide a safe alias that simply reuses the current platform check
+  // and expose both helpers on the window object for robustness.
+  function isOtpPlatform() { return isOnPlatform(); }
+    try {
+      window.isOnPlatform = isOnPlatform;
+      window.isOtpPlatform = isOtpPlatform;
+    } catch (_) {}
+
   function redirectToPlatform() {
     try {
       const path = location.pathname.replace(/\/+$/, '');
@@ -247,16 +256,26 @@
   async function routeAfterAuth() {
     if (!getToken()) return;
     try {
-      // lifetime wins over balance check
-      if (hasLifetimeFlag() || await httpCreditsHistoryHasPurchase()) {
+      // Run balance and history checks in parallel so a slow endpoint does
+      // not block the navigation.  Network failures fail open and still
+      // allow the user to proceed to the platform.
+      const lifetime = hasLifetimeFlag();
+      const [purchased, balance] = await Promise.all([
+        lifetime ? Promise.resolve(true) : httpCreditsHistoryHasPurchase().catch(() => false),
+        httpCreditsBalance().catch(() => 0),
+      ]);
+
+      if (lifetime || purchased || balance >= 1) {
         clearPendingPayment();
         redirectToPlatform();
-        return;
+      } else {
+        showPaymentCard();
       }
-      const bal = await httpCreditsBalance();
-      if (bal >= 1) { clearPendingPayment(); redirectToPlatform(); return; }
-      showPaymentCard();
-    } catch (_) { /* stay */ }
+    } catch (_) {
+      // Any unexpected error should still allow the user to reach the
+      // platform instead of leaving them on a broken screen.
+      redirectToPlatform();
+    }
   }
 
   // ---- Icons & Swiper ----
