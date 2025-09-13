@@ -868,6 +868,7 @@
 
   (async function bootRouting(){
     ensurePlatformAlias();
+    try { if (window.CCRouter && typeof CCRouter.ensurePlatformDom === 'function') CCRouter.ensurePlatformDom(); } catch(_){}
     try { window.CCRouter && CCRouter.log('bootRouting:start', { path: location.pathname }); } catch(_){}
     if (isOnPlatform() && !getToken()) return; // allow viewing shell until login opens as needed
     if (!getToken()) return;
