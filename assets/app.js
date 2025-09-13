@@ -513,6 +513,11 @@
     window.addEventListener('cc:login-success', updateLoginBadge);
     const openLoginBtn = qs('#open-login-btn');
     if (openLoginBtn) openLoginBtn.addEventListener('click', (e)=>{ e.preventDefault(); openModalForce && openModalForce(loginView); });
+    // Delegação defensiva: garante que o botão "Entrar (login)" sempre abre o login
+    document.addEventListener('click', (evt) => {
+      const t = evt.target.closest && evt.target.closest('#open-login-btn');
+      if (t) { evt.preventDefault(); openModalForce && openModalForce(loginView); }
+    });
   } catch(_){}
 
   authTabs.forEach(tab => {
