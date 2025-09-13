@@ -65,15 +65,11 @@
   function redirectToPlatform(){
     try {
       log('redirect:called', { path: cleanPath(), onHtml: isOnPlatformHtml(), onClean: isOnPlatformClean() });
+      // Prefer the clean path now that we have /platform/index.html
+      if (isOnPlatformHtml() || isOnPlatformClean()) { log('redirect:noop_already_on_platform'); return; }
       if (!shouldAttempt()) return; // stop potential loops
-      if (isOnPlatformHtml()) { log('redirect:noop_already_on_html'); return; }
-      if (isOnPlatformClean()) {
-        log('redirect:normalize_clean_to_html');
-        window.location.replace('/platform.html');
-        return;
-      }
-      log('redirect:assign_to_html');
-      window.location.assign('/platform.html');
+      log('redirect:assign_to_clean');
+      window.location.assign('/platform');
     } catch(_) {}
   }
 
