@@ -202,12 +202,16 @@
   }
 
   function isOnPlatformHtml() {
-    try { return /\/platform\.html$/.test(location.pathname); } catch(_) { return false; }
+    try {
+      if (window.CCRouter && typeof window.CCRouter.isOnPlatformHtml === 'function') return window.CCRouter.isOnPlatformHtml();
+      return /\/platform\.html$/.test(location.pathname);
+    } catch(_) { return false; }
   }
 
   // Back-compat alias used by older calls
   function isOnPlatform() {
     try {
+      if (window.CCRouter && typeof window.CCRouter.isOnPlatform === 'function') return window.CCRouter.isOnPlatform();
       const path = location.pathname.replace(/\/+$/, '');
       return /\/platform(?:\.html)?$/.test(path);
     } catch(_) { return false; }
@@ -223,17 +227,13 @@
     } catch (_) {}
 
   function redirectToPlatform() {
+    // Delegate to centralized router to avoid loops
+    if (window.CCRouter && typeof window.CCRouter.redirectToPlatform === 'function') { window.CCRouter.redirectToPlatform(); return; }
     try {
       const path = location.pathname.replace(/\/+$/, '');
-      // If currently at clean URL "/platform", force a one-time replace to /platform.html (absolute)
-      if (/\/platform$/.test(path) && !/platform\.html$/.test(path)) {
-        // Always normalize clean URL to the concrete file
-        window.location.replace('/platform.html');
-        return;
-      }
-      if (isOnPlatformHtml()) return; // already on the final page
+      if (/\/platform$/.test(path) && !/platform\.html$/.test(path)) { window.location.replace('/platform.html'); return; }
+      if (isOnPlatformHtml()) return; 
     } catch(_) {}
-    // Always navigate using absolute path to avoid '/platform/platform.html'
     window.location.assign('/platform.html');
   }
 
