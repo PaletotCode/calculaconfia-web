@@ -205,6 +205,14 @@
     try { return /\/platform\.html$/.test(location.pathname); } catch(_) { return false; }
   }
 
+  // Back-compat alias used by older calls
+  function isOnPlatform() {
+    try {
+      const path = location.pathname.replace(/\/+$/, '');
+      return /\/platform(?:\.html)?$/.test(path);
+    } catch(_) { return false; }
+  }
+
   function redirectToPlatform() {
     try {
       const path = location.pathname.replace(/\/+$/, '');

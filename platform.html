@@ -29,13 +29,16 @@
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
-    <script src="https://unpkg.com/lucide@latest" defer></script>
+    <script src="assets/vendor/lucide.min.js" defer></script>
     <!-- Biblioteca para máscaras de input -->
     <script src="https://unpkg.com/imask" defer></script>
     <!-- Biblioteca para o Calendário (Flatpickr) -->
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css">
     <script src="https://cdn.jsdelivr.net/npm/flatpickr" defer></script>
     <script src="https://npmcdn.com/flatpickr/dist/l10n/pt.js" defer></script>
+
+    <!-- Security: CSP to allow needed CDNs (mirrors index.html) -->
+    <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline' https://cdn.tailwindcss.com https://sdk.mercadopago.com https://*.mercadopago.com https://*.mercadolibre.com https://static.cloudflareinsights.com https://unpkg.com https://cdn.jsdelivr.net https://cdnjs.cloudflare.com https://npmcdn.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com https://cdn.jsdelivr.net; font-src 'self' https://fonts.gstatic.com data:; img-src 'self' data:; media-src 'self'; connect-src 'self' https://calculaconfia-production.up.railway.app http://localhost:3000 http://localhost:8000 https://api.mercadopago.com https://sdk.mercadopago.com https://*.mercadopago.com https://api.mercadolibre.com https://*.mercadolibre.com https://cloudflareinsights.com https://static.cloudflareinsights.com; frame-src 'self' https://*.mercadopago.com https://*.mercadopago.com.br https://*.mercadolibre.com; base-uri 'self'; upgrade-insecure-requests">
 
     <style>
         body {
