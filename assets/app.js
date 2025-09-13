@@ -225,20 +225,16 @@
   function redirectToPlatform() {
     try {
       const path = location.pathname.replace(/\/+$/, '');
-      // If currently at clean URL "/platform", force a one-time replace to platform.html
+      // If currently at clean URL "/platform", force a one-time replace to /platform.html (absolute)
       if (/\/platform$/.test(path) && !/platform\.html$/.test(path)) {
-        const guard = sessionStorage.getItem('cc_platform_fix');
-        if (!guard) {
-          sessionStorage.setItem('cc_platform_fix', '1');
-          window.location.replace('platform.html');
-          return;
-        }
-        // already attempted once; avoid loop
+        // Always normalize clean URL to the concrete file
+        window.location.replace('/platform.html');
         return;
       }
       if (isOnPlatformHtml()) return; // already on the final page
     } catch(_) {}
-    window.location.assign('platform.html');
+    // Always navigate using absolute path to avoid '/platform/platform.html'
+    window.location.assign('/platform.html');
   }
 
   function showPaymentCard(message) {
