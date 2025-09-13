@@ -5,7 +5,7 @@
   "main": "index.html",
   "scripts": {
     "dev": "serve -l 3000",
-    "start": "serve -l 3000",
+    "start": "serve -l $PORT",
     "build": "echo 'Frontend estático - sem build necessário'",
     "preview": "serve -l 4173"
   },
