@@ -175,7 +175,7 @@ Variáveis de Ambiente (Frontend)
 NEXT_PUBLIC_API_URL: ex. dev http://localhost:8000/api/v1, prod https://calculaconfia-production.up.railway.app/api/v1
 NEXT_PUBLIC_PUBLIC_BASE_URL (opcional): URL pública do site para links canônicos/SEO.
 Cores (Design Tokens)
-
+test
 primary: #16a34a
 primaryHover: #15803d
 secondary: #ca8a04
