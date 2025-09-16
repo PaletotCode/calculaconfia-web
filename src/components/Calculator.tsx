@@ -148,6 +148,15 @@ export function Calculator() {
     updateIndicator(activeNavIndex);
   }, [activeNavIndex, updateIndicator]);
 
+  useEffect(() => {
+    const handleResize = () => {
+      updateIndicator(activeNavIndex);
+    };
+
+    window.addEventListener("resize", handleResize);
+    return () => window.removeEventListener("resize", handleResize);
+  }, [activeNavIndex, updateIndicator]);
+
   const goToStep = useCallback(
     (nextStep: number) => {
       const clamped = Math.max(0, Math.min(nextStep, totalSteps - 1));

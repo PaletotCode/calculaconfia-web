@@ -5,7 +5,11 @@ import AppProviders from "@/components/AppProviders";
 import "./globals.css";
 import { type ReactNode } from "react";
 
-const inter = Inter({ subsets: ["latin"], weight: ["400", "500", "600", "700", "800", "900"] });
+const inter = Inter({
+  subsets: ["latin"],
+  weight: ["400", "500", "600", "700", "800", "900"],
+  display: "swap",
+});
 
 export const metadata: Metadata = {
   title: "CalculaConfia - Descubra sua restituição de ICMS",

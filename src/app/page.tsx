@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import clsx from "clsx";
 import { Swiper, SwiperSlide } from "swiper/react";
 import { Autoplay, EffectFade, Pagination } from "swiper/modules";
@@ -191,6 +191,13 @@ export default function LandingPage() {
   const [isSessionPanelOpen, setIsSessionPanelOpen] = useState(false);
   const [isPricingDetailsOpen, setIsPricingDetailsOpen] = useState(false);
 
+  const stepsSectionRef = useRef<HTMLElement | null>(null);
+  const testimonialsSectionRef = useRef<HTMLElement | null>(null);
+  const stepCardRefs = useRef<Array<HTMLDivElement | null>>([]);
+  const testimonialCardRefs = useRef<Array<HTMLDivElement | null>>([]);
+  const tiltCardRef = useRef<HTMLDivElement | null>(null);
+  const spotlightSectionRefs = useRef<Array<HTMLElement | null>>([]);
+
   useEffect(() => {
     const handleResize = () => {
       setIsPricingDetailsOpen(window.innerWidth >= 768);
@@ -198,6 +205,298 @@ export default function LandingPage() {
     handleResize();
     window.addEventListener("resize", handleResize);
     return () => window.removeEventListener("resize", handleResize);
+  }, []);
+
+  useEffect(() => {
+    const prefersReducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+
+    if (prefersReducedMotion) {
+      stepCardRefs.current.forEach((card) => card?.classList.add("is-visible"));
+      testimonialCardRefs.current.forEach((card) => card?.classList.add("is-visible"));
+      return;
+    }
+
+    const observedSections: Array<{ element: Element; reveal: () => void }> = [];
+    const timeouts: number[] = [];
+
+    if (stepsSectionRef.current) {
+      observedSections.push({
+        element: stepsSectionRef.current,
+        reveal: () => {
+          stepCardRefs.current.forEach((card) => card?.classList.add("is-visible"));
+        },
+      });
+    }
+
+    if (testimonialsSectionRef.current) {
+      observedSections.push({
+        element: testimonialsSectionRef.current,
+        reveal: () => {
+          testimonialCardRefs.current.forEach((card, index) => {
+            if (!card) {
+              return;
+            }
+            const timeoutId = window.setTimeout(() => {
+              card.classList.add("is-visible");
+            }, index * 150);
+            timeouts.push(timeoutId);
+          });
+        },
+      });
+    }
+
+    if (observedSections.length === 0) {
+      return;
+    }
+
+    const observer = new IntersectionObserver(
+      (entries) => {
+        entries.forEach((entry) => {
+          if (!entry.isIntersecting) {
+            return;
+          }
+          const sectionConfig = observedSections.find((section) => section.element === entry.target);
+          if (!sectionConfig) {
+            return;
+          }
+          sectionConfig.reveal();
+          observer.unobserve(entry.target);
+        });
+      },
+      { threshold: 0.2, rootMargin: "0px 0px -60px" }
+    );
+
+    observedSections.forEach((section) => observer.observe(section.element));
+
+    return () => {
+      observer.disconnect();
+      timeouts.forEach((timeoutId) => window.clearTimeout(timeoutId));
+    };
+  }, []);
+
+  useEffect(() => {
+    const card = tiltCardRef.current;
+    if (!card) {
+      return;
+    }
+
+    const prefersReducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+    if (prefersReducedMotion) {
+      return;
+    }
+
+    const clamp = (value: number, min: number, max: number) => Math.min(Math.max(value, min), max);
+    const pointerFine = window.matchMedia("(pointer: fine)").matches;
+
+    const setupPointerTilt = (element: HTMLDivElement) => {
+      let frameId: number | null = null;
+
+      const handlePointerMove = (event: PointerEvent) => {
+        const rect = element.getBoundingClientRect();
+        const relativeX = (event.clientX - rect.left) / rect.width;
+        const relativeY = (event.clientY - rect.top) / rect.height;
+        const rotateX = clamp((0.5 - relativeY) * 22, -18, 18);
+        const rotateY = clamp((relativeX - 0.5) * 22, -18, 18);
+
+        if (frameId) {
+          cancelAnimationFrame(frameId);
+        }
+        frameId = window.requestAnimationFrame(() => {
+          element.style.transform = `perspective(1100px) rotateX(${rotateX}deg) rotateY(${rotateY}deg) scale(1.05)`;
+        });
+      };
+
+      const resetTilt = () => {
+        if (frameId) {
+          cancelAnimationFrame(frameId);
+        }
+        frameId = null;
+        element.style.transform = "";
+        element.classList.remove("is-tilting");
+      };
+
+      const handlePointerEnter = () => {
+        element.classList.add("is-tilting");
+      };
+
+      const handlePointerLeave = () => {
+        resetTilt();
+      };
+
+      element.addEventListener("pointerenter", handlePointerEnter);
+      element.addEventListener("pointermove", handlePointerMove);
+      element.addEventListener("pointerleave", handlePointerLeave);
+      element.addEventListener("pointercancel", handlePointerLeave);
+
+      return () => {
+        element.removeEventListener("pointerenter", handlePointerEnter);
+        element.removeEventListener("pointermove", handlePointerMove);
+        element.removeEventListener("pointerleave", handlePointerLeave);
+        element.removeEventListener("pointercancel", handlePointerLeave);
+        resetTilt();
+      };
+    };
+
+    const setupGyroTilt = (element: HTMLDivElement) => {
+      if (typeof window.DeviceOrientationEvent === "undefined") {
+        return undefined;
+      }
+
+      let frameId: number | null = null;
+      let started = false;
+      const interactionCleanups: Array<() => void> = [];
+
+      const applyOrientation = (beta: number, gamma: number) => {
+        const rotateX = clamp(-beta * 0.25, -18, 18);
+        const rotateY = clamp(gamma * 0.25, -18, 18);
+        element.style.transform = `perspective(1100px) rotateX(${rotateX}deg) rotateY(${rotateY}deg) scale(1.05)`;
+      };
+
+      const handleOrientation = (event: DeviceOrientationEvent) => {
+        const { beta = 0, gamma = 0 } = event;
+        if (frameId) {
+          cancelAnimationFrame(frameId);
+        }
+        frameId = window.requestAnimationFrame(() => applyOrientation(beta, gamma));
+      };
+
+      const stop = () => {
+        if (!started) {
+          return;
+        }
+        window.removeEventListener("deviceorientation", handleOrientation);
+        started = false;
+      };
+
+      const cleanupInteractions = () => {
+        interactionCleanups.splice(0).forEach((cleanup) => cleanup());
+      };
+
+      const start = () => {
+        if (started) {
+          return;
+        }
+        cleanupInteractions();
+        window.addEventListener("deviceorientation", handleOrientation);
+        element.classList.add("is-tilting");
+        started = true;
+      };
+
+      const requestPermission = () => {
+        const DeviceOrientation = window.DeviceOrientationEvent as typeof window.DeviceOrientationEvent & {
+          requestPermission?: () => Promise<PermissionState | "granted" | "denied">;
+        };
+
+        if (typeof DeviceOrientation?.requestPermission === "function") {
+          DeviceOrientation.requestPermission()
+            .then((state) => {
+              if (state === "granted") {
+                start();
+              }
+            })
+            .catch(() => {});
+        } else {
+          start();
+        }
+      };
+
+      const registerInteraction = (type: keyof DocumentEventMap, options?: AddEventListenerOptions) => {
+        const handler = () => {
+          requestPermission();
+        };
+        document.addEventListener(type, handler, options);
+        interactionCleanups.push(() => document.removeEventListener(type, handler, options));
+      };
+
+      requestPermission();
+
+      if (!started) {
+        registerInteraction("click", { once: true });
+        registerInteraction("touchstart", { once: true, passive: true });
+      }
+
+      return () => {
+        cleanupInteractions();
+        stop();
+        if (frameId) {
+          cancelAnimationFrame(frameId);
+        }
+        element.classList.remove("is-tilting");
+        element.style.transform = "";
+      };
+    };
+
+    const cleanup = pointerFine ? setupPointerTilt(card) : setupGyroTilt(card);
+
+    return () => {
+      cleanup?.();
+    };
+  }, []);
+
+  useEffect(() => {
+    const sections = spotlightSectionRefs.current.filter(
+      (section): section is HTMLElement => Boolean(section)
+    );
+
+    if (sections.length === 0) {
+      return;
+    }
+
+    const prefersReducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+    const pointerFine = window.matchMedia("(pointer: fine)").matches;
+    const cleanups: Array<() => void> = [];
+
+    const setCenter = (section: HTMLElement) => {
+      section.style.setProperty("--x", "50%");
+      section.style.setProperty("--y", "50%");
+    };
+
+    sections.forEach((section) => {
+      setCenter(section);
+
+      if (!pointerFine || prefersReducedMotion) {
+        return;
+      }
+
+      let frameId: number | null = null;
+
+      const handleMove = (event: MouseEvent) => {
+        const rect = section.getBoundingClientRect();
+        const x = event.clientX - rect.left;
+        const y = event.clientY - rect.top;
+
+        if (frameId) {
+          cancelAnimationFrame(frameId);
+        }
+        frameId = window.requestAnimationFrame(() => {
+          section.style.setProperty("--x", `${x}px`);
+          section.style.setProperty("--y", `${y}px`);
+        });
+      };
+
+      const handleLeave = () => {
+        if (frameId) {
+          cancelAnimationFrame(frameId);
+        }
+        frameId = null;
+        setCenter(section);
+      };
+
+      section.addEventListener("mousemove", handleMove);
+      section.addEventListener("mouseleave", handleLeave);
+
+      cleanups.push(() => {
+        section.removeEventListener("mousemove", handleMove);
+        section.removeEventListener("mouseleave", handleLeave);
+        if (frameId) {
+          cancelAnimationFrame(frameId);
+        }
+      });
+    });
+
+    return () => {
+      cleanups.forEach((cleanup) => cleanup());
+    };
   }, []);
 
   const createOrderMutation = useMutation({
@@ -358,7 +657,11 @@ export default function LandingPage() {
           </div>
         </section>
 
-        <section id="comofunciona" className="cv-auto relative overflow-hidden bg-white py-16 md:py-24">
+        <section
+          id="comofunciona"
+          ref={stepsSectionRef}
+          className="cv-auto relative overflow-hidden bg-white py-16 md:py-24"
+        >
           <div className="container mx-auto px-6">
             <div className="mx-auto text-center">
               <h2 className="text-3xl font-extrabold md:text-4xl">Fácil como 1, 2, 3.</h2>
@@ -370,6 +673,9 @@ export default function LandingPage() {
               {steps.map((step, index) => (
                 <div
                   key={step.number}
+                  ref={(element: HTMLDivElement | null) => {
+                    stepCardRefs.current[index] = element;
+                  }}
                   className={clsx(
                     "step-card relative rounded-2xl border-t-4 bg-white p-6 text-center shadow-xl md:p-8",
                     step.highlight ? "border-[var(--primary-accent)] shadow-2xl md:scale-110" : "border-slate-200"
@@ -431,11 +737,20 @@ export default function LandingPage() {
           </div>
         </section>
 
-        <section id="preco" className="spotlight-section cv-auto py-16 md:py-24">
+        <section
+          id="preco"
+          ref={(element: HTMLElement | null) => {
+            spotlightSectionRefs.current[0] = element;
+          }}
+          className="spotlight-section cv-auto py-16 md:py-24"
+        >
           <div className="relative z-10 container mx-auto max-w-6xl px-6">
             <div className="flex flex-col items-center gap-12 md:grid md:grid-cols-2 md:gap-16">
               <div className="order-1 flex w-full justify-center md:order-2">
-                <div className="tilt-card animated-gradient-bg w-full max-w-md rounded-2xl border-t-4 border-[var(--primary-accent)] p-6 shadow-2xl md:p-8">
+                <div
+                  ref={tiltCardRef}
+                  className="tilt-card animated-gradient-bg w-full max-w-md rounded-2xl border-t-4 border-[var(--primary-accent)] p-6 shadow-2xl md:p-8"
+                >
                   <div className="flex items-center justify-center space-x-3 pt-8 md:space-x-4">
                     <p className="text-2xl font-medium text-slate-500 line-through md:text-3xl">R$10</p>
                     <p className="text-5xl font-black text-green-600 md:text-6xl">
@@ -511,7 +826,11 @@ export default function LandingPage() {
           </div>
         </section>
 
-        <section id="testimonials" className="cv-auto relative overflow-hidden bg-white py-16 md:py-24">
+        <section
+          id="testimonials"
+          ref={testimonialsSectionRef}
+          className="cv-auto relative overflow-hidden bg-white py-16 md:py-24"
+        >
           <div className="container relative z-10 mx-auto px-6">
             <h2 className="text-center text-3xl font-extrabold md:text-4xl">
               Milhares de Brasileiros <span className="keyword-highlight">Já Confiam</span>
@@ -520,8 +839,14 @@ export default function LandingPage() {
               Veja o que alguns de nossos usuários estão dizendo sobre a experiência com a <strong className="font-semibold text-slate-800">CalculaConfia</strong>.
             </p>
             <div className="mt-12 grid grid-cols-1 gap-8 md:grid-cols-2 lg:grid-cols-3">
-              {testimonials.map((testimonial) => (
-                <div key={testimonial.name} className="testimonial-grid-card">
+              {testimonials.map((testimonial, index) => (
+                <div
+                  key={testimonial.name}
+                  ref={(element: HTMLDivElement | null) => {
+                    testimonialCardRefs.current[index] = element;
+                  }}
+                  className="testimonial-grid-card"
+                >
                   <div className="mb-4 flex items-center">
                     <div className={clsx("mr-4 flex h-14 w-14 items-center justify-center rounded-full", testimonial.color)}>
                       <span className="text-xl font-bold">{testimonial.initials}</span>
@@ -543,7 +868,13 @@ export default function LandingPage() {
           </div>
         </section>
 
-        <section id="faq" className="spotlight-section bg-slate-100 py-16 md:py-24">
+        <section
+          id="faq"
+          ref={(element: HTMLElement | null) => {
+            spotlightSectionRefs.current[1] = element;
+          }}
+          className="spotlight-section bg-slate-100 py-16 md:py-24"
+        >
           <div className="container relative z-10 mx-auto max-w-4xl px-6">
             <h2 className="text-center text-3xl font-extrabold md:text-4xl">Suas Dúvidas, Nossas Respostas.</h2>
             <div className="mt-12 space-y-4">
