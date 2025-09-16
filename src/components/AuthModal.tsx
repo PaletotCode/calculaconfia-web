@@ -607,7 +607,7 @@ export function AuthModal({ isOpen, onClose, defaultView = "login" }: AuthModalP
                     Código de Verificação
                   </label>
                   <div className="relative">
-                    <LucideIcon name="key-round" className="absolute left-3 top-1/2 h-5 w-5 -translate-y-1/2 text-slate-400" />
+                    <LucideIcon name="KeyRound" className="absolute left-3 top-1/2 h-5 w-5 -translate-y-1/2 text-slate-400" />
                     <input
                       id="verify-code"
                       type="text"

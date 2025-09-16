@@ -22,18 +22,18 @@ interface BillInput {
 }
 
 const navLinks = [
-  { id: "home", label: "Início", icon: "home", color: "#0d9488" },
+  { id: "Home", label: "Início", icon: "Home", color: "#0d9488" },
   { id: "calculate", label: "Calcular", icon: "calculator", color: "#3b82f6" },
   { id: "history", label: "Histórico", icon: "history", color: "#8b5cf6" },
   { id: "credits", label: "Créditos", icon: "wallet", color: "#ca8a04" },
 ];
 
 const timelineItems = [
-  { text: "Analisando padrões de tributação...", icon: "file-search-2" },
+  { text: "Analisando padrões de tributação...", icon: "FileSearch2" },
   { text: "Cruzando dados com a legislação vigente...", icon: "scale" },
-  { text: "Calculando correção monetária retroativa...", icon: "calendar-clock" },
-  { text: "Estimando juros da taxa Selic...", icon: "trending-up" },
-  { text: "Compilando seu relatório final...", icon: "check-circle" },
+  { text: "Calculando correção monetária retroativa...", icon: "CalendarClock" },
+  { text: "Estimando juros da taxa Selic...", icon: "TrendingUp" },
+  { text: "Compilando seu relatório final...", icon: "CheckCircle" },
 ];
 
 function formatCurrency(value: number) {
@@ -301,7 +301,7 @@ export function Calculator() {
           type="button"
           onClick={() => handlePreviousForm(index)}
         >
-          <LucideIcon name="arrow-left" className="h-6 w-6 text-slate-600" />
+          <LucideIcon name="ArrowLeft" className="h-6 w-6 text-slate-600" />
         </button>
         <div className="flex h-full w-full max-w-4xl flex-col items-center justify-center overflow-y-auto pb-24 pt-10 md:flex-row md:gap-12">
           <div className="order-2 flex w-full flex-col items-center text-center md:order-1 md:w-1/2 md:items-start md:text-left">
@@ -310,7 +310,7 @@ export function Calculator() {
               Preencha os dados desta fatura. As informações são salvas automaticamente.
             </p>
             <div className="input-group">
-              <LucideIcon name="calendar" className="input-icon" />
+              <LucideIcon name="Calendar" className="input-icon" />
               <Flatpickr
                 value={bill.date ? [bill.date] : []}
                 onChange={(dates) => updateBill(index, { date: dates[0] ?? null })}
@@ -406,7 +406,7 @@ export function Calculator() {
             >
               <div className="timeline-content flex items-center gap-3">
                 <LucideIcon
-                  name={isCompleted ? "check-circle" : isActive ? "loader-2" : item.icon}
+                  name={isCompleted ? "CheckCircle" : isActive ? "Loader2" : item.icon}
                   className={clsx("loader-icon h-6 w-6", isCompleted ? "text-green-500" : "text-slate-400")}
                 />
                 <span className="text-lg text-slate-200">{item.text}</span>
@@ -422,7 +422,7 @@ export function Calculator() {
     <div className="calculator-root flex min-h-screen flex-col bg-slate-100">
       <main className="flex-grow w-full overflow-hidden">
         <div id="page-container" ref={pageContainerRef} className="flex h-full w-[400%] transition-transform duration-500 ease-out">
-          <section id="home" className="page text-center">
+          <section id="Home" className="page text-center">
             <p className="text-2xl text-slate-600">Página Inicial</p>
           </section>
           <section id="calculate" className="page !p-0 overflow-hidden">
@@ -466,7 +466,7 @@ export function Calculator() {
                   className="back-btn"
                   onClick={() => goToStep(0)}
                 >
-                  <LucideIcon name="arrow-left" className="h-6 w-6 text-slate-600" />
+                  <LucideIcon name="ArrowLeft" className="h-6 w-6 text-slate-600" />
                 </button>
                 <div className="flex h-full w-full max-w-3xl flex-col justify-center overflow-y-auto px-4 pb-24 text-center">
                   <h2 className="text-3xl font-bold text-text-dark">Você tem quantas contas em mãos?</h2>
@@ -482,7 +482,7 @@ export function Calculator() {
                         )}
                         onClick={() => handleSelectBillCount(index + 1)}
                       >
-                        <LucideIcon name="file-text" className="h-6 w-6 sm:h-8 sm:w-8" />
+                        <LucideIcon name="FileText" className="h-6 w-6 sm:h-8 sm:w-8" />
                         <span className="text-lg font-bold sm:text-xl">{index + 1}</span>
                       </button>
                     ))}
@@ -493,7 +493,7 @@ export function Calculator() {
                       className="mt-6 animate-[alert-fade-in_.5s_ease-out] rounded-lg border-l-4 border-red-500 bg-red-100 p-4 text-left text-red-800"
                     >
                       <div className="flex items-start gap-3">
-                        <LucideIcon name="alert-triangle" className="mt-1 h-6 w-6 flex-shrink-0 text-red-600" />
+                        <LucideIcon name="AlertTriangle" className="mt-1 h-6 w-6 flex-shrink-0 text-red-600" />
                         <div>
                           <p className="font-bold">Recomendação</p>
                           <p className="text-sm">Para uma melhor estimativa, recomendamos iniciar com pelo menos três contas.</p>
@@ -527,7 +527,7 @@ export function Calculator() {
                 className={clsx("calculator-step bg-slate-100 !pb-24", currentStep === confirmationStepIndex && "active")}
               >
                 <button type="button" className="back-btn" onClick={() => goToStep(firstFormStepIndex + billCount - 1)}>
-                  <LucideIcon name="arrow-left" className="h-6 w-6 text-slate-600" />
+                  <LucideIcon name="ArrowLeft" className="h-6 w-6 text-slate-600" />
                 </button>
                 <div className="mx-auto w-full max-w-lg rounded-2xl bg-white p-6 text-center shadow-lg md:p-8">
                   <h2 className="text-2xl font-bold text-text-dark">Resumo da Simulação</h2>
@@ -554,7 +554,7 @@ export function Calculator() {
                     ))}
                   </div>
                   <div className="mt-6 flex items-center gap-3 rounded-lg bg-blue-100 p-4 text-sm text-blue-800">
-                    <LucideIcon name="info" className="h-5 w-5 flex-shrink-0" />
+                    <LucideIcon name="Info" className="h-5 w-5 flex-shrink-0" />
                     <span>Esta simulação consumirá <strong>1 crédito</strong> do seu saldo.</span>
                   </div>
                   {loadingError && (
@@ -662,7 +662,7 @@ export function Calculator() {
               disabled={isLogoutLoading}
             >
               <div className="flex flex-col items-center gap-1 text-slate-300">
-                <LucideIcon name="log-out" className="h-6 w-6" />
+                <LucideIcon name="LogOut" className="h-6 w-6" />
                 <span className="text-xs font-medium">{isLogoutLoading ? "Saindo..." : "Sair"}</span>
               </div>
             </button>

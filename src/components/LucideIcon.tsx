@@ -1,29 +1,26 @@
 "use client";
 
-import * as Icons from "lucide-react";
-import { type LucideProps } from "lucide-react";
-import { type ComponentType } from "react";
+import { icons, HelpCircle, type LucideProps } from "lucide-react";
 
-function toPascalCase(value: string): string {
-  return value
-    .split(/[\s_-]+/)
-    .filter(Boolean)
-    .map((part) => part.charAt(0).toUpperCase() + part.slice(1))
-    .join("");
+// Gera um tipo seguro com todos os nomes de ícones disponíveis
+export type IconName = keyof typeof icons;
+
+// Define as propriedades do nosso componente
+interface LucideIconProps extends LucideProps {
+  name: IconName;
 }
 
-const fallbackIcon = Icons.HelpCircle;
-
-type IconName = keyof typeof Icons;
-
-type LucideIconProps = LucideProps & {
-  name: string;
-};
-
 export function LucideIcon({ name, ...props }: LucideIconProps) {
-  const iconKey = toPascalCase(name) as IconName;
-  const Icon = (Icons as Record<string, ComponentType<LucideProps>>)[iconKey] ?? fallbackIcon;
-  return <Icon {...props} />;
+  // Pega o componente do ícone pelo nome
+  const IconComponent = icons[name];
+
+  // Se o nome do ícone for inválido, usa o ícone HelpCircle que importamos diretamente
+  if (!IconComponent) {
+    return <HelpCircle {...props} />;
+  }
+
+  // Renderiza o ícone correto
+  return <IconComponent {...props} />;
 }
 
 export default LucideIcon;

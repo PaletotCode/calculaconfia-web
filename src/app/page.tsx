@@ -26,7 +26,7 @@ type AuthView = "login" | "register" | "verify";
 type PaymentStatus = {
   title: string;
   message: string;
-  type: "info" | "success" | "error";
+  type: "Info" | "success" | "error";
 };
 
 const heroSlides = [
@@ -58,15 +58,15 @@ const steps = [
 
 const emotionalHighlights = [
   {
-    icon: "check-circle-2",
+    icon: "CheckCircle2",
     text: "A informação clara que você precisa para decidir.",
   },
   {
-    icon: "check-circle-2",
+    icon: "CheckCircle2",
     text: "Uma ferramenta ágil para planejar seu próximo passo.",
   },
   {
-    icon: "check-circle-2",
+    icon: "CheckCircle2",
     text: "A segurança de estar no controle da sua decisão.",
   },
 ];
@@ -80,7 +80,7 @@ const pricingBenefits = [
 
 const pricingDetails = [
   {
-    icon: "alert-triangle",
+    icon: "AlertTriangle",
     title: "O Problema Real",
     description:
       "O STF decidiu: a cobrança de PIS/COFINS sobre o ICMS na sua conta de luz foi ilegal. Por anos, você pagou a mais sem saber.",
@@ -94,7 +94,7 @@ const pricingDetails = [
     accent: "text-green-600",
   },
   {
-    icon: "key-round",
+    icon: "KeyRound",
     title: "O Investimento Inteligente",
     description:
       "Por um valor simbólico, você destrava o acesso à informação que mostrará o valor estimado a ser restituído. Esse é o primeiro passo para reaver seu dinheiro.",
@@ -186,7 +186,7 @@ export default function LandingPage() {
   const [paymentStatus, setPaymentStatus] = useState<PaymentStatus>({
     title: "Status do pagamento",
     message: "Estamos analisando as informações do seu pagamento.",
-    type: "info",
+    type: "Info",
   });
   const [isSessionPanelOpen, setIsSessionPanelOpen] = useState(false);
   const [isPricingDetailsOpen, setIsPricingDetailsOpen] = useState(false);
@@ -213,7 +213,7 @@ export default function LandingPage() {
           setPaymentStatus({
             title: "Pronto para pagar",
             message: "Abrimos o checkout em uma nova janela. Conclua o pagamento para liberar seus créditos.",
-            type: "info",
+            type: "Info",
           });
           setIsPaymentStatusOpen(true);
           return;
@@ -352,7 +352,7 @@ export default function LandingPage() {
               </p>
               <a href="#preco" className="cta-button inline-flex items-center justify-center rounded-lg px-6 py-3 text-base font-bold text-white shadow-xl md:px-10 md:py-4 md:text-lg">
                 Descubra Agora
-                <LucideIcon name="arrow-right-circle" className="ml-2 inline h-5 w-5 md:h-6 md:w-6" />
+                <LucideIcon name="ArrowRightCircle" className="ml-2 inline h-5 w-5 md:h-6 md:w-6" />
               </a>
             </div>
           </div>
@@ -446,7 +446,7 @@ export default function LandingPage() {
                   <ul className="mt-8 space-y-4 text-left text-sm md:text-base">
                     {pricingBenefits.map((benefit) => (
                       <li key={benefit} className="flex items-center">
-                        <LucideIcon name={benefit.includes("Indique") ? "gift" : "check-circle-2"} className="mr-3 h-5 w-5 flex-shrink-0 text-green-500" />
+                        <LucideIcon name={benefit.includes("Indique") ? "gift" : "CheckCircle2"} className="mr-3 h-5 w-5 flex-shrink-0 text-green-500" />
                         <span>{benefit}</span>
                       </li>
                     ))}
@@ -492,7 +492,7 @@ export default function LandingPage() {
                 >
                   <span>Entenda o porquê</span>
                   <LucideIcon
-                    name="chevron-down"
+                    name="ChevronDown"
                     className={clsx("ml-2 h-5 w-5 transition-transform duration-300", isPricingDetailsOpen && "rotate-180")}
                   />
                 </button>
@@ -575,7 +575,7 @@ export default function LandingPage() {
               <LucideIcon name="x" className="h-5 w-5" />
             </button>
             <LucideIcon
-              name={paymentStatus.type === "success" ? "check-circle" : paymentStatus.type === "error" ? "alert-triangle" : "info"}
+              name={paymentStatus.type === "success" ? "CheckCircle" : paymentStatus.type === "error" ? "AlertTriangle" : "Info"}
               className={clsx(
                 "mx-auto mb-4 h-12 w-12",
                 paymentStatus.type === "success"
@@ -660,7 +660,7 @@ export default function LandingPage() {
           onClick={toggleSessionPanel}
         >
           <div className="flex items-center gap-2">
-            <LucideIcon name="user" className="h-4 w-4 text-green-600" />
+            <LucideIcon name="User" className="h-4 w-4 text-green-600" />
             <span className="text-xs font-semibold text-slate-700">
               {isAuthenticated ? user?.first_name ?? "Você está logado" : "Não logado"}
             </span>
