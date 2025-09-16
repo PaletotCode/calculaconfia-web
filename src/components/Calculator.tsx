@@ -566,9 +566,9 @@ export function Calculator() {
                     type="button"
                     className="calculate-btn-premium mt-6 w-full rounded-lg py-3 text-lg font-semibold"
                     onClick={startCalculation}
-                    disabled={calcularMutation.isLoading}
+                    disabled={calcularMutation.isPending}
                   >
-                    {calcularMutation.isLoading ? "Enviando..." : "Confirmar e Calcular"}
+                    {calcularMutation.isPending ? "Enviando..." : "Confirmar e Calcular"}
                   </button>
                 </div>
               </div>

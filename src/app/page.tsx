@@ -636,9 +636,9 @@ export default function LandingPage() {
               type="button"
               className="btn-gradient-animated w-full rounded-xl py-4 text-lg font-bold text-white transition hover:scale-[1.03]"
               onClick={handleBuyCredits}
-              disabled={createOrderMutation.isLoading}
+              disabled={createOrderMutation.isPending}
             >
-              {createOrderMutation.isLoading ? "Gerando checkout..." : "Comprar créditos!"}
+              {createOrderMutation.isPending ? "Gerando checkout..." : "Comprar créditos!"}
             </button>
             <div className="mt-4 text-center">
               <button

@@ -348,9 +348,9 @@ export function AuthModal({ isOpen, onClose, defaultView = "login" }: AuthModalP
               <button
                 type="submit"
                 className="auth-button mt-6"
-                disabled={loginMutation.isLoading}
+                disabled={loginMutation.isPending}
               >
-                {loginMutation.isLoading ? "Entrando..." : "Entrar"}
+                {loginMutation.isPending ? "Entrando..." : "Entrar"}
               </button>
               <div className="mt-4 text-center">
                 <button
@@ -546,8 +546,8 @@ export function AuthModal({ isOpen, onClose, defaultView = "login" }: AuthModalP
                     >
                       Voltar
                     </button>
-                    <button type="submit" className="w-1/2 auth-button" disabled={registerMutation.isLoading}>
-                      {registerMutation.isLoading ? "Enviando..." : "Criar Conta"}
+                    <button type="submit" className="w-1/2 auth-button" disabled={registerMutation.isPending}>
+                      {registerMutation.isPending ? "Enviando..." : "Criar Conta"}
                     </button>
                   </div>
                 </div>
@@ -631,8 +631,8 @@ export function AuthModal({ isOpen, onClose, defaultView = "login" }: AuthModalP
               <div className="success-message" aria-live="polite">
                 {verifySuccess}
               </div>
-              <button type="submit" className="auth-button mt-6" disabled={verifyMutation.isLoading}>
-                {verifyMutation.isLoading ? "Verificando..." : "Verificar Conta"}
+              <button type="submit" className="auth-button mt-6" disabled={verifyMutation.isPending}>
+                {verifyMutation.isPending ? "Verificando..." : "Verificar Conta"}
               </button>
               <div className="mt-4 text-center">
                 <button
@@ -645,9 +645,9 @@ export function AuthModal({ isOpen, onClose, defaultView = "login" }: AuthModalP
                       setVerifyError("Informe o e-mail para reenviar o código.");
                     }
                   }}
-                  disabled={sendVerificationCodeMutation.isLoading}
+                  disabled={sendVerificationCodeMutation.isPending}
                 >
-                  {sendVerificationCodeMutation.isLoading ? "Reenviando..." : "Reenviar código"}
+                  {sendVerificationCodeMutation.isPending ? "Reenviando..." : "Reenviar código"}
                 </button>
               </div>
             </form>
