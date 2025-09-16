@@ -11,6 +11,7 @@ import { useMutation } from "@tanstack/react-query";
 import AuthModal from "@/components/AuthModal";
 import { LucideIcon } from "@/components/LucideIcon";
 import useAuth from "@/hooks/useAuth";
+import { useIntersectionObserver } from "@/hooks/useIntersectionObserver";
 import { createOrder, extractErrorMessage } from "@/lib/api";
 
 declare global {
@@ -58,15 +59,15 @@ const steps = [
 
 const emotionalHighlights = [
   {
-    icon: "CheckCircle2",
+    icon: "CircleCheckBig",
     text: "A informação clara que você precisa para decidir.",
   },
   {
-    icon: "CheckCircle2",
+    icon: "CircleCheckBig",
     text: "Uma ferramenta ágil para planejar seu próximo passo.",
   },
   {
-    icon: "CheckCircle2",
+    icon: "CircleCheckBig",
     text: "A segurança de estar no controle da sua decisão.",
   },
 ];
@@ -80,14 +81,14 @@ const pricingBenefits = [
 
 const pricingDetails = [
   {
-    icon: "AlertTriangle",
+    icon: "TriangleAlert",
     title: "O Problema Real",
     description:
       "O STF decidiu: a cobrança de PIS/COFINS sobre o ICMS na sua conta de luz foi ilegal. Por anos, você pagou a mais sem saber.",
     accent: "text-yellow-500",
   },
   {
-    icon: "calculator",
+    icon: "Calculator",
     title: "A Solução Simples",
     description:
       "Nossa plataforma faz o trabalho complexo: calcula o valor estimado que você pode ter a receber, com a devida correção monetária.",
@@ -584,6 +585,10 @@ export default function LandingPage() {
 
   const activePricingDetailsHeight = useMemo(() => (isPricingDetailsOpen ? "max-h-[999px]" : "max-h-0"), [isPricingDetailsOpen]);
 
+  const [stepsRef, stepsVisible] = useIntersectionObserver();
+  const [testimonialsRef, testimonialsVisible] = useIntersectionObserver();
+
+
   return (
     <div className="min-h-screen bg-[var(--background-light)] text-slate-900">
       <header className="glass-effect fixed inset-x-0 top-0 z-50">
@@ -651,7 +656,7 @@ export default function LandingPage() {
               </p>
               <a href="#preco" className="cta-button inline-flex items-center justify-center rounded-lg px-6 py-3 text-base font-bold text-white shadow-xl md:px-10 md:py-4 md:text-lg">
                 Descubra Agora
-                <LucideIcon name="ArrowRightCircle" className="ml-2 inline h-5 w-5 md:h-6 md:w-6" />
+                <LucideIcon name="CircleArrowRight" className="ml-2 inline h-5 w-5 md:h-6 md:w-6" />
               </a>
             </div>
           </div>
@@ -662,6 +667,11 @@ export default function LandingPage() {
           ref={stepsSectionRef}
           className="cv-auto relative overflow-hidden bg-white py-16 md:py-24"
         >
+          <canvas id="gradient-canvas"
+          className="absolute inset-0 w-full h-full" 
+          style={{ zIndex: 0 }}>
+            </canvas>
+
           <div className="container mx-auto px-6">
             <div className="mx-auto text-center">
               <h2 className="text-3xl font-extrabold md:text-4xl">Fácil como 1, 2, 3.</h2>
@@ -669,7 +679,7 @@ export default function LandingPage() {
                 Simplificamos todo o processo para você ter sua resposta em minutos.
               </p>
             </div>
-            <div className="mt-12 grid gap-8 md:grid-cols-3 md:gap-12">
+            <div ref={stepsRef} className="mt-12 grid gap-8 md:grid-cols-3 md:gap-12">
               {steps.map((step, index) => (
                 <div
                   key={step.number}
@@ -677,9 +687,10 @@ export default function LandingPage() {
                     stepCardRefs.current[index] = element;
                   }}
                   className={clsx(
-                    "step-card relative rounded-2xl border-t-4 bg-white p-6 text-center shadow-xl md:p-8",
-                    step.highlight ? "border-[var(--primary-accent)] shadow-2xl md:scale-110" : "border-slate-200"
-                  )}
+                  "tilt-card step-card relative rounded-2xl border-t-4 bg-white p-6 text-center shadow-xl md:p-8",
+                  step.highlight ? "border-[var(--primary-accent)] shadow-2xl md:scale-110" : "border-slate-200",
+                  stepsVisible && "is-visible"
+                )}
                 >
                   {step.highlight && (
                     <span className="absolute -top-3 left-1/2 -translate-x-1/2 rounded-full bg-[var(--primary-accent)] px-3 py-1 text-xs font-bold text-white">
@@ -761,7 +772,7 @@ export default function LandingPage() {
                   <ul className="mt-8 space-y-4 text-left text-sm md:text-base">
                     {pricingBenefits.map((benefit) => (
                       <li key={benefit} className="flex items-center">
-                        <LucideIcon name={benefit.includes("Indique") ? "gift" : "CheckCircle2"} className="mr-3 h-5 w-5 flex-shrink-0 text-green-500" />
+                        <LucideIcon name={benefit.includes("Indique") ? "Gift" : "CircleCheckBig"} className="mr-3 h-5 w-5 flex-shrink-0 text-green-500" />
                         <span>{benefit}</span>
                       </li>
                     ))}
@@ -818,7 +829,7 @@ export default function LandingPage() {
 
         <section id="referral" className="cv-auto bg-slate-50 py-16 text-center md:py-24">
           <div className="container mx-auto max-w-3xl px-6">
-            <LucideIcon name="gift" className="mx-auto mb-4 h-12 w-12 text-yellow-500" />
+            <LucideIcon name="Gift" className="mx-auto mb-4 h-12 w-12 text-yellow-500" />
             <h2 className="text-3xl font-extrabold md:text-4xl">Gostou? Indique e Ganhe!</h2>
             <p className="mt-4 text-slate-700 md:text-lg">
               Transforme sua satisfação em mais oportunidades. Para cada amigo que indicar e que se tornar cliente, você ganha 1 análise extra, totalmente grátis. É a nossa forma de agradecer por confiar em nosso trabalho.
@@ -838,14 +849,14 @@ export default function LandingPage() {
             <p className="mx-auto mt-4 max-w-2xl text-center text-slate-700 md:text-lg">
               Veja o que alguns de nossos usuários estão dizendo sobre a experiência com a <strong className="font-semibold text-slate-800">CalculaConfia</strong>.
             </p>
-            <div className="mt-12 grid grid-cols-1 gap-8 md:grid-cols-2 lg:grid-cols-3">
+            <div ref={testimonialsRef} className="mt-12 grid grid-cols-1 gap-8 md:grid-cols-2 lg:grid-cols-3">
               {testimonials.map((testimonial, index) => (
                 <div
                   key={testimonial.name}
                   ref={(element: HTMLDivElement | null) => {
                     testimonialCardRefs.current[index] = element;
                   }}
-                  className="testimonial-grid-card"
+                  className={clsx("testimonial-grid-card", testimonialsVisible && "is-visible")}
                 >
                   <div className="mb-4 flex items-center">
                     <div className={clsx("mr-4 flex h-14 w-14 items-center justify-center rounded-full", testimonial.color)}>
@@ -858,7 +869,7 @@ export default function LandingPage() {
                   </div>
                   <div className="mb-4 flex text-yellow-500">
                     {Array.from({ length: 5 }).map((_, index) => (
-                      <LucideIcon key={index} name="star" className="h-5 w-5 fill-current" />
+                      <LucideIcon key={index} name="Star" className="h-5 w-5 fill-current" />
                     ))}
                   </div>
                   <p className="text-slate-700" dangerouslySetInnerHTML={{ __html: testimonial.text }} />
@@ -879,9 +890,9 @@ export default function LandingPage() {
             <h2 className="text-center text-3xl font-extrabold md:text-4xl">Suas Dúvidas, Nossas Respostas.</h2>
             <div className="mt-12 space-y-4">
               {faqItems.map((item) => (
-                <div key={item.question} className="faq-item-static rounded-lg bg-white p-6">
+                <div key={item.question} className={clsx("tilt-card", "faq-item-static rounded-lg bg-white p-6")}>
                   <h3 className="mb-2 flex items-center gap-3 text-lg font-bold text-slate-800">
-                    <LucideIcon name="help-circle" className="h-6 w-6 flex-shrink-0 text-green-600" />
+                    <LucideIcon name="MessageCircleQuestionMark" className="h-6 w-6 flex-shrink-0 text-green-600" />
                     <span>{item.question}</span>
                   </h3>
                   <p className="pl-9 text-sm text-slate-700 md:text-base">{item.answer}</p>
@@ -903,10 +914,10 @@ export default function LandingPage() {
               className="absolute right-4 top-4 text-slate-400 hover:text-slate-600"
               title="Fechar aviso"
             >
-              <LucideIcon name="x" className="h-5 w-5" />
+              <LucideIcon name="X" className="h-5 w-5" />
             </button>
             <LucideIcon
-              name={paymentStatus.type === "success" ? "CheckCircle" : paymentStatus.type === "error" ? "AlertTriangle" : "Info"}
+              name={paymentStatus.type === "success" ? "CircleCheckBig" : paymentStatus.type === "error" ? "TriangleAlert" : "Info"}
               className={clsx(
                 "mx-auto mb-4 h-12 w-12",
                 paymentStatus.type === "success"
@@ -949,7 +960,7 @@ export default function LandingPage() {
             <div className="mb-4 flex items-center justify-between">
               <h3 className="text-2xl font-extrabold text-slate-800">Comprar Créditos</h3>
               <button type="button" onClick={closePaymentCard} className="text-slate-500 hover:text-slate-700" title="Fechar">
-                <LucideIcon name="x" className="h-5 w-5" />
+                <LucideIcon name="X" className="h-5 w-5" />
               </button>
             </div>
             <div className="mb-6 rounded-xl border border-green-100 bg-green-50 p-4 text-green-800">

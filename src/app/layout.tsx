@@ -28,6 +28,16 @@ export default function RootLayout({
       <body className={inter.className}>
         <AppProviders>{children}</AppProviders>
         <Script src="https://sdk.mercadopago.com/js/v2" strategy="afterInteractive" />
+        <Script src="https://cdn.jsdelivr.net/npm/gradient-js/src/gradient.js" strategy="afterInteractive" />
+        <Script id="gradient-init" strategy="afterInteractive">
+          {`
+            // Garante que o script só rode no navegador e depois que a página carregar
+            if (typeof window !== 'undefined') {
+              var gradient = new Gradient();
+              gradient.initGradient("#gradient-canvas");
+            }
+          `}
+        </Script>
       </body>
     </html>
   );
