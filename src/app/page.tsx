@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useRef, useState } from "react";
+import type { MouseEvent as ReactMouseEvent } from "react";
 import clsx from "clsx";
 import { Swiper, SwiperSlide } from "swiper/react";
 import { Autoplay, EffectFade, Pagination } from "swiper/modules";
@@ -19,6 +20,10 @@ declare global {
     MercadoPago?: new (publicKey: string, options?: Record<string, unknown>) => {
       checkout: (config: { preference: { id: string } }) => void;
     };
+    VANTA?: {
+      NET?: (options: Record<string, unknown>) => { destroy?: () => void } | undefined;
+    };
+    THREE?: unknown;
   }
 }
 
@@ -209,6 +214,142 @@ export default function LandingPage() {
   }, []);
 
   useEffect(() => {
+    if (typeof window === "undefined") {
+      return;
+    }
+
+    const sections = [stepsSectionRef.current, testimonialsSectionRef.current].filter(
+      (section): section is HTMLElement => section instanceof HTMLElement
+    );
+
+    if (sections.length === 0) {
+      return;
+    }
+
+    const prefersReducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+    if (prefersReducedMotion) {
+      return;
+    }
+
+    let disposed = false;
+    let observer: IntersectionObserver | null = null;
+    let instances: Array<{ destroy?: () => void }> = [];
+
+    const loadScript = (src: string) =>
+      new Promise<void>((resolve, reject) => {
+        const existing = document.querySelector<HTMLScriptElement>(`script[src="${src}"]`);
+        if (existing) {
+          if (existing.dataset.loaded === "true") {
+            resolve();
+            return;
+          }
+          const handleLoad = () => {
+            existing.dataset.loaded = "true";
+            resolve();
+          };
+          const handleError = () => reject(new Error(`Failed to load script: ${src}`));
+          existing.addEventListener("load", handleLoad, { once: true });
+          existing.addEventListener("error", handleError, { once: true });
+          return;
+        }
+
+        const script = document.createElement("script");
+        script.src = src;
+        script.async = true;
+        script.dataset.vanta = "true";
+        script.addEventListener("load", () => {
+          script.dataset.loaded = "true";
+          resolve();
+        });
+        script.addEventListener("error", () => reject(new Error(`Failed to load script: ${src}`)));
+        document.head.appendChild(script);
+      });
+
+    const ensureVanta = async () => {
+      if (disposed) {
+        return;
+      }
+      try {
+        if (!window.THREE) {
+          await loadScript("https://cdn.jsdelivr.net/npm/three@0.134.0/build/three.min.js");
+        }
+        if (!window.VANTA?.NET) {
+          await loadScript("https://cdn.jsdelivr.net/npm/vanta@0.5.24/dist/vanta.net.min.js");
+        }
+        if (disposed) {
+          return;
+        }
+
+        const nav = navigator as Navigator & { deviceMemory?: number };
+        const lowSpec =
+          (typeof nav.deviceMemory === "number" && nav.deviceMemory <= 2) ||
+          (typeof nav.hardwareConcurrency === "number" && nav.hardwareConcurrency <= 4);
+
+        const baseConfig = {
+          mouseControls: true,
+          touchControls: true,
+          gyroControls: false,
+          minHeight: 200.0,
+          minWidth: 200.0,
+          scale: 1.0,
+          scaleMobile: 1.0,
+          color: 0xcccccc,
+          backgroundColor: 0xffffff,
+          points: 11.0,
+          maxDistance: 22.0,
+          spacing: 18.0,
+        } as const;
+        const liteConfig = { ...baseConfig, points: 9.0, maxDistance: 18.0, spacing: 20.0 };
+        const config = lowSpec ? liteConfig : baseConfig;
+
+        sections.forEach((section) => {
+          const instance = window.VANTA?.NET?.({ el: section, ...config });
+          if (instance) {
+            instances.push(instance);
+          }
+        });
+      } catch (error) {
+        console.error(error);
+      }
+    };
+
+    const startVanta = () => {
+      if (disposed) {
+        return;
+      }
+      void ensureVanta();
+    };
+
+    try {
+      observer = new IntersectionObserver(
+        (entries) => {
+          if (entries.some((entry) => entry.isIntersecting)) {
+            observer?.disconnect();
+            startVanta();
+          }
+        },
+        { rootMargin: "200px" }
+      );
+      sections.forEach((section) => observer?.observe(section));
+    } catch (_) {
+      startVanta();
+    }
+
+    return () => {
+      disposed = true;
+      observer?.disconnect();
+      instances.forEach((instance) => {
+        try {
+          instance?.destroy?.();
+        } catch {
+          // ignore cleanup errors
+        }
+      });
+      instances = [];
+    };
+  }, []);
+
+  useEffect(() => {
     const prefersReducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
 
     if (prefersReducedMotion) {
@@ -276,8 +417,15 @@ export default function LandingPage() {
   }, []);
 
   useEffect(() => {
-    const card = tiltCardRef.current;
-    if (!card) {
+    if (typeof window === "undefined") {
+      return;
+    }
+
+    const elements = Array.from(
+      document.querySelectorAll<HTMLDivElement>(".tilt-card")
+    ).filter((element): element is HTMLDivElement => element instanceof HTMLDivElement);
+
+    if (elements.length === 0) {
       return;
     }
 
@@ -287,120 +435,131 @@ export default function LandingPage() {
     }
 
     const clamp = (value: number, min: number, max: number) => Math.min(Math.max(value, min), max);
+    elements.forEach((element) => {
+      element.classList.add("card-3d");
+    });
     const pointerFine = window.matchMedia("(pointer: fine)").matches;
 
-    const setupPointerTilt = (element: HTMLDivElement) => {
-      let frameId: number | null = null;
+    if (pointerFine) {
+      const cleanups = elements.map((element) => {
+        let frameId: number | null = null;
 
       const handlePointerMove = (event: PointerEvent) => {
-        const rect = element.getBoundingClientRect();
-        const relativeX = (event.clientX - rect.left) / rect.width;
-        const relativeY = (event.clientY - rect.top) / rect.height;
-        const rotateX = clamp((0.5 - relativeY) * 22, -18, 18);
-        const rotateY = clamp((relativeX - 0.5) * 22, -18, 18);
+          const rect = element.getBoundingClientRect();
+          const relativeX = (event.clientX - rect.left) / rect.width;
+          const relativeY = (event.clientY - rect.top) / rect.height;
+          const rotateX = clamp((0.5 - relativeY) * 30, -15, 15);
+          const rotateY = clamp((relativeX - 0.5) * 30, -15, 15);
 
         if (frameId) {
-          cancelAnimationFrame(frameId);
-        }
-        frameId = window.requestAnimationFrame(() => {
-          element.style.transform = `perspective(1100px) rotateX(${rotateX}deg) rotateY(${rotateY}deg) scale(1.05)`;
-        });
-      };
+            cancelAnimationFrame(frameId);
+          }
+          frameId = window.requestAnimationFrame(() => {
+            element.style.transform = `perspective(1100px) rotateX(${rotateX}deg) rotateY(${rotateY}deg) scale(1.05)`;
+          });
+        };
 
       const resetTilt = () => {
-        if (frameId) {
-          cancelAnimationFrame(frameId);
-        }
-        frameId = null;
-        element.style.transform = "";
-        element.classList.remove("is-tilting");
-      };
+          if (frameId) {
+            cancelAnimationFrame(frameId);
+          }
+          frameId = null;
+          element.style.transform = "";
+          element.classList.remove("is-tilting", "card-3d--active");
+        };
 
       const handlePointerEnter = () => {
-        element.classList.add("is-tilting");
-      };
+          element.classList.add("is-tilting", "card-3d--active");
+        };
 
       const handlePointerLeave = () => {
-        resetTilt();
-      };
+          resetTilt();
+        };
 
       element.addEventListener("pointerenter", handlePointerEnter);
-      element.addEventListener("pointermove", handlePointerMove);
-      element.addEventListener("pointerleave", handlePointerLeave);
-      element.addEventListener("pointercancel", handlePointerLeave);
+        element.addEventListener("pointermove", handlePointerMove);
+        element.addEventListener("pointerleave", handlePointerLeave);
+        element.addEventListener("pointercancel", handlePointerLeave);
 
       return () => {
-        element.removeEventListener("pointerenter", handlePointerEnter);
-        element.removeEventListener("pointermove", handlePointerMove);
-        element.removeEventListener("pointerleave", handlePointerLeave);
-        element.removeEventListener("pointercancel", handlePointerLeave);
-        resetTilt();
-      };
-    };
+          element.removeEventListener("pointerenter", handlePointerEnter);
+          element.removeEventListener("pointermove", handlePointerMove);
+          element.removeEventListener("pointerleave", handlePointerLeave);
+          element.removeEventListener("pointercancel", handlePointerLeave);
+          resetTilt();
+        };
+      });
 
-    const setupGyroTilt = (element: HTMLDivElement) => {
-      if (typeof window.DeviceOrientationEvent === "undefined") {
-        return undefined;
-      }
+    if (typeof window.DeviceOrientationEvent === "undefined") {
+      return;
+    }
 
       let frameId: number | null = null;
       let started = false;
+      const last = { beta: 0, gamma: 0 };
       const interactionCleanups: Array<() => void> = [];
 
       const applyOrientation = (beta: number, gamma: number) => {
-        const rotateX = clamp(-beta * 0.25, -18, 18);
-        const rotateY = clamp(gamma * 0.25, -18, 18);
+      const rotateX = clamp(-beta * 0.25, -15, 15);
+      const rotateY = clamp(gamma * 0.25, -15, 15);
+      elements.forEach((element) => {
+        element.classList.add("card-3d--active", "is-tilting");
         element.style.transform = `perspective(1100px) rotateX(${rotateX}deg) rotateY(${rotateY}deg) scale(1.05)`;
-      };
+      });
+    };
 
       const handleOrientation = (event: DeviceOrientationEvent) => {
         const { beta = 0, gamma = 0 } = event;
+        last.beta = beta;
+        last.gamma = gamma;
         if (frameId) {
           cancelAnimationFrame(frameId);
         }
-        frameId = window.requestAnimationFrame(() => applyOrientation(beta, gamma));
+        frameId = window.requestAnimationFrame(() => applyOrientation(last.beta, last.gamma));
       };
 
       const stop = () => {
-        if (!started) {
-          return;
-        }
-        window.removeEventListener("deviceorientation", handleOrientation);
-        started = false;
+      if (!started) {
+        return;
+      }
+      window.removeEventListener("deviceorientation", handleOrientation);
+      started = false;
+    };
+
+    const cleanupInteractions = () => {
+      interactionCleanups.splice(0).forEach((cleanup) => cleanup());
+    };
+
+    const start = () => {
+      if (started) {
+        return;
+      }
+      cleanupInteractions();
+      window.addEventListener("deviceorientation", handleOrientation);
+      started = true;
+    };
+
+    const requestPermission = () => {
+      const DeviceOrientation = window.DeviceOrientationEvent as typeof window.DeviceOrientationEvent & {
+        requestPermission?: () => Promise<PermissionState | "granted" | "denied">;
       };
 
-      const cleanupInteractions = () => {
-        interactionCleanups.splice(0).forEach((cleanup) => cleanup());
-      };
+      if (typeof DeviceOrientation?.requestPermission === "function") {
+        DeviceOrientation.requestPermission()
+          .then((state) => {
+            if (state === "granted") {
+              start();
+            }
+          })
+          .catch(() => {});
+      } else {
+        start();
+      }
+    };
 
-      const start = () => {
-        if (started) {
-          return;
-        }
-        cleanupInteractions();
-        window.addEventListener("deviceorientation", handleOrientation);
-        element.classList.add("is-tilting");
-        started = true;
-      };
+      requestPermission();
 
-      const requestPermission = () => {
-        const DeviceOrientation = window.DeviceOrientationEvent as typeof window.DeviceOrientationEvent & {
-          requestPermission?: () => Promise<PermissionState | "granted" | "denied">;
-        };
-
-        if (typeof DeviceOrientation?.requestPermission === "function") {
-          DeviceOrientation.requestPermission()
-            .then((state) => {
-              if (state === "granted") {
-                start();
-              }
-            })
-            .catch(() => {});
-        } else {
-          start();
-        }
-      };
-
+      if (!started) {
       const registerInteraction = (type: keyof DocumentEventMap, options?: AddEventListenerOptions) => {
         const handler = () => {
           requestPermission();
@@ -409,30 +568,20 @@ export default function LandingPage() {
         interactionCleanups.push(() => document.removeEventListener(type, handler, options));
       };
 
-      requestPermission();
-
-      if (!started) {
-        registerInteraction("click", { once: true });
-        registerInteraction("touchstart", { once: true, passive: true });
-      }
-
-      return () => {
-        cleanupInteractions();
-        stop();
-        if (frameId) {
-          cancelAnimationFrame(frameId);
-        }
-        element.classList.remove("is-tilting");
-        element.style.transform = "";
-      };
-    };
-
-    const cleanup = pointerFine ? setupPointerTilt(card) : setupGyroTilt(card);
+      registerInteraction("click", { once: true });
+      registerInteraction("touchstart", { once: true, passive: true });
+    }
 
     return () => {
-      cleanup?.();
-    };
-  }, []);
+      cleanupInteractions();
+      stop();
+      if (frameId) {
+        cancelAnimationFrame(frameId);
+      }
+      elements.forEach((element) => {
+        element.classList.remove("is-tilting", "card-3d--active");
+        element.style.transform = "";
+      });
 
   useEffect(() => {
     const sections = spotlightSectionRefs.current.filter(
@@ -544,6 +693,21 @@ export default function LandingPage() {
     setIsAuthModalOpen(false);
   };
 
+  const handleScrollToPricing = (
+    event?: ReactMouseEvent<HTMLAnchorElement | HTMLButtonElement>
+  ) => {
+    event?.preventDefault();
+    if (typeof window === "undefined") {
+      return;
+    }
+    const target = document.getElementById("preco");
+    if (target) {
+      target.scrollIntoView({ behavior: "smooth", block: "start" });
+    } else {
+      window.location.hash = "preco";
+    }
+  };
+
   const handleUnlockClick = () => {
     if (!isAuthenticated) {
       handleOpenAuth("register");
@@ -610,6 +774,7 @@ export default function LandingPage() {
             <a
               href="#preco"
               className="cta-button rounded-lg px-3 py-1.5 text-xs font-bold text-white shadow-md sm:px-4 sm:py-2 sm:text-sm"
+              onClick={handleScrollToPricing}
             >
               Iniciar Análise
             </a>
@@ -654,7 +819,11 @@ export default function LandingPage() {
               <p className="mx-auto mb-8 max-w-3xl text-lg text-slate-200 drop-shadow-lg md:text-xl">
                 Nossa calculadora analisa seu caso e revela sua estimativa em segundos. É simples, rápido e seguro.
               </p>
-              <a href="#preco" className="cta-button inline-flex items-center justify-center rounded-lg px-6 py-3 text-base font-bold text-white shadow-xl md:px-10 md:py-4 md:text-lg">
+              <a
+                href="#preco"
+                className="cta-button inline-flex items-center justify-center rounded-lg px-6 py-3 text-base font-bold text-white shadow-xl md:px-10 md:py-4 md:text-lg"
+                onClick={handleScrollToPricing}
+              >
                 Descubra Agora
                 <LucideIcon name="CircleArrowRight" className="ml-2 inline h-5 w-5 md:h-6 md:w-6" />
               </a>
@@ -667,12 +836,7 @@ export default function LandingPage() {
           ref={stepsSectionRef}
           className="cv-auto relative overflow-hidden bg-white py-16 md:py-24"
         >
-          <canvas id="gradient-canvas"
-          className="absolute inset-0 w-full h-full" 
-          style={{ zIndex: 0 }}>
-            </canvas>
-
-          <div className="container mx-auto px-6">
+          <div className="container relative z-10 mx-auto px-6">
             <div className="mx-auto text-center">
               <h2 className="text-3xl font-extrabold md:text-4xl">Fácil como 1, 2, 3.</h2>
               <p className="mt-4 text-slate-700 md:text-lg">
@@ -706,7 +870,7 @@ export default function LandingPage() {
             <div className="mt-12 text-center md:mt-16">
               <button
                 type="button"
-                onClick={handleUnlockClick}
+                onClick={handleScrollToPricing}
                 className="btn-shine inline-block rounded-lg bg-slate-800 px-8 py-3 text-base font-bold text-white shadow-xl transition-transform hover:scale-105 hover:bg-slate-900 md:px-10 md:py-4 md:text-lg"
               >
                 Liberar Minha Análise
@@ -739,7 +903,7 @@ export default function LandingPage() {
               </div>
               <button
                 type="button"
-                onClick={handleUnlockClick}
+                onClick={handleScrollToPricing}
                 className="cta-button mt-8 inline-flex items-center justify-center rounded-lg px-6 py-3 text-base font-bold text-white shadow-xl md:px-8 md:py-4 md:text-lg"
               >
                 Veja Agora!
@@ -1003,7 +1167,12 @@ export default function LandingPage() {
         >
           <div className="flex items-center gap-2">
             <LucideIcon name="User" className="h-4 w-4 text-green-600" />
-            <span className="text-xs font-semibold text-slate-700">
+            <span
+              className={clsx(
+                "inline-block text-xs font-semibold text-slate-700",
+                !isAuthenticated && "session-status-pulse"
+              )}
+            >
               {isAuthenticated ? user?.first_name ?? "Você está logado" : "Não logado"}
             </span>
           </div>
@@ -1052,7 +1221,7 @@ export default function LandingPage() {
           <button
             type="button"
             className="cta-button mt-8 inline-block rounded-lg px-6 py-3 text-base font-bold text-white shadow-xl md:px-10 md:py-4 md:text-lg"
-            onClick={handleUnlockClick}
+            onClick={handleScrollToPricing}
           >
             Sim, Quero Minha Análise
           </button>

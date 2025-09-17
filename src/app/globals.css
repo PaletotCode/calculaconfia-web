@@ -149,6 +149,16 @@
         .tilt-card.is-tilting {
             box-shadow: 0 22px 48px -20px rgba(22, 163, 74, 0.45), 0 14px 30px -20px rgba(15, 23, 42, 0.35);
         }
+
+        @keyframes session-status-expand {
+            0%, 100% { transform: scale(1); }
+            50% { transform: scale(1.08); }
+        }
+
+        .session-status-pulse {
+            display: inline-block;
+            animation: session-status-expand 2.2s ease-in-out infinite;
+        }
         
         /* --- PARALLAX ESTRATÉGICO --- */
         #hero-text-content { will-change: transform, opacity; }
