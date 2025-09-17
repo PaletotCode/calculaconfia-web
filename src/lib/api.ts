@@ -73,6 +73,37 @@ export interface CreateOrderResponse {
   [key: string]: unknown;
 }
 
+export interface CreditsBalanceResponse {
+  balance?: number;
+  credits?: number;
+  creditos?: number;
+  valid_credits?: number;
+  available_credits?: number;
+  [key: string]: unknown;
+}
+
+export interface CreditHistoryItem {
+  id?: string | number;
+  transaction_type?: string;
+  type?: string;
+  description?: string;
+  reason?: string;
+  amount?: number;
+  created_at?: string;
+  [key: string]: unknown;
+}
+
+export type CreditHistoryResponse =
+  | CreditHistoryItem[]
+  | {
+      items?: CreditHistoryItem[];
+      results?: CreditHistoryItem[];
+      transactions?: CreditHistoryItem[];
+      history?: CreditHistoryItem[];
+      data?: CreditHistoryItem[];
+      [key: string]: unknown;
+    };
+    
 export const register = async (payload: RegisterPayload) => {
   const { data } = await api.post<ApiMessageResponse>("/register", payload);
   return data;

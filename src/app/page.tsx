@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type { MouseEvent as ReactMouseEvent } from "react";
 import clsx from "clsx";
 import { Swiper, SwiperSlide } from "swiper/react";
@@ -13,7 +13,13 @@ import AuthModal from "@/components/AuthModal";
 import { LucideIcon, type IconName } from "@/components/LucideIcon";
 import useAuth from "@/hooks/useAuth";
 import { useIntersectionObserver } from "@/hooks/useIntersectionObserver";
-import { createOrder, extractErrorMessage } from "@/lib/api";
+import {
+  createOrder,
+  extractErrorMessage,
+  getCreditsHistory,
+  type CreditHistoryItem,
+  type User,
+} from "@/lib/api";
 
 declare global {
   interface Window {
@@ -187,6 +193,164 @@ const faqItems = [
   },
 ];
 
+type PurchaseHistoryState = {
+  status: "idle" | "pending" | "success" | "error";
+  hasPurchase: boolean;
+};
+
+const CREDIT_KEYS = [
+  "credits",
+  "valid_credits",
+  "available_credits",
+  "balance",
+  "credit_balance",
+  "creditos",
+] as const;
+
+const PURCHASE_FLAG_KEYS = [
+  "has_active_subscription",
+  "has_payment",
+  "has_any_purchase",
+  "has_purchase_history",
+  "has_paid_plan",
+  "has_paid",
+  "has_lifetime_access",
+  "has_lifetime_plan",
+] as const;
+
+function isTruthyFlag(value: unknown): boolean {
+  if (typeof value === "boolean") {
+    return value;
+  }
+  if (typeof value === "number") {
+    return value > 0;
+  }
+  if (typeof value === "string") {
+    const normalized = value.trim().toLowerCase();
+    return ["true", "1", "yes", "sim"].includes(normalized);
+  }
+  return false;
+}
+
+function parseNumericValue(value: unknown): number | null {
+  if (typeof value === "number" && Number.isFinite(value)) {
+    return value;
+  }
+  if (typeof value === "string") {
+    const numeric = Number(value);
+    return Number.isFinite(numeric) ? numeric : null;
+  }
+  if (value && typeof value === "object") {
+    for (const key of CREDIT_KEYS) {
+      const nested = (value as Record<string, unknown>)[key];
+      const numeric = parseNumericValue(nested);
+      if (numeric !== null) {
+        return numeric;
+      }
+    }
+  }
+  return null;
+}
+
+function extractCreditsFromUser(user: User | null): number {
+  if (!user) {
+    return 0;
+  }
+  for (const key of CREDIT_KEYS) {
+    const numeric = parseNumericValue((user as Record<string, unknown>)[key]);
+    if (numeric !== null) {
+      return numeric;
+    }
+  }
+  return 0;
+}
+
+function inferPurchaseFromUser(user: User | null): boolean {
+  if (!user) {
+    return false;
+  }
+  if (extractCreditsFromUser(user) > 0) {
+    return true;
+  }
+  const record = user as Record<string, unknown>;
+  const referralCode = record.referral_code;
+  if (typeof referralCode === "string" && referralCode.trim() !== "") {
+    return true;
+  }
+  const purchaseDates = [
+    record.last_purchase_at,
+    record.first_purchase_at,
+    record.purchased_at,
+  ];
+  if (
+    purchaseDates.some(
+      (value) => typeof value === "string" && value.trim() !== ""
+    )
+  ) {
+    return true;
+  }
+  for (const key of PURCHASE_FLAG_KEYS) {
+    if (isTruthyFlag(record[key])) {
+      return true;
+    }
+  }
+  return false;
+}
+
+function normalizeHistoryItems(data: unknown): CreditHistoryItem[] {
+  if (!data) {
+    return [];
+  }
+  if (Array.isArray(data)) {
+    return data.filter(
+      (item): item is CreditHistoryItem =>
+        typeof item === "object" && item !== null
+    );
+  }
+  if (typeof data === "object" && data !== null) {
+    const container = data as Record<string, unknown>;
+    const candidateKeys = [
+      "items",
+      "results",
+      "transactions",
+      "history",
+      "data",
+    ];
+    for (const key of candidateKeys) {
+      const value = container[key];
+      if (Array.isArray(value)) {
+        return value.filter(
+          (item): item is CreditHistoryItem =>
+            typeof item === "object" && item !== null
+        );
+      }
+    }
+  }
+  return [];
+}
+
+function hasPurchaseInHistory(data: unknown): boolean {
+  return normalizeHistoryItems(data).some((item) => {
+    const type = String(item.transaction_type ?? item.type ?? "").toLowerCase();
+    if (type.includes("purchase") || type.includes("compra")) {
+      return true;
+    }
+    const record = item as Record<string, unknown>;
+    const detailsCandidate =
+      item.description ??
+      item.reason ??
+      (typeof record.title === "string" ? record.title : undefined) ??
+      (typeof record.note === "string" ? record.note : undefined);
+    if (typeof detailsCandidate === "string") {
+      const normalized = detailsCandidate.toLowerCase();
+      if (normalized.includes("purchase") || normalized.includes("compra")) {
+        return true;
+      }
+    }
+    return false;
+  });
+}
+
 export default function LandingPage() {
   const { user, isAuthenticated, logout, refresh } = useAuth();
 
@@ -199,6 +363,12 @@ export default function LandingPage() {
     message: "Estamos analisando as informações do seu pagamento.",
     type: "Info",
   });
+  const [hasPromptedPurchase, setHasPromptedPurchase] = useState(false);
+  const [historyState, setHistoryState] = useState<PurchaseHistoryState>({
+    status: "idle",
+    hasPurchase: false,
+  });
+  const [isPollingCredits, setIsPollingCredits] = useState(false);
   const [isSessionPanelOpen, setIsSessionPanelOpen] = useState(false);
   const [isPricingDetailsOpen, setIsPricingDetailsOpen] = useState(false);
 
@@ -209,6 +379,133 @@ export default function LandingPage() {
   const tiltCardRef = useRef<HTMLDivElement | null>(null);
   const spotlightSectionRefs = useRef<Array<HTMLElement | null>>([]);
 
+  const balancePollingIntervalRef = useRef<number | null>(null);
+  const balancePollingTimeoutRef = useRef<number | null>(null);
+
+  const stopBalancePolling = useCallback(() => {
+    if (balancePollingIntervalRef.current) {
+      window.clearInterval(balancePollingIntervalRef.current);
+      balancePollingIntervalRef.current = null;
+    }
+    if (balancePollingTimeoutRef.current) {
+      window.clearTimeout(balancePollingTimeoutRef.current);
+      balancePollingTimeoutRef.current = null;
+    }
+    setIsPollingCredits(false);
+  }, []);
+
+  const startBalancePolling = useCallback(() => {
+    if (isPollingCredits) {
+      return;
+    }
+    stopBalancePolling();
+    setIsPollingCredits(true);
+    void refresh();
+    balancePollingIntervalRef.current = window.setInterval(() => {
+      void refresh();
+    }, 4000);
+    balancePollingTimeoutRef.current = window.setTimeout(() => {
+      stopBalancePolling();
+      setPaymentStatus({
+        title: "Pagamento em processamento",
+        message:
+          "Ainda não recebemos a confirmação do pagamento. Assim que o Mercado Pago aprovar, vamos atualizar seus créditos automaticamente.",
+        type: "Info",
+      });
+      setIsPaymentStatusOpen(true);
+    }, 2 * 60 * 1000);
+  }, [isPollingCredits, refresh, stopBalancePolling]);
+
+  const redirectToPlatform = useCallback(() => {
+    stopBalancePolling();
+    setIsPaymentCardOpen(false);
+    setIsPaymentStatusOpen(false);
+    if (
+      typeof window !== "undefined" &&
+      !window.location.pathname.startsWith("/platform")
+    ) {
+      window.location.href = "/platform";
+    }
+  }, [stopBalancePolling]);
+
+  useEffect(() => {
+    if (!isAuthenticated) {
+      setHasPromptedPurchase(false);
+      setHistoryState({ status: "idle", hasPurchase: false });
+      setIsPaymentCardOpen(false);
+      setIsPaymentStatusOpen(false);
+      stopBalancePolling();
+      return;
+    }
+
+    let isMounted = true;
+
+    const credits = extractCreditsFromUser(user);
+    if (credits > 0) {
+      if (historyState.status !== "success" || !historyState.hasPurchase) {
+        setHistoryState({ status: "success", hasPurchase: true });
+      }
+      redirectToPlatform();
+      return () => {
+        isMounted = false;
+      };
+    }
+
+    if (inferPurchaseFromUser(user)) {
+      if (historyState.status !== "success" || !historyState.hasPurchase) {
+        setHistoryState({ status: "success", hasPurchase: true });
+      }
+      redirectToPlatform();
+      return () => {
+        isMounted = false;
+      };
+    }
+
+    if (historyState.status === "success" && historyState.hasPurchase) {
+      redirectToPlatform();
+      return () => {
+        isMounted = false;
+      };
+    }
+
+    if (historyState.status === "idle") {
+      setHistoryState({ status: "pending", hasPurchase: false });
+      void getCreditsHistory()
+        .then((data) => {
+          if (!isMounted) {
+            return;
+          }
+          const hasPurchase = hasPurchaseInHistory(data);
+          setHistoryState({ status: "success", hasPurchase });
+        })
+        .catch(() => {
+          if (!isMounted) {
+            return;
+          }
+          setHistoryState({ status: "error", hasPurchase: false });
+        });
+    } else if (
+      (historyState.status === "success" && !historyState.hasPurchase) ||
+      historyState.status === "error"
+    ) {
+      if (!hasPromptedPurchase) {
+        setIsPaymentCardOpen(true);
+        setHasPromptedPurchase(true);
+      }
+    }
+
+    return () => {
+      isMounted = false;
+    };
+  }, [
+    hasPromptedPurchase,
+    historyState,
+    isAuthenticated,
+    redirectToPlatform,
+    stopBalancePolling,
+    user,
+  ]);
+
   useEffect(() => {
     const handleResize = () => {
       setIsPricingDetailsOpen(window.innerWidth >= 768);
@@ -217,6 +514,8 @@ export default function LandingPage() {
     window.addEventListener("resize", handleResize);
     return () => window.removeEventListener("resize", handleResize);
   }, []);
+
+  useEffect(() => () => stopBalancePolling(), [stopBalancePolling]);
 
   useEffect(() => {
     if (typeof window === "undefined") {
@@ -797,7 +1096,8 @@ export default function LandingPage() {
           mp.checkout({ preference: { id: data.preference_id } });
           setPaymentStatus({
             title: "Pronto para pagar",
-            message: "Abrimos o checkout em uma nova janela. Conclua o pagamento para liberar seus créditos.",
+            message:
+              "Abrimos o checkout em uma nova janela. Assim que o pagamento for aprovado, vamos atualizar seus créditos e redirecionar você automaticamente para a plataforma.",
             type: "Info",
           });
           setIsPaymentStatusOpen(true);
@@ -858,10 +1158,12 @@ export default function LandingPage() {
 
   const handleCheckBalance = async () => {
     await refresh();
+    startBalancePolling();
     setPaymentStatus({
-      title: "Saldo atualizado",
-      message: "Atualizamos suas informações. Se já concluiu o pagamento, verifique seus créditos na plataforma.",
-      type: "success",
+      title: "Estamos verificando",
+      message:
+        "Atualizamos suas informações. Assim que novos créditos forem detectados, você será redirecionado automaticamente para a plataforma.",
+      type: "Info",
     });
     setIsPaymentStatusOpen(true);
   };
@@ -879,6 +1181,7 @@ export default function LandingPage() {
   };
 
   const handleLogout = async () => {
+    stopBalancePolling();
     await logout();
     setIsSessionPanelOpen(false);
   };

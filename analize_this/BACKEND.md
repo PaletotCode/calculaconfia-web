@@ -185,7 +185,7 @@ Para diretrizes do frontend, consulte `FRONTEND.md`.
   - Modelos: `SelicRate` e `IPCARate` em `app/models_schemas/models.py`.
 
 ### API de Cálculo
-- Endpoint: `POST /api/v1/calcular` (auth Bearer)
+- Endpoint: `POST /api/v1/calcular` (auth cookie HTTP-only)
 - Body:
   ```json
   {
