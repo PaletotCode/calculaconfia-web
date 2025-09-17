@@ -103,7 +103,7 @@ export type CreditHistoryResponse =
       data?: CreditHistoryItem[];
       [key: string]: unknown;
     };
-    
+
 export const register = async (payload: RegisterPayload) => {
   const { data } = await api.post<ApiMessageResponse>("/register", payload);
   return data;
@@ -144,6 +144,20 @@ export const verifyAccount = async (payload: VerificationPayload) => {
 export const createOrder = async () => {
   const { data } = await api.post<CreateOrderResponse>(
     "/payments/create-order"
+  );
+  return data;
+};
+
+export const getCreditsBalance = async () => {
+  const { data } = await api.get<CreditsBalanceResponse>(
+    "/credits/balance"
+  );
+  return data;
+};
+
+export const getCreditsHistory = async () => {
+  const { data } = await api.get<CreditHistoryResponse>(
+    "/credits/history"
   );
   return data;
 };
