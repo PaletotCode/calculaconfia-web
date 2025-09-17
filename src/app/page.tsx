@@ -454,12 +454,12 @@ export default function LandingPage() {
     const cleanupCallbacks: Array<() => void> = [];
     const pointerFine = window.matchMedia("(pointer: fine)").matches;
 
-    if (pointerFine) {
+    const setupPointerTilt = () => {
       tiltElements.forEach((element) => {
         let frameId: number | null = null;
 
-      const resetTilt = () => {
-          if (frameId) {
+        const resetTilt = () => {
+          if (frameId !== null) {
             cancelAnimationFrame(frameId);
           }
           frameId = null;
@@ -478,7 +478,7 @@ export default function LandingPage() {
           const rotateX = clamp((0.5 - relativeY) * 30, -15, 15);
           const rotateY = clamp((relativeX - 0.5) * 30, -15, 15);
 
-          if (frameId) {
+          if (frameId !== null) {
             cancelAnimationFrame(frameId);
           }
 
@@ -487,7 +487,7 @@ export default function LandingPage() {
           });
         };
 
-      const handlePointerLeave = () => {
+        const handlePointerLeave = () => {
           resetTilt();
         };
 
@@ -496,7 +496,7 @@ export default function LandingPage() {
         element.addEventListener("pointerleave", handlePointerLeave);
         element.addEventListener("pointercancel", handlePointerLeave);
 
-      cleanupCallbacks.push(() => {
+        cleanupCallbacks.push(() => {
           element.removeEventListener("pointerenter", handlePointerEnter);
           element.removeEventListener("pointermove", handlePointerMove);
           element.removeEventListener("pointerleave", handlePointerLeave);
@@ -504,8 +504,13 @@ export default function LandingPage() {
           resetTilt();
         });
       });
+    };
 
-    if (typeof window.DeviceOrientationEvent !== "undefined") {
+    const setupOrientationTilt = () => {
+      if (typeof window.DeviceOrientationEvent === "undefined") {
+        return;
+      }
+
       let frameId: number | null = null;
       let started = false;
       const last = { beta: 0, gamma: 0 };
@@ -521,6 +526,31 @@ export default function LandingPage() {
         });
       };
 
+      const handleOrientation = (event: DeviceOrientationEvent) => {
+        const { beta, gamma } = event;
+
+        if (typeof beta !== "number" || typeof gamma !== "number") {
+          return;
+        }
+
+        const clampedBeta = clamp(beta, -90, 90);
+        const clampedGamma = clamp(gamma, -90, 90);
+
+        if (frameId !== null) {
+          cancelAnimationFrame(frameId);
+        }
+
+        frameId = window.requestAnimationFrame(() => {
+          const smoothing = 0.15;
+
+          last.beta += (clampedBeta - last.beta) * smoothing;
+          last.gamma += (clampedGamma - last.gamma) * smoothing;
+
+          applyOrientation(last.beta, last.gamma);
+          frameId = null;
+        });
+      };
+      
       const stop = () => {
         if (!started) {
           return;
@@ -585,12 +615,18 @@ export default function LandingPage() {
       cleanupCallbacks.push(() => {
         cleanupInteractions();
         stop();
-        if (frameId) {
+        if (frameId !== null) {
           cancelAnimationFrame(frameId);
         }
       });
+    };
+
+    if (pointerFine) {
+      setupPointerTilt();
     }
 
+    setupOrientationTilt();
+    
     return () => {
       cleanupCallbacks.forEach((cleanup) => cleanup());
       tiltElements.forEach((element) => {
