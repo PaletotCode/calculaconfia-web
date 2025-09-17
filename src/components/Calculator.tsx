@@ -6,8 +6,8 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import Flatpickr from "react-flatpickr";
 import "flatpickr/dist/flatpickr.min.css";
 import { Portuguese } from "flatpickr/dist/l10n/pt.js";
-import IMask from "imask";
-import { LucideIcon } from "@/components/LucideIcon";
+import IMask, { type InputMask } from "imask";
+import { LucideIcon, type IconName } from "@/components/LucideIcon";
 import {
   calcular,
   type CalcularResponse,
@@ -21,19 +21,19 @@ interface BillInput {
   icms: string;
 }
 
-const navLinks = [
-  { id: "Home", label: "Início", icon: "Home", color: "#0d9488" },
-  { id: "calculate", label: "Calcular", icon: "calculator", color: "#3b82f6" },
-  { id: "history", label: "Histórico", icon: "history", color: "#8b5cf6" },
-  { id: "credits", label: "Créditos", icon: "wallet", color: "#ca8a04" },
+const navLinks: Array<{ id: string; label: string; icon: IconName; color: string }> = [
+  { id: "Home", label: "Início", icon: "House", color: "#0d9488" },
+  { id: "calculate", label: "Calcular", icon: "Calculator", color: "#3b82f6" },
+  { id: "history", label: "Histórico", icon: "History", color: "#8b5cf6" },
+  { id: "credits", label: "Créditos", icon: "Wallet", color: "#ca8a04" },
 ];
 
-const timelineItems = [
+const timelineItems: Array<{ text: string; icon: IconName }> = [
   { text: "Analisando padrões de tributação...", icon: "FileSearch2" },
-  { text: "Cruzando dados com a legislação vigente...", icon: "scale" },
+  { text: "Cruzando dados com a legislação vigente...", icon: "Scale" },
   { text: "Calculando correção monetária retroativa...", icon: "CalendarClock" },
   { text: "Estimando juros da taxa Selic...", icon: "TrendingUp" },
-  { text: "Compilando seu relatório final...", icon: "CheckCircle" },
+  { text: "Compilando seu relatório final...", icon: "CircleCheck" },
 ];
 
 function formatCurrency(value: number) {
@@ -334,7 +334,7 @@ export function Calculator() {
               />
             </div>
             <div className="input-group mt-4">
-              <LucideIcon name="receipt" className="input-icon" />
+              <LucideIcon name="Receipt" className="input-icon" />
               <CurrencyInput
                 value={bill.icms}
                 onValueChange={(value) => updateBill(index, { icms: value })}
@@ -415,7 +415,7 @@ export function Calculator() {
             >
               <div className="timeline-content flex items-center gap-3">
                 <LucideIcon
-                  name={isCompleted ? "CheckCircle" : isActive ? "Loader2" : item.icon}
+                  name={isCompleted ? "CircleCheck" : isActive ? "LoaderCircle" : item.icon}
                   className={clsx("loader-icon h-6 w-6", isCompleted ? "text-green-500" : "text-slate-400")}
                 />
                 <span className="text-lg text-slate-200">{item.text}</span>
@@ -502,7 +502,7 @@ export function Calculator() {
                       className="mt-6 animate-[alert-fade-in_.5s_ease-out] rounded-lg border-l-4 border-red-500 bg-red-100 p-4 text-left text-red-800"
                     >
                       <div className="flex items-start gap-3">
-                        <LucideIcon name="AlertTriangle" className="mt-1 h-6 w-6 flex-shrink-0 text-red-600" />
+                        <LucideIcon name="TriangleAlert" className="mt-1 h-6 w-6 flex-shrink-0 text-red-600" />
                         <div>
                           <p className="font-bold">Recomendação</p>
                           <p className="text-sm">Para uma melhor estimativa, recomendamos iniciar com pelo menos três contas.</p>
@@ -1025,7 +1025,7 @@ interface CurrencyInputProps {
 
 function CurrencyInput({ value, onValueChange, placeholder }: CurrencyInputProps) {
   const inputRef = useRef<HTMLInputElement | null>(null);
-  const maskRef = useRef<IMask.InputMask<any> | null>(null);
+  const maskRef = useRef<InputMask<any> | null>(null);
 
   useEffect(() => {
     if (!inputRef.current) return;

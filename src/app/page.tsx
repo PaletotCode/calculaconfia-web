@@ -10,7 +10,7 @@ import "swiper/css/pagination";
 import "swiper/css/effect-fade";
 import { useMutation } from "@tanstack/react-query";
 import AuthModal from "@/components/AuthModal";
-import { LucideIcon } from "@/components/LucideIcon";
+import { LucideIcon, type IconName } from "@/components/LucideIcon";
 import useAuth from "@/hooks/useAuth";
 import { useIntersectionObserver } from "@/hooks/useIntersectionObserver";
 import { createOrder, extractErrorMessage } from "@/lib/api";
@@ -62,7 +62,7 @@ const steps = [
   },
 ];
 
-const emotionalHighlights = [
+const emotionalHighlights: Array<{ icon: IconName; text: string }> = [
   {
     icon: "CircleCheckBig",
     text: "A informação clara que você precisa para decidir.",
@@ -84,7 +84,12 @@ const pricingBenefits = [
   "Indique um amigo e ganhe 1 análise grátis!",
 ];
 
-const pricingDetails = [
+const pricingDetails: Array<{
+  icon: IconName;
+  title: string;
+  description: string;
+  accent: string;
+}> = [
   {
     icon: "TriangleAlert",
     title: "O Problema Real",
@@ -421,43 +426,37 @@ export default function LandingPage() {
       return;
     }
 
-    const elements = Array.from(
+    const tiltElements = Array.from(
       document.querySelectorAll<HTMLDivElement>(".tilt-card")
-    ).filter((element): element is HTMLDivElement => element instanceof HTMLDivElement);
+    ).filter(
+      (element): element is HTMLDivElement => element instanceof HTMLDivElement
+    );
 
-    if (elements.length === 0) {
+    if (tiltElements.length === 0) {
       return;
     }
 
-    const prefersReducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+    const prefersReducedMotion = window
+      .matchMedia("(prefers-reduced-motion: reduce)")
+      .matches;
+
     if (prefersReducedMotion) {
       return;
     }
 
-    const clamp = (value: number, min: number, max: number) => Math.min(Math.max(value, min), max);
-    elements.forEach((element) => {
+    const clamp = (value: number, min: number, max: number) =>
+      Math.min(Math.max(value, min), max);
+
+    tiltElements.forEach((element) => {
       element.classList.add("card-3d");
     });
+
+    const cleanupCallbacks: Array<() => void> = [];
     const pointerFine = window.matchMedia("(pointer: fine)").matches;
 
     if (pointerFine) {
-      const cleanups = elements.map((element) => {
+      tiltElements.forEach((element) => {
         let frameId: number | null = null;
-
-      const handlePointerMove = (event: PointerEvent) => {
-          const rect = element.getBoundingClientRect();
-          const relativeX = (event.clientX - rect.left) / rect.width;
-          const relativeY = (event.clientY - rect.top) / rect.height;
-          const rotateX = clamp((0.5 - relativeY) * 30, -15, 15);
-          const rotateY = clamp((relativeX - 0.5) * 30, -15, 15);
-
-        if (frameId) {
-            cancelAnimationFrame(frameId);
-          }
-          frameId = window.requestAnimationFrame(() => {
-            element.style.transform = `perspective(1100px) rotateX(${rotateX}deg) rotateY(${rotateY}deg) scale(1.05)`;
-          });
-        };
 
       const resetTilt = () => {
           if (frameId) {
@@ -468,120 +467,138 @@ export default function LandingPage() {
           element.classList.remove("is-tilting", "card-3d--active");
         };
 
-      const handlePointerEnter = () => {
+        const handlePointerEnter = () => {
           element.classList.add("is-tilting", "card-3d--active");
+        };
+
+        const handlePointerMove = (event: PointerEvent) => {
+          const rect = element.getBoundingClientRect();
+          const relativeX = (event.clientX - rect.left) / rect.width;
+          const relativeY = (event.clientY - rect.top) / rect.height;
+          const rotateX = clamp((0.5 - relativeY) * 30, -15, 15);
+          const rotateY = clamp((relativeX - 0.5) * 30, -15, 15);
+
+          if (frameId) {
+            cancelAnimationFrame(frameId);
+          }
+
+          frameId = window.requestAnimationFrame(() => {
+            element.style.transform = `perspective(1100px) rotateX(${rotateX}deg) rotateY(${rotateY}deg) scale(1.05)`;
+          });
         };
 
       const handlePointerLeave = () => {
           resetTilt();
         };
 
-      element.addEventListener("pointerenter", handlePointerEnter);
+        element.addEventListener("pointerenter", handlePointerEnter);
         element.addEventListener("pointermove", handlePointerMove);
         element.addEventListener("pointerleave", handlePointerLeave);
         element.addEventListener("pointercancel", handlePointerLeave);
 
-      return () => {
+      cleanupCallbacks.push(() => {
           element.removeEventListener("pointerenter", handlePointerEnter);
           element.removeEventListener("pointermove", handlePointerMove);
           element.removeEventListener("pointerleave", handlePointerLeave);
           element.removeEventListener("pointercancel", handlePointerLeave);
           resetTilt();
-        };
+        });
       });
 
-    if (typeof window.DeviceOrientationEvent === "undefined") {
-      return;
-    }
-
+    if (typeof window.DeviceOrientationEvent !== "undefined") {
       let frameId: number | null = null;
       let started = false;
       const last = { beta: 0, gamma: 0 };
       const interactionCleanups: Array<() => void> = [];
 
       const applyOrientation = (beta: number, gamma: number) => {
-      const rotateX = clamp(-beta * 0.25, -15, 15);
-      const rotateY = clamp(gamma * 0.25, -15, 15);
-      elements.forEach((element) => {
-        element.classList.add("card-3d--active", "is-tilting");
-        element.style.transform = `perspective(1100px) rotateX(${rotateX}deg) rotateY(${rotateY}deg) scale(1.05)`;
-      });
-    };
+        const rotateX = clamp(-beta * 0.25, -15, 15);
+        const rotateY = clamp(gamma * 0.25, -15, 15);
 
-      const handleOrientation = (event: DeviceOrientationEvent) => {
-        const { beta = 0, gamma = 0 } = event;
-        last.beta = beta;
-        last.gamma = gamma;
-        if (frameId) {
-          cancelAnimationFrame(frameId);
-        }
-        frameId = window.requestAnimationFrame(() => applyOrientation(last.beta, last.gamma));
+        tiltElements.forEach((element) => {
+          element.classList.add("card-3d--active", "is-tilting");
+          element.style.transform = `perspective(1100px) rotateX(${rotateX}deg) rotateY(${rotateY}deg) scale(1.05)`;
+        });
       };
 
       const stop = () => {
-      if (!started) {
-        return;
-      }
-      window.removeEventListener("deviceorientation", handleOrientation);
-      started = false;
-    };
+        if (!started) {
+          return;
+        }
 
-    const cleanupInteractions = () => {
-      interactionCleanups.splice(0).forEach((cleanup) => cleanup());
-    };
-
-    const start = () => {
-      if (started) {
-        return;
-      }
-      cleanupInteractions();
-      window.addEventListener("deviceorientation", handleOrientation);
-      started = true;
-    };
-
-    const requestPermission = () => {
-      const DeviceOrientation = window.DeviceOrientationEvent as typeof window.DeviceOrientationEvent & {
-        requestPermission?: () => Promise<PermissionState | "granted" | "denied">;
+        window.removeEventListener("deviceorientation", handleOrientation);
+        started = false;
       };
 
-      if (typeof DeviceOrientation?.requestPermission === "function") {
-        DeviceOrientation.requestPermission()
-          .then((state) => {
-            if (state === "granted") {
-              start();
-            }
-          })
-          .catch(() => {});
-      } else {
-        start();
-      }
-    };
+      const cleanupInteractions = () => {
+        interactionCleanups.splice(0).forEach((cleanup) => cleanup());
+      };
+
+      const start = () => {
+        if (started) {
+          return;
+        }
+
+        cleanupInteractions();
+        window.addEventListener("deviceorientation", handleOrientation);
+        started = true;
+      };
+
+      const requestPermission = () => {
+        const DeviceOrientation = window.DeviceOrientationEvent as typeof window.DeviceOrientationEvent & {
+          requestPermission?: () => Promise<PermissionState | "granted" | "denied">;
+        };
+
+        if (typeof DeviceOrientation?.requestPermission === "function") {
+          DeviceOrientation.requestPermission()
+            .then((state) => {
+              if (state === "granted") {
+                start();
+              }
+            })
+            .catch(() => {});
+        } else {
+          start();
+        }
+      };
 
       requestPermission();
 
       if (!started) {
-      const registerInteraction = (type: keyof DocumentEventMap, options?: AddEventListenerOptions) => {
-        const handler = () => {
-          requestPermission();
+        const registerInteraction = (
+          type: keyof DocumentEventMap,
+          options?: AddEventListenerOptions
+        ) => {
+          const handler = () => {
+            requestPermission();
+          };
+          document.addEventListener(type, handler, options);
+          interactionCleanups.push(() =>
+            document.removeEventListener(type, handler, options)
+          );
         };
-        document.addEventListener(type, handler, options);
-        interactionCleanups.push(() => document.removeEventListener(type, handler, options));
-      };
 
-      registerInteraction("click", { once: true });
-      registerInteraction("touchstart", { once: true, passive: true });
+        registerInteraction("click", { once: true });
+        registerInteraction("touchstart", { once: true, passive: true });
+      }
+
+      cleanupCallbacks.push(() => {
+        cleanupInteractions();
+        stop();
+        if (frameId) {
+          cancelAnimationFrame(frameId);
+        }
+      });
     }
 
     return () => {
-      cleanupInteractions();
-      stop();
-      if (frameId) {
-        cancelAnimationFrame(frameId);
-      }
-      elements.forEach((element) => {
+      cleanupCallbacks.forEach((cleanup) => cleanup());
+      tiltElements.forEach((element) => {
         element.classList.remove("is-tilting", "card-3d--active");
         element.style.transform = "";
       });
+    };
+  }, []);
 
   useEffect(() => {
     const sections = spotlightSectionRefs.current.filter(
@@ -1056,7 +1073,7 @@ export default function LandingPage() {
               {faqItems.map((item) => (
                 <div key={item.question} className={clsx("tilt-card", "faq-item-static rounded-lg bg-white p-6")}>
                   <h3 className="mb-2 flex items-center gap-3 text-lg font-bold text-slate-800">
-                    <LucideIcon name="MessageCircleQuestionMark" className="h-6 w-6 flex-shrink-0 text-green-600" />
+                    <LucideIcon name="MessageCircleQuestion" className="h-6 w-6 flex-shrink-0 text-green-600" />
                     <span>{item.question}</span>
                   </h3>
                   <p className="pl-9 text-sm text-slate-700 md:text-base">{item.answer}</p>

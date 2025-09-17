@@ -305,7 +305,7 @@ export function AuthModal({ isOpen, onClose, defaultView = "login" }: AuthModalP
                     E-mail
                   </label>
                   <div className="relative">
-                    <LucideIcon name="mail" className="absolute left-3 top-1/2 h-5 w-5 -translate-y-1/2 text-slate-400" />
+                    <LucideIcon name="Mail" className="absolute left-3 top-1/2 h-5 w-5 -translate-y-1/2 text-slate-400" />
                     <input
                       id="login-email"
                       type="email"
@@ -324,7 +324,7 @@ export function AuthModal({ isOpen, onClose, defaultView = "login" }: AuthModalP
                     Senha
                   </label>
                   <div className="relative">
-                    <LucideIcon name="lock" className="absolute left-3 top-1/2 h-5 w-5 -translate-y-1/2 text-slate-400" />
+                    <LucideIcon name="Lock" className="absolute left-3 top-1/2 h-5 w-5 -translate-y-1/2 text-slate-400" />
                     <input
                       id="login-password"
                       type="password"
@@ -442,7 +442,7 @@ export function AuthModal({ isOpen, onClose, defaultView = "login" }: AuthModalP
                       Nos diga seu melhor e-mail
                     </label>
                     <div className="relative">
-                      <LucideIcon name="mail" className="absolute left-3 top-1/2 h-5 w-5 -translate-y-1/2 text-slate-400" />
+                      <LucideIcon name="Mail" className="absolute left-3 top-1/2 h-5 w-5 -translate-y-1/2 text-slate-400" />
                       <input
                         id="register-email"
                         type="email"
@@ -496,7 +496,7 @@ export function AuthModal({ isOpen, onClose, defaultView = "login" }: AuthModalP
                       Crie sua senha
                     </label>
                     <div className="relative">
-                      <LucideIcon name="lock" className="absolute left-3 top-1/2 h-5 w-5 -translate-y-1/2 text-slate-400" />
+                      <LucideIcon name="Lock" className="absolute left-3 top-1/2 h-5 w-5 -translate-y-1/2 text-slate-400" />
                       <input
                         id="register-password"
                         type="password"
@@ -518,7 +518,7 @@ export function AuthModal({ isOpen, onClose, defaultView = "login" }: AuthModalP
                       Confirmar senha
                     </label>
                     <div className="relative">
-                      <LucideIcon name="lock" className="absolute left-3 top-1/2 h-5 w-5 -translate-y-1/2 text-slate-400" />
+                      <LucideIcon name="Lock" className="absolute left-3 top-1/2 h-5 w-5 -translate-y-1/2 text-slate-400" />
                       <input
                         id="register-password-confirm"
                         type="password"
@@ -588,7 +588,7 @@ export function AuthModal({ isOpen, onClose, defaultView = "login" }: AuthModalP
                     E-mail
                   </label>
                   <div className="relative">
-                    <LucideIcon name="mail" className="absolute left-3 top-1/2 h-5 w-5 -translate-y-1/2 text-slate-400" />
+                    <LucideIcon name="Mail" className="absolute left-3 top-1/2 h-5 w-5 -translate-y-1/2 text-slate-400" />
                     <input
                       id="verify-email"
                       type="email"
@@ -677,7 +677,7 @@ export function AuthModal({ isOpen, onClose, defaultView = "login" }: AuthModalP
                   E-mail
                 </label>
                 <div className="relative">
-                  <LucideIcon name="mail" className="absolute left-3 top-1/2 h-5 w-5 -translate-y-1/2 text-slate-400" />
+                  <LucideIcon name="Mail" className="absolute left-3 top-1/2 h-5 w-5 -translate-y-1/2 text-slate-400" />
                   <input
                     id="forgot-email"
                     type="email"
