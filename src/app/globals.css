@@ -145,6 +145,11 @@
             transform-style: preserve-3d;
             will-change: transform;
             transition: transform 0.25s ease-out, box-shadow 0.3s ease;
+            --card-rotate-x: 0deg;
+            --card-rotate-y: 0deg;
+            --card-base-scale: 1;
+            --card-tilt-scale: var(--card-base-scale);
+            transform: perspective(1100px) rotateX(var(--card-rotate-x)) rotateY(var(--card-rotate-y)) scale(var(--card-tilt-scale));
         }
         .tilt-card.is-tilting {
             box-shadow: 0 22px 48px -20px rgba(22, 163, 74, 0.45), 0 14px 30px -20px rgba(15, 23, 42, 0.35);

@@ -447,11 +447,77 @@ export default function LandingPage() {
     const clamp = (value: number, min: number, max: number) =>
       Math.min(Math.max(value, min), max);
 
+    const parseScaleValue = (value: string | null | undefined) => {
+      if (!value) {
+        return null;
+      }
+      const parsed = Number.parseFloat(value);
+      return Number.isFinite(parsed) ? parsed : null;
+    };
+
+    const ensureBaseScale = (element: HTMLDivElement) => {
+      const computedScale = parseScaleValue(
+        window.getComputedStyle(element).getPropertyValue("--card-base-scale")
+      );
+      const datasetScale = parseScaleValue(element.dataset.cardBaseScale);
+      const candidate = datasetScale ?? computedScale ?? 1;
+      const safeScale = Number.isFinite(candidate) && candidate > 0 ? candidate : 1;
+      element.dataset.cardBaseScale = safeScale.toString();
+      element.style.setProperty("--card-tilt-scale", safeScale.toString());
+      element.style.setProperty("--card-rotate-x", "0deg");
+      element.style.setProperty("--card-rotate-y", "0deg");
+      return safeScale;
+    };
+
+    const getBaseScale = (element: HTMLDivElement) => {
+      const stored = parseScaleValue(element.dataset.cardBaseScale);
+      if (stored !== null) {
+        return stored;
+      }
+      return ensureBaseScale(element);
+    };
+
+    const setTiltState = (
+      element: HTMLDivElement,
+      rotateX: number,
+      rotateY: number,
+      multiplier = 1
+    ) => {
+      const baseScale = getBaseScale(element);
+      const scaled = baseScale * multiplier;
+      const safeScale =
+        Number.isFinite(scaled) && scaled > 0 ? scaled : baseScale;
+      element.style.setProperty("--card-rotate-x", `${rotateX}deg`);
+      element.style.setProperty("--card-rotate-y", `${rotateY}deg`);
+      element.style.setProperty("--card-tilt-scale", safeScale.toString());
+    };
+
+    const resetElement = (element: HTMLDivElement) => {
+      element.classList.remove("is-tilting", "card-3d--active");
+      setTiltState(element, 0, 0, 1);
+    };
+
+    const tiltScaleMultiplier = 1.05;
+
     tiltElements.forEach((element) => {
       element.classList.add("card-3d");
     });
 
+    const updateBaseScales = () => {
+      tiltElements.forEach((element) => {
+        ensureBaseScale(element);
+      });
+    };
+
+    updateBaseScales();
+
     const cleanupCallbacks: Array<() => void> = [];
+
+    window.addEventListener("resize", updateBaseScales);
+    cleanupCallbacks.push(() => {
+      window.removeEventListener("resize", updateBaseScales);
+    });
+
     const pointerFine = window.matchMedia("(pointer: fine)").matches;
 
     const setupPointerTilt = () => {
@@ -461,14 +527,19 @@ export default function LandingPage() {
         const resetTilt = () => {
           if (frameId !== null) {
             cancelAnimationFrame(frameId);
+            frameId = null;
           }
-          frameId = null;
-          element.style.transform = "";
-          element.classList.remove("is-tilting", "card-3d--active");
+          resetElement(element);
         };
 
         const handlePointerEnter = () => {
+          ensureBaseScale(element);
           element.classList.add("is-tilting", "card-3d--active");
+          if (frameId !== null) {
+            cancelAnimationFrame(frameId);
+            frameId = null;
+          }
+          setTiltState(element, 0, 0, tiltScaleMultiplier);
         };
 
         const handlePointerMove = (event: PointerEvent) => {
@@ -483,7 +554,8 @@ export default function LandingPage() {
           }
 
           frameId = window.requestAnimationFrame(() => {
-            element.style.transform = `perspective(1100px) rotateX(${rotateX}deg) rotateY(${rotateY}deg) scale(1.05)`;
+            setTiltState(element, rotateX, rotateY, tiltScaleMultiplier);
+            frameId = null;
           });
         };
 
@@ -522,7 +594,7 @@ export default function LandingPage() {
 
         tiltElements.forEach((element) => {
           element.classList.add("card-3d--active", "is-tilting");
-          element.style.transform = `perspective(1100px) rotateX(${rotateX}deg) rotateY(${rotateY}deg) scale(1.05)`;
+          setTiltState(element, rotateX, rotateY, tiltScaleMultiplier);
         });
       };
 
@@ -558,6 +630,13 @@ export default function LandingPage() {
 
         window.removeEventListener("deviceorientation", handleOrientation);
         started = false;
+        if (frameId !== null) {
+          cancelAnimationFrame(frameId);
+          frameId = null;
+        }
+        tiltElements.forEach((element) => {
+          resetElement(element);
+        });
       };
 
       const cleanupInteractions = () => {
@@ -570,6 +649,9 @@ export default function LandingPage() {
         }
 
         cleanupInteractions();
+        tiltElements.forEach((element) => {
+          ensureBaseScale(element);
+        });
         window.addEventListener("deviceorientation", handleOrientation);
         started = true;
       };
@@ -615,9 +697,6 @@ export default function LandingPage() {
       cleanupCallbacks.push(() => {
         cleanupInteractions();
         stop();
-        if (frameId !== null) {
-          cancelAnimationFrame(frameId);
-        }
       });
     };
 
@@ -626,12 +705,16 @@ export default function LandingPage() {
     }
 
     setupOrientationTilt();
-    
+
     return () => {
       cleanupCallbacks.forEach((cleanup) => cleanup());
       tiltElements.forEach((element) => {
-        element.classList.remove("is-tilting", "card-3d--active");
-        element.style.transform = "";
+        resetElement(element);
+        element.classList.remove("card-3d");
+        element.style.removeProperty("--card-rotate-x");
+        element.style.removeProperty("--card-rotate-y");
+        element.style.removeProperty("--card-tilt-scale");
+        delete element.dataset.cardBaseScale;
       });
     };
   }, []);
@@ -904,10 +987,12 @@ export default function LandingPage() {
                     stepCardRefs.current[index] = element;
                   }}
                   className={clsx(
-                  "tilt-card step-card relative rounded-2xl border-t-4 bg-white p-6 text-center shadow-xl md:p-8",
-                  step.highlight ? "border-[var(--primary-accent)] shadow-2xl md:scale-110" : "border-slate-200",
-                  stepsVisible && "is-visible"
-                )}
+                    "tilt-card step-card relative rounded-2xl border-t-4 bg-white p-6 text-center shadow-xl md:p-8",
+                    step.highlight
+                      ? "border-[var(--primary-accent)] shadow-2xl md:[--card-base-scale:1.1]"
+                      : "border-slate-200",
+                    stepsVisible && "is-visible"
+                  )}
                 >
                   {step.highlight && (
                     <span className="absolute -top-3 left-1/2 -translate-x-1/2 rounded-full bg-[var(--primary-accent)] px-3 py-1 text-xs font-bold text-white">
