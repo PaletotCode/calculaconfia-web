@@ -11,6 +11,10 @@ export function middleware(request: NextRequest) {
   const isProtectedRoute = PROTECTED_PATHS.some((path) => pathname.startsWith(path));
   const isPublicRoute = PUBLIC_PATHS.includes(pathname);
 
+  // The middleware only checks for the presence of the HttpOnly cookie. The
+  // client-side logout ensures the cookie is removed before navigating so these
+  // redirects remain in sync with the real authentication state.
+
   if (!token && isProtectedRoute) {
     const url = request.nextUrl.clone();
     url.pathname = "/";

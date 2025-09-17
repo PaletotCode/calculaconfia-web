@@ -1183,6 +1183,9 @@ export default function LandingPage() {
 
   const handleLogout = async () => {
     stopBalancePolling();
+    // Reutiliza o fluxo centralizado (API + remoção do cookie) mantido no
+    // contexto. Aqui não precisamos redirecionar porque o usuário já está na
+    // landing page.
     await logout();
     setIsSessionPanelOpen(false);
   };

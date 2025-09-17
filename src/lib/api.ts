@@ -9,6 +9,8 @@ const DEFAULT_API_BASE =
 
 export const api = axios.create({
   baseURL: DEFAULT_API_BASE,
+  // Mirrors `fetch(..., { credentials: "include" })` so that the browser keeps
+  // sending/receiving the HttpOnly `access_token` cookie issued by the backend.
   withCredentials: true,
 });
 
@@ -168,6 +170,8 @@ export const calcular = async (payload: CalcularPayload) => {
 };
 
 export const logout = async () => {
+  // FastAPI clears the cookie via `response.delete_cookie`, so the important
+  // piece here is keeping the credentials flag enabled when we call POST /logout.
   const { data } = await api.post<ApiMessageResponse>("/logout");
   return data;
 };

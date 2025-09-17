@@ -17,6 +17,7 @@ import {
   type User,
 } from "@/lib/api";
 import { extractErrorMessage } from "@/lib/api";
+import { clearAccessTokenCookie } from "@/lib/auth-cookies";
 
 interface AuthContextValue {
   user: User | null;
@@ -57,6 +58,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const login = useCallback(
     async (payload: LoginPayload) => {
       try {
+        // The FastAPI login endpoint issues the HttpOnly `access_token` cookie for
+        // `.calculaconfia.com.br` (or the domain configured through COOKIE_DOMAIN).
+        // We only need to trigger the request with credentials so the cookie is
+        // persisted by the browser and then refresh the in-memory session state.
         await apiLogin(payload);
         await refresh();
         setLastError(null);
@@ -71,10 +76,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const logout = useCallback(async () => {
     try {
+      // Logs the user out on the API (POST /logout) which clears the cookie on
+      // the server side using `response.delete_cookie`. We always run the client
+      // cleanup afterwards to guarantee the browser removes `access_token`.
       await apiLogout();
     } catch (error) {
       setLastError(extractErrorMessage(error));
     } finally {
+      clearAccessTokenCookie();
       setUser(null);
     }
   }, []);

@@ -3,6 +3,7 @@
 import { useMutation } from "@tanstack/react-query";
 import clsx from "clsx";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useRouter } from "next/navigation";
 import Flatpickr from "react-flatpickr";
 import "flatpickr/dist/flatpickr.min.css";
 import { Portuguese } from "flatpickr/dist/l10n/pt.js";
@@ -13,8 +14,8 @@ import {
   type CalcularResponse,
   type BillPayload,
   extractErrorMessage,
-  logout as apiLogout,
 } from "@/lib/api";
+import useAuth from "@/hooks/useAuth";
 
 interface BillInput {
   date: Date | null;
@@ -64,6 +65,8 @@ function toIssueDate(date: Date | null) {
 }
 
 export function Calculator() {
+  const router = useRouter();
+  const { logout: performLogout } = useAuth();
   const [activeNavIndex, setActiveNavIndex] = useState(0);
   const pageContainerRef = useRef<HTMLDivElement>(null);
   const navIndicatorRef = useRef<HTMLDivElement>(null);
@@ -284,17 +287,21 @@ export function Calculator() {
     }
   }, [timelineFinished, resultData, loadingError, confirmationStepIndex, resultStepIndex, goToStep]);
 
-  const handleLogout = async () => {
+  const handleLogout = useCallback(async () => {
     try {
       setIsLogoutLoading(true);
-      await apiLogout();
-      window.location.href = "/";
+      // Triggers the shared logout routine (API + cookie cleanup) and sends the
+      // user back to the landing page so the Next.js middleware treats them as
+      // anonymous in the next navigation cycle.
+      await performLogout();
+      router.replace("/");
+      router.refresh();
     } catch (error) {
       console.error(error);
     } finally {
       setIsLogoutLoading(false);
     }
-  };
+  }, [performLogout, router]);
 
   const isStepActive = useCallback(
     (stepIndex: number) => currentStep === stepIndex,
@@ -362,7 +369,7 @@ export function Calculator() {
                   />
                   <p className="mt-2 text-sm font-semibold sm:text-base">Onde encontrar o ICMS?</p>
                   <p className="text-xs text-slate-600 sm:text-sm">
-                    Procure na seção "Detalhes de Faturamento" ou "Tributos" da sua conta de luz.
+                    Procure na seção “Detalhes de Faturamento” ou “Tributos” da sua conta de luz.
                   </p>
                 </div>
                 <div className="carousel-slide">
