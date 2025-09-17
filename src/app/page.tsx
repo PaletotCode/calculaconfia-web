@@ -17,6 +17,7 @@ import {
   createOrder,
   extractErrorMessage,
   getCreditsHistory,
+  type CreditHistoryResponse,
   type CreditHistoryItem,
   type User,
 } from "@/lib/api";
@@ -471,7 +472,7 @@ export default function LandingPage() {
     if (historyState.status === "idle") {
       setHistoryState({ status: "pending", hasPurchase: false });
       void getCreditsHistory()
-        .then((data) => {
+        .then((data: CreditHistoryResponse) => {
           if (!isMounted) {
             return;
           }
