@@ -15,7 +15,6 @@ import {
   type BillPayload,
   extractErrorMessage,
 } from "@/lib/api";
-import useAuth from "@/hooks/useAuth";
 
 interface BillInput {
   date: Date | null;
@@ -66,7 +65,6 @@ function toIssueDate(date: Date | null) {
 
 export function Calculator() {
   const router = useRouter();
-  const { logout: performLogout } = useAuth();
   const [activeNavIndex, setActiveNavIndex] = useState(0);
   const pageContainerRef = useRef<HTMLDivElement>(null);
   const navIndicatorRef = useRef<HTMLDivElement>(null);
@@ -83,7 +81,7 @@ export function Calculator() {
   const [resultValueDisplay, setResultValueDisplay] = useState("R$ 0,00");
   const [loadingError, setLoadingError] = useState("");
 
-  const [isLogoutLoading, setIsLogoutLoading] = useState(false);
+  const [isLeavingPlatform, setIsLeavingPlatform] = useState(false);
 
   const particles = useMemo(
     () =>
@@ -287,21 +285,10 @@ export function Calculator() {
     }
   }, [timelineFinished, resultData, loadingError, confirmationStepIndex, resultStepIndex, goToStep]);
 
-  const handleLogout = useCallback(async () => {
-    try {
-      setIsLogoutLoading(true);
-      // Triggers the shared logout routine (API + cookie cleanup) and sends the
-      // user back to the landing page so the Next.js middleware treats them as
-      // anonymous in the next navigation cycle.
-      await performLogout();
-      router.replace("/");
-      router.refresh();
-    } catch (error) {
-      console.error(error);
-    } finally {
-      setIsLogoutLoading(false);
-    }
-  }, [performLogout, router]);
+  const handleLeavePlatform = useCallback(() => {
+    setIsLeavingPlatform(true);
+    router.replace("/");
+  }, [router]);
 
   const isStepActive = useCallback(
     (stepIndex: number) => currentStep === stepIndex,
@@ -674,12 +661,12 @@ export function Calculator() {
             <button
               type="button"
               className="nav-link rounded-lg p-2"
-              onClick={handleLogout}
-              disabled={isLogoutLoading}
+              onClick={handleLeavePlatform}
+              disabled={isLeavingPlatform}
             >
               <div className="flex flex-col items-center gap-1 text-slate-300">
                 <LucideIcon name="LogOut" className="h-6 w-6" />
-                <span className="text-xs font-medium">{isLogoutLoading ? "Saindo..." : "Sair"}</span>
+                <span className="text-xs font-medium">{isLeavingPlatform ? "Voltando..." : "Sair"}</span>
               </div>
             </button>
           </div>
