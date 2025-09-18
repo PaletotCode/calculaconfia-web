@@ -9,6 +9,7 @@ import "flatpickr/dist/flatpickr.min.css";
 import { Portuguese } from "flatpickr/dist/l10n/pt.js";
 import IMask, { type InputMask } from "imask";
 import { LucideIcon, type IconName } from "@/components/LucideIcon";
+import useAuth from "@/hooks/useAuth";
 import {
   calcular,
   type CalcularResponse,
@@ -65,6 +66,7 @@ function toIssueDate(date: Date | null) {
 
 export function Calculator() {
   const router = useRouter();
+  const { logout } = useAuth();
   const [activeNavIndex, setActiveNavIndex] = useState(0);
   const pageContainerRef = useRef<HTMLDivElement>(null);
   const navIndicatorRef = useRef<HTMLDivElement>(null);
@@ -287,8 +289,16 @@ export function Calculator() {
 
   const handleLeavePlatform = useCallback(() => {
     setIsLeavingPlatform(true);
-    router.replace("/");
-  }, [router]);
+    void (async () => {
+      try {
+        await logout();
+      } catch (error) {
+        console.error("Falha ao encerrar sessao", error);
+      } finally {
+        router.replace("/");
+      }
+    })();
+  }, [logout, router]);
 
   const isStepActive = useCallback(
     (stepIndex: number) => currentStep === stepIndex,
