@@ -12,6 +12,7 @@ import {
   type RegisterPayload,
 } from "@/lib/api";
 import useAuth from "@/hooks/useAuth";
+import { useRouter } from "next/navigation";
 import { LucideIcon } from "@/components/LucideIcon";
 
 interface AuthModalProps {
@@ -26,6 +27,7 @@ const REGISTER_STEPS = ["Dados pessoais", "Contato", "Senha"];
 
 export function AuthModal({ isOpen, onClose, defaultView = "login" }: AuthModalProps) {
   const { login, refresh } = useAuth();
+  const router = useRouter();
 
   const [activeView, setActiveView] = useState<AuthView>(defaultView);
   const [registerStep, setRegisterStep] = useState(0);
@@ -159,23 +161,27 @@ export function AuthModal({ isOpen, onClose, defaultView = "login" }: AuthModalP
         code: verifyForm.code.trim(),
       }),
     onSuccess: async () => {
-      setVerifyError("");
-      setVerifySuccess("Conta verificada! Redirecionando...");
-      try {
-        await refresh();
-        setTimeout(() => {
-          setVerifySuccess("");
-          onClose();
-        }, 500);
-      } catch (error) {
-        console.error("Falha ao atualizar sessão após verificação", error);
-        setVerifySuccess("");
-        setVerifyError(
-          "Conta verificada, mas não conseguimos atualizar sua sessão automaticamente. Faça login com seu e-mail e senha."
-        );
-        setActiveView("login");
-      }
-    },
+    setVerifyError("");
+    setVerifySuccess("Conta verificada! Fazendo login...");
+    try {
+      await login({
+        email: verifyForm.email.trim(),
+        password: registerForm.password, // Usando a senha guardada do formulário de registro
+      });
+      setVerifySuccess("Login realizado com sucesso! Redirecionando...");
+      router.push("/platform?new_user=true");
+      setTimeout(() => {
+        onClose();
+      }, 600);
+    } catch (error) {
+      console.error("Falha ao fazer login automático após verificação", error);
+      setVerifySuccess("");
+      setVerifyError(
+        "Conta verificada, mas não conseguimos fazer o login automaticamente. Por favor, tente entrar com seu e-mail e senha."
+      );
+      setActiveView("login");
+    }
+  },
     onError: (error: unknown) => {
       setVerifySuccess("");
       setVerifyError(extractErrorMessage(error));
