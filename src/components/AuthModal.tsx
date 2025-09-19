@@ -111,9 +111,27 @@ export function AuthModal({ isOpen, onClose, defaultView = "login" }: AuthModalP
       }, 600);
     },
     onError: (error: unknown) => {
-      setLoginSuccess("");
-      setLoginError(extractErrorMessage(error));
-    },
+    setLoginSuccess("");
+    const errorMessage = extractErrorMessage(error);
+
+    // Verifica especificamente pelo erro de conta não verificada
+    if (errorMessage && errorMessage.toLowerCase().includes("account not verified")) {
+      // Preenche o formulário de verificação com o e-mail da tentativa de login
+      setVerifyForm({ email: loginForm.email.trim(), code: "" });
+
+      // Muda para a tela de verificação
+      setActiveView("verify");
+
+      // Dispara o reenvio de um novo código de verificação
+      sendVerificationCodeMutation.mutate(loginForm.email.trim());
+
+      // Limpa o erro de login, pois o fluxo mudou
+      setLoginError("");
+    } else {
+      // Para qualquer outro erro, exibe a mensagem no formulário de login
+      setLoginError(errorMessage);
+    }
+  },
   });
 
   const registerMutation = useMutation({
