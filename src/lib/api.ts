@@ -75,6 +75,21 @@ export interface CreateOrderResponse {
   [key: string]: unknown;
 }
 
+export interface ConfirmPaymentPayload {
+  payment_id: string;
+  status?: string | null;
+  preference_id?: string | null;
+}
+
+export interface ConfirmPaymentResponse {
+  payment_id: string;
+  status?: string | null;
+  credits_added: boolean;
+  already_processed: boolean;
+  credits_balance?: number | null;
+  detail?: string | null;
+}
+
 export interface CreditsBalanceResponse {
   balance?: number;
   credits?: number;
@@ -146,6 +161,14 @@ export const verifyAccount = async (payload: VerificationPayload) => {
 export const createOrder = async () => {
   const { data } = await api.post<CreateOrderResponse>(
     "/payments/create-order"
+  );
+  return data;
+};
+
+export const confirmPayment = async (payload: ConfirmPaymentPayload) => {
+  const { data } = await api.post<ConfirmPaymentResponse>(
+    "/payments/confirm",
+    payload
   );
   return data;
 };
