@@ -1288,24 +1288,31 @@ export default function LandingPage() {
             <div className="flex flex-col items-center gap-12 md:grid md:grid-cols-2 md:gap-16">
               <div className="order-1 flex w-full justify-center md:order-2">
                 <div
-                  ref={tiltCardRef}
-                  className="tilt-card animated-gradient-bg w-full max-w-md rounded-2xl border-t-4 border-[var(--primary-accent)] p-6 shadow-2xl md:p-8"
-                >
-                  <div className="flex items-center justify-center space-x-3 pt-8 md:space-x-4">
-                    <p className="text-2xl font-medium text-slate-500 line-through md:text-3xl">R$10</p>
-                    <p className="text-5xl font-black text-green-600 md:text-6xl">
-                      R$5<span className="text-lg font-medium text-slate-600 md:text-xl">,00</span>
-                    </p>
+                ref={tiltCardRef}
+                className="tilt-card relative w-full max-w-md rounded-2xl border-t-4 border-[var(--primary-accent)] shadow-2xl"
+              >
+                {/* Camada 1: O Fundo que se move (agora uma div separada) */}
+                <div className="animated-gradient-bg absolute inset-0 rounded-2xl"></div>
+
+                {/* Camada 2: O Conteúdo estático (agora em uma div separada com o padding) */}
+                <div className="relative flex h-full flex-col p-6 md:p-8">
+                  <div className="flex-grow">
+                    <div className="flex items-center justify-center space-x-3 pt-8 md:space-x-4">
+                      <p className="text-2xl font-medium text-slate-500 line-through md:text-3xl">R$10</p>
+                      <p className="text-5xl font-black text-green-600 md:text-6xl">
+                        R$5<span className="text-lg font-medium text-slate-600 md:text-xl">,00</span>
+                      </p>
+                    </div>
+                    <p className="mt-4 text-center text-slate-600 md:mt-6 md:text-lg">Pagamento único. Sem mensalidades.</p>
+                    <ul className="mt-8 space-y-4 text-left text-sm md:text-base">
+                      {pricingBenefits.map((benefit) => (
+                        <li key={benefit} className="flex items-center">
+                          <LucideIcon name={benefit.includes("Indique") ? "Gift" : "CircleCheckBig"} className="mr-3 h-5 w-5 flex-shrink-0 text-green-500" />
+                          <span>{benefit}</span>
+                        </li>
+                      ))}
+                    </ul>
                   </div>
-                  <p className="mt-4 text-center text-slate-600 md:mt-6 md:text-lg">Pagamento único. Sem mensalidades.</p>
-                  <ul className="mt-8 space-y-4 text-left text-sm md:text-base">
-                    {pricingBenefits.map((benefit) => (
-                      <li key={benefit} className="flex items-center">
-                        <LucideIcon name={benefit.includes("Indique") ? "Gift" : "CircleCheckBig"} className="mr-3 h-5 w-5 flex-shrink-0 text-green-500" />
-                        <span>{benefit}</span>
-                      </li>
-                    ))}
-                  </ul>
                   <button
                     type="button"
                     id="unlock-cta"
@@ -1315,6 +1322,7 @@ export default function LandingPage() {
                     Desbloquear Análise por R$5
                   </button>
                 </div>
+              </div>
               </div>
               <div className="order-2 w-full text-left md:order-1">
                 <h2 className="text-3xl font-extrabold md:text-4xl">Acesso Imediato. Potencial Imenso.</h2>
