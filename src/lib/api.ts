@@ -19,6 +19,11 @@ export interface ApiMessageResponse {
   detail?: string;
 }
 
+export interface RegistrationResponse extends ApiMessageResponse {
+  requires_verification?: boolean;
+  expires_in_minutes?: number;
+}
+
 export interface RegisterPayload {
   email: string;
   password: string;
@@ -44,6 +49,13 @@ export interface User {
   created_at?: string;
   updated_at?: string;
   [key: string]: unknown;
+}
+
+export interface AuthTokenResponse {
+  access_token: string;
+  token_type: string;
+  expires_in: number;
+  user_info?: User;
 }
 
 export interface VerificationPayload {
@@ -122,7 +134,7 @@ export type CreditHistoryResponse =
     };
 
 export const register = async (payload: RegisterPayload) => {
-  const { data } = await api.post<ApiMessageResponse>("/register", payload);
+  const { data } = await api.post<RegistrationResponse>("/register", payload);
   return data;
 };
 
@@ -131,7 +143,7 @@ export const login = async ({ email, password }: LoginPayload) => {
     username: email,
     password,
   });
-  const { data } = await api.post<ApiMessageResponse>("/login", body, {
+  const { data } = await api.post<AuthTokenResponse>("/login", body, {
     headers: { "Content-Type": "application/x-www-form-urlencoded" },
   });
   return data;
@@ -151,7 +163,7 @@ export const sendVerificationCode = async (email: string) => {
 };
 
 export const verifyAccount = async (payload: VerificationPayload) => {
-  const { data } = await api.post<ApiMessageResponse>(
+  const { data } = await api.post<AuthTokenResponse>(
     "/auth/verify-account",
     payload
   );
