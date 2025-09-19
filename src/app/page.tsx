@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import Image from "next/image";
 import type { MouseEvent as ReactMouseEvent } from "react";
 import clsx from "clsx";
 import { Swiper, SwiperSlide } from "swiper/react";
@@ -1117,7 +1118,7 @@ export default function LandingPage() {
       <header className="glass-effect fixed inset-x-0 top-0 z-50">
         <div className="container mx-auto flex items-center justify-between px-4 py-3 md:px-6">
           <div className="flex items-center space-x-2">
-            <img src="https://i.imgur.com/64Tovft.png" alt="Logotipo CalculaConfia" className="h-8 w-auto" />
+            <Image src="https://i.imgur.com/64Tovft.png" alt="Logotipo CalculaConfia" width={120} height={32} className="h-8 w-auto" />
             <span className="hidden text-2xl font-bold text-slate-800 sm:block">
               Calcula<span className="text-[var(--primary-accent)]">Confia</span>
             </span>
@@ -1243,10 +1244,13 @@ export default function LandingPage() {
         <section className="bg-slate-800 py-16 text-white md:py-24">
           <div className="container mx-auto grid items-center gap-8 px-6 md:grid-cols-2 md:gap-12">
             <div className="order-last h-80 overflow-hidden rounded-lg md:order-first md:h-96">
-              <img
+              <Image
                 src="https://i.imgur.com/r10jtz0.jpeg"
                 alt="Pessoa analisando documentos financeiros com tranquilidade"
+                width={1200}
+                height={800}
                 className="h-full w-full object-cover"
+                priority={false}
               />
             </div>
             <div>

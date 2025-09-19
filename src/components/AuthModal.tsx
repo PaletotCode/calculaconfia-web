@@ -1,6 +1,7 @@
 "use client";
 
 import { FormEvent, useCallback, useEffect, useMemo, useState, type MouseEvent } from "react";
+import Image from "next/image";
 import { useMutation } from "@tanstack/react-query";
 import clsx from "clsx";
 import {
@@ -277,11 +278,13 @@ export function AuthModal({ isOpen, onClose, defaultView = "login" }: AuthModalP
         </button>
 
         <div className="border-b border-slate-200 p-6 text-center">
-          <img
+          <Image
             src="https://i.imgur.com/64Tovft.png"
             alt="Logotipo CalculaConfia"
+            width={160}
+            height={40}
             className="mx-auto mb-4 h-10 w-auto"
-            loading="lazy"
+            priority={false}
           />
           <div className="inline-flex rounded-lg bg-slate-100 p-1">
             <button
