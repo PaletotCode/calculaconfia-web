@@ -2,7 +2,7 @@
 
 import dynamic from "next/dynamic";
 import { useRouter, useSearchParams } from "next/navigation";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useState, Suspense } from "react";
 import useAuth from "@/hooks/useAuth";
 import { useMutation } from "@tanstack/react-query";
 import { createOrder, extractErrorMessage } from "@/lib/api";
@@ -11,7 +11,7 @@ import { inferPurchaseFromUser } from "@/utils/user-credits";
 
 const Calculator = dynamic(() => import("@/components/Calculator"), { ssr: false });
 
-export default function PlatformPage() {
+function PlatformContent() {
   const router = useRouter();
   const { user, isAuthenticated, isLoading } = useAuth();
   const searchParams = useSearchParams();
@@ -134,5 +134,19 @@ export default function PlatformPage() {
         </div>
       )}
     </>
+  );
+}
+
+export default function PlatformPage() {
+  return (
+    <Suspense fallback={
+      <div className="flex min-h-screen items-center justify-center bg-slate-950 text-white">
+        <div className="rounded-3xl border border-white/10 bg-white/5 px-6 py-4 text-center text-sm text-white/80 shadow-2xl">
+          Carregando...
+        </div>
+      </div>
+    }>
+      <PlatformContent />
+    </Suspense>
   );
 }
