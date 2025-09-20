@@ -179,27 +179,21 @@ export function AuthModal({ isOpen, onClose, defaultView = "login" }: AuthModalP
         code: verifyForm.code.trim(),
       }),
     onSuccess: async () => {
-    setVerifyError("");
-    setVerifySuccess("Conta verificada! Fazendo login...");
-    try {
-      await login({
-        email: verifyForm.email.trim(),
-        password: registerForm.password, // Usando a senha guardada do formulário de registro
-      });
-      setVerifySuccess("Login realizado com sucesso! Redirecionando...");
+      setVerifyError("");
+      setVerifySuccess("Conta verificada com sucesso! Redirecionando...");
+
+      // 1. O backend já autenticou. Apenas sincronizamos o estado do frontend.
+      //    A função refresh() do seu useAuth cuida disso.
+      await refresh();
+
+      // 2. Redireciona o usuário para a plataforma.
       router.push("/platform?new_user=true");
+
+      // 3. Fecha o modal.
       setTimeout(() => {
         onClose();
       }, 600);
-    } catch (error) {
-      console.error("Falha ao fazer login automático após verificação", error);
-      setVerifySuccess("");
-      setVerifyError(
-        "Conta verificada, mas não conseguimos fazer o login automaticamente. Por favor, tente entrar com seu e-mail e senha."
-      );
-      setActiveView("login");
-    }
-  },
+    },
     onError: (error: unknown) => {
       setVerifySuccess("");
       setVerifyError(extractErrorMessage(error));
