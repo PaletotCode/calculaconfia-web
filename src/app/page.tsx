@@ -11,6 +11,7 @@ import "swiper/css/pagination";
 import "swiper/css/effect-fade";
 import { useMutation } from "@tanstack/react-query";
 import AuthModal from "@/components/AuthModal";
+import CheckoutModal from "@/components/CheckoutModal";
 import { LucideIcon, type IconName } from "@/components/LucideIcon";
 import useAuth from "@/hooks/useAuth";
 import { useIntersectionObserver } from "@/hooks/useIntersectionObserver";
@@ -265,6 +266,8 @@ export default function LandingPage() {
   const [authView, setAuthView] = useState<AuthView>("login");
   const [isPaymentCardOpen, setIsPaymentCardOpen] = useState(false);
   const [isPaymentStatusOpen, setIsPaymentStatusOpen] = useState(false);
+  const [isCheckoutModalOpen, setIsCheckoutModalOpen] = useState(false);
+  const [checkoutUrl, setCheckoutUrl] = useState("");
   const [paymentStatus, setPaymentStatus] = useState<PaymentStatus>({
     title: "Status do pagamento",
     message: "Estamos analisando as informações do seu pagamento.",
@@ -327,6 +330,8 @@ export default function LandingPage() {
     stopBalancePolling();
     setIsPaymentCardOpen(false);
     setIsPaymentStatusOpen(false);
+    setIsCheckoutModalOpen(false);
+    setCheckoutUrl("");
     if (
       typeof window !== "undefined" &&
       !window.location.pathname.startsWith("/platform")
@@ -353,6 +358,10 @@ export default function LandingPage() {
       if (historyState.status !== "success" || !historyState.hasPurchase) {
         setHistoryState({ status: "success", hasPurchase: true });
       }
+      stopBalancePolling();
+      setIsPaymentCardOpen(false);
+      setIsCheckoutModalOpen(false);
+      setCheckoutUrl("");
       redirectToPlatform();
       return () => {
         isMounted = false;
@@ -1005,27 +1014,17 @@ export default function LandingPage() {
   const createOrderMutation = useMutation({
     mutationFn: createOrder,
     onSuccess: (data) => {
-      if (window.MercadoPago && data.preference_id) {
-        try {
-          const mp = new window.MercadoPago(
-            process.env.NEXT_PUBLIC_MERCADO_PAGO_PUBLIC_KEY ?? "",
-            { locale: "pt-BR" }
-          );
-          mp.checkout({ preference: { id: data.preference_id } });
-          setPaymentStatus({
-            title: "Pronto para pagar",
-            message:
-              "Abrimos o checkout em uma nova janela. Assim que o pagamento for aprovado, vamos atualizar seus créditos e redirecionar você automaticamente para a plataforma.",
-            type: "Info",
-          });
-          setIsPaymentStatusOpen(true);
-          return;
-        } catch (error) {
-          console.error(error);
-        }
-      }
       if (data.init_point) {
-        window.location.href = data.init_point;
+        setCheckoutUrl(data.init_point);
+        setIsCheckoutModalOpen(true);
+        startBalancePolling();
+      } else {
+        setPaymentStatus({
+          title: "Erro ao iniciar pagamento",
+          message: "Não foi possível obter a URL de checkout. Tente novamente.",
+          type: "error",
+        });
+        setIsPaymentStatusOpen(true);
       }
     },
     onError: (error) => {
@@ -1441,6 +1440,15 @@ export default function LandingPage() {
       </main>
 
       <AuthModal isOpen={isAuthModalOpen} onClose={handleCloseAuth} defaultView={authView} />
+
+      <CheckoutModal
+        isOpen={isCheckoutModalOpen}
+        onClose={() => {
+          setIsCheckoutModalOpen(false);
+          setCheckoutUrl("");
+        }}
+        checkoutUrl={checkoutUrl}
+      />
 
       {isPaymentStatusOpen && (
         <div className="fixed inset-0 z-[70] flex items-center justify-center bg-slate-900/70 px-4">
