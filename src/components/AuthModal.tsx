@@ -186,9 +186,6 @@ export function AuthModal({ isOpen, onClose, defaultView = "login" }: AuthModalP
       //    A função refresh() do seu useAuth cuida disso.
       await refresh();
 
-      // 2. Redireciona o usuário para a plataforma.
-      router.push("/platform?new_user=true");
-
       // 3. Fecha o modal.
       setTimeout(() => {
         onClose();
