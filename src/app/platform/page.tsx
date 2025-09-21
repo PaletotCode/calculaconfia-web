@@ -8,33 +8,24 @@ import { useMutation } from "@tanstack/react-query";
 import { createOrder, extractErrorMessage } from "@/lib/api";
 import { LucideIcon } from "@/components/LucideIcon";
 import { inferPurchaseFromUser } from "@/utils/user-credits";
+import MercadoPagoBrick from "@/components/MercadoPagoBrick";
 
 const Calculator = dynamic(() => import("@/components/Calculator"), { ssr: false });
 
 function PlatformContent() {
   const router = useRouter();
-  const { user, isAuthenticated, isLoading } = useAuth();
+  const { user, isAuthenticated, isLoading, refresh } = useAuth();
   const searchParams = useSearchParams();
   const [isPaymentCardOpen, setIsPaymentCardOpen] = useState(false);
+  const [preferenceId, setPreferenceId] = useState<string | null>(null);
 
   const createOrderMutation = useMutation({
     mutationFn: createOrder,
     onSuccess: (data) => {
-      if (window.MercadoPago && data.preference_id) {
-        try {
-          const mp = new window.MercadoPago(
-            process.env.NEXT_PUBLIC_MERCADO_PAGO_PUBLIC_KEY ?? "",
-            { locale: "pt-BR" }
-          );
-          mp.checkout({ preference: { id: data.preference_id } });
-        } catch (error) {
-          console.error(error);
-          if (data.init_point) {
-             window.location.href = data.init_point;
-          }
-        }
-      } else if (data.init_point) {
-        window.location.href = data.init_point;
+      if (data.preference_id) {
+        setPreferenceId(data.preference_id);
+      } else {
+        alert("Não foi possível iniciar o checkout. Tente novamente em instantes.");
       }
     },
     onError: (error) => {
@@ -43,21 +34,42 @@ function PlatformContent() {
     },
   });
 
+  const {
+    mutate: triggerCreateOrder,
+    reset: resetCreateOrder,
+    isPending,
+    isError,
+    error,
+  } = createOrderMutation;
+
   const handleBuyCredits = () => {
-    createOrderMutation.mutate();
+    setPreferenceId(null);
+    resetCreateOrder();
+    triggerCreateOrder();
   };
 
   const closePaymentCard = () => {
     setIsPaymentCardOpen(false);
+    setPreferenceId(null);
+    resetCreateOrder();
+  };
+
+  const handlePaymentSuccess = () => {
+    setPreferenceId(null);
+    setIsPaymentCardOpen(false);
+    void refresh();
+    router.replace("/platform", { scroll: false });
   };
 
   useEffect(() => {
     if (searchParams.get("new_user") === "true") {
       setIsPaymentCardOpen(true);
+      setPreferenceId(null);
+      resetCreateOrder();
       // Limpa a URL para não mostrar o modal novamente em um refresh
       router.replace("/platform", { scroll: false });
     }
-  }, [searchParams, router]);
+  }, [resetCreateOrder, router, searchParams]);
 
   const hasSuccessfulPayment = useMemo(
     () => inferPurchaseFromUser(user),
@@ -117,19 +129,26 @@ function PlatformContent() {
                 Ganhe acesso imediato por apenas R$5 e descubra oportunidades que você não pode perder. <strong>Oferta de boas-vindas!</strong>
               </p>
             </div>
-            {createOrderMutation.isError && (
+            {isError && (
               <div className="mb-4 rounded-lg bg-red-100 p-3 text-sm text-red-700">
-                {extractErrorMessage(createOrderMutation.error)}
+                {extractErrorMessage(error)}
               </div>
             )}
-            <button
-              type="button"
-              className="btn-gradient-animated w-full rounded-xl py-4 text-lg font-bold text-white transition hover:scale-[1.03]"
-              onClick={handleBuyCredits}
-              disabled={createOrderMutation.isPending}
-            >
-              {createOrderMutation.isPending ? "Gerando checkout..." : "Comprar créditos!"}
-            </button>
+            {preferenceId ? (
+              <MercadoPagoBrick
+                preferenceId={preferenceId}
+                onPaymentSuccess={handlePaymentSuccess}
+              />
+            ) : (
+              <button
+                type="button"
+                className="btn-gradient-animated w-full rounded-xl py-4 text-lg font-bold text-white transition hover:scale-[1.03]"
+                onClick={handleBuyCredits}
+                disabled={isPending}
+              >
+                {isPending ? "Gerando checkout..." : "Comprar créditos!"}
+              </button>
+            )}
           </div>
         </div>
       )}

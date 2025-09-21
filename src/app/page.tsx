@@ -12,6 +12,7 @@ import "swiper/css/effect-fade";
 import { useMutation } from "@tanstack/react-query";
 import AuthModal from "@/components/AuthModal";
 import CheckoutModal from "@/components/CheckoutModal";
+import MercadoPagoBrick from "@/components/MercadoPagoBrick";
 import { LucideIcon, type IconName } from "@/components/LucideIcon";
 import useAuth from "@/hooks/useAuth";
 import { useIntersectionObserver } from "@/hooks/useIntersectionObserver";
@@ -268,6 +269,7 @@ export default function LandingPage() {
   const [isPaymentStatusOpen, setIsPaymentStatusOpen] = useState(false);
   const [isCheckoutModalOpen, setIsCheckoutModalOpen] = useState(false);
   const [checkoutUrl, setCheckoutUrl] = useState("");
+  const [preferenceId, setPreferenceId] = useState<string | null>(null);
   const [paymentStatus, setPaymentStatus] = useState<PaymentStatus>({
     title: "Status do pagamento",
     message: "Estamos analisando as informações do seu pagamento.",
@@ -332,6 +334,7 @@ export default function LandingPage() {
     setIsPaymentStatusOpen(false);
     setIsCheckoutModalOpen(false);
     setCheckoutUrl("");
+    setPreferenceId(null);
     if (
       typeof window !== "undefined" &&
       !window.location.pathname.startsWith("/platform")
@@ -1014,14 +1017,13 @@ export default function LandingPage() {
   const createOrderMutation = useMutation({
     mutationFn: createOrder,
     onSuccess: (data) => {
-      if (data.init_point) {
-        setCheckoutUrl(data.init_point);
-        setIsCheckoutModalOpen(true);
-        startBalancePolling();
+      if (data.preference_id) {
+        setPreferenceId(data.preference_id);
       } else {
         setPaymentStatus({
           title: "Erro ao iniciar pagamento",
-          message: "Não foi possível obter a URL de checkout. Tente novamente.",
+          message:
+            "Não foi possível obter as informações de pagamento. Tente novamente.",
           type: "error",
         });
         setIsPaymentStatusOpen(true);
@@ -1066,10 +1068,14 @@ export default function LandingPage() {
       handleOpenAuth("register");
       return;
     }
+    setPreferenceId(null);
+    createOrderMutation.reset();
     setIsPaymentCardOpen(true);
   };
 
   const handleBuyCredits = () => {
+    setPreferenceId(null);
+    createOrderMutation.reset();
     createOrderMutation.mutate();
   };
 
@@ -1091,6 +1097,14 @@ export default function LandingPage() {
 
   const closePaymentCard = () => {
     setIsPaymentCardOpen(false);
+    setPreferenceId(null);
+    createOrderMutation.reset();
+  };
+
+  const handlePaymentSuccess = () => {
+    setPreferenceId(null);
+    setIsPaymentCardOpen(false);
+    redirectToPlatform();
   };
 
   const toggleSessionPanel = () => {
@@ -1519,14 +1533,23 @@ export default function LandingPage() {
                 {extractErrorMessage(createOrderMutation.error)}
               </div>
             )}
-            <button
-              type="button"
-              className="btn-gradient-animated w-full rounded-xl py-4 text-lg font-bold text-white transition hover:scale-[1.03]"
-              onClick={handleBuyCredits}
-              disabled={createOrderMutation.isPending}
-            >
-              {createOrderMutation.isPending ? "Gerando checkout..." : "Comprar créditos!"}
-            </button>
+            {preferenceId ? (
+              <MercadoPagoBrick
+                preferenceId={preferenceId}
+                onPaymentSuccess={handlePaymentSuccess}
+              />
+            ) : (
+              <button
+                type="button"
+                className="btn-gradient-animated w-full rounded-xl py-4 text-lg font-bold text-white transition hover:scale-[1.03]"
+                onClick={handleBuyCredits}
+                disabled={createOrderMutation.isPending}
+              >
+                {createOrderMutation.isPending
+                  ? "Gerando checkout..."
+                  : "Comprar créditos!"}
+              </button>
+            )}
             <div className="mt-4 text-center">
               <button
                 type="button"
