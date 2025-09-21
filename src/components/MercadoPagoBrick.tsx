@@ -43,9 +43,6 @@ export default function MercadoPagoBrick({
     () => ({
       paymentMethods: {
         bankTransfer: "all" as const,
-        types: {
-          included: ["bank_transfer"] as const,
-        },
       },
       visual: {
         style: {
