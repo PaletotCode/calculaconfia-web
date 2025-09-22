@@ -135,49 +135,45 @@ function PlatformContent() {
       <Calculator />
 
       {isPaymentCardOpen && (
-        <div className="fixed inset-0 z-[60] flex min-h-full items-center justify-center bg-black/60 p-4">
-          <div className="payment-card relative w-full max-w-xl rounded-2xl border border-green-200 bg-white p-8 shadow-2xl md:p-10">
-            <div className="mb-4 flex items-center justify-between">
-              <h3 className="text-2xl font-extrabold text-slate-800">Comprar Créditos</h3>
-              <button type="button" onClick={closePaymentCard} className="text-slate-500 hover:text-slate-700" title="Fechar">
-                <LucideIcon name="X" className="h-5 w-5" />
-              </button>
-            </div>
-            <div className="mb-6 rounded-xl border border-green-100 bg-green-50 p-4 text-green-800">
-              <p className="font-bold">Bem-vindo(a)! Desbloqueie sua primeira análise.</p>
-              <p className="mt-1 text-sm">
-                Ganhe acesso imediato por apenas {formattedOrderAmount} e descubra oportunidades que você não pode perder. <strong>Oferta de boas-vindas!</strong>
-              </p>
+        <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/60 px-4">
+          <div className="relative w-full max-w-md rounded-2xl border border-slate-200 bg-white p-6 shadow-2xl">
+            <button
+              type="button"
+              onClick={closePaymentCard}
+              className="absolute right-5 top-5 text-slate-400 hover:text-slate-600"
+              title="Fechar"
+            >
+              <LucideIcon name="X" className="h-5 w-5" />
+            </button>
+            <div className="pr-8">
+              <h3 className="text-xl font-semibold text-slate-900">Gerar pagamento PIX</h3>
+              <p className="mt-1 text-sm text-slate-600">Valor único de {formattedOrderAmount}.</p>
             </div>
             {isError && (
-              <div className="mb-4 rounded-lg bg-red-100 p-3 text-sm text-red-700">
+              <div className="mt-4 rounded-lg border border-red-200 bg-red-50 p-3 text-sm text-red-700">
                 {extractErrorMessage(error)}
               </div>
             )}
-            <div className="rounded-2xl border border-slate-200 bg-white/80 p-4 shadow-inner">
+            <div className="mt-6">
               {preferenceId ? (
                 <MercadoPagoBrick
                   preferenceId={preferenceId}
-                  amount={orderAmount}
-                  payerEmail={user?.email ?? ""}
-                  payerFirstName={user?.first_name}
-                  payerLastName={user?.last_name}
                   onPaymentCreated={() => void refresh()}
                   onPaymentSuccess={handlePaymentSuccess}
                 />
               ) : (
-                <div className="flex flex-col items-center gap-4 py-4">
-                  <p className="text-center text-sm text-slate-600">
-                    Clique em pagar para gerar seu PIX seguro sem sair da plataforma.
-                  </p>
+                <div className="space-y-4">
                   <button
                     type="button"
-                    className="btn-gradient-animated w-full rounded-xl py-4 text-lg font-bold text-white transition hover:scale-[1.03]"
+                    className="w-full rounded-xl bg-green-600 px-4 py-3 text-base font-semibold text-white transition hover:bg-green-700 disabled:cursor-not-allowed disabled:opacity-70"
                     onClick={handleBuyCredits}
                     disabled={isPending}
                   >
-                    {isPending ? "Preparando pagamento..." : "Gerar pagamento PIX"}
+                    {isPending ? "Gerando PIX..." : `Gerar PIX de ${formattedOrderAmount}`}
                   </button>
+                  <p className="text-center text-xs text-slate-500">
+                    O QR Code oficial do Mercado Pago aparecerá em instantes.
+                  </p>
                 </div>
               )}
             </div>
