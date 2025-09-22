@@ -376,21 +376,28 @@ export default function LandingPage() {
       };
     }
 
+    const isAwaitingPixConfirmation = isPollingCredits;
+    const shouldAutoRedirect = !isAwaitingPixConfirmation && (inferredPurchase || credits > 0);
+
     if (inferredPurchase) {
       if (historyState.status !== "success" || !historyState.hasPurchase) {
         setHistoryState({ status: "success", hasPurchase: true });
       }
-      redirectToPlatform();
-      return () => {
-        isMounted = false;
-      };
+      if (shouldAutoRedirect) {
+        redirectToPlatform();
+        return () => {
+          isMounted = false;
+        };
+      }
     }
 
     if (historyState.status === "success" && historyState.hasPurchase) {
-      redirectToPlatform();
-      return () => {
-        isMounted = false;
-      };
+      if (shouldAutoRedirect) {
+        redirectToPlatform();
+        return () => {
+          isMounted = false;
+        };
+      }
     }
 
     if (
@@ -1653,3 +1660,6 @@ export default function LandingPage() {
     </div>
   );
 }
+
+
+
