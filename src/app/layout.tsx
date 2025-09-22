@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import Script from "next/script";
 import { Inter } from "next/font/google";
 import AppProviders from "@/components/AppProviders";
+import SessionManager from "@/components/SessionManager";
 import "./globals.css";
 import { type ReactNode } from "react";
 
@@ -26,7 +27,9 @@ export default function RootLayout({
   return (
     <html lang="pt-BR">
       <body className={inter.className}>
-        <AppProviders>{children}</AppProviders>
+        <AppProviders>
+          <SessionManager>{children}</SessionManager>
+        </AppProviders>
         <Script src="https://sdk.mercadopago.com/js/v2" strategy="afterInteractive" />
         <Script src="https://cdn.jsdelivr.net/npm/gradient-js/src/gradient.js" strategy="afterInteractive" />
         <Script id="gradient-init" strategy="afterInteractive">
