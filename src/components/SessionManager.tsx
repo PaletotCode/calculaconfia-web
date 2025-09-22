@@ -122,7 +122,7 @@ export default function SessionManager({
       showPaymentStatus({
         title: "Pagamento em processamento",
         message:
-          "Ainda não recebemos a confirmação do pagamento. Assim que o Mercado Pago aprovar, vamos atualizar seus créditos automaticamente.",
+          "Ainda nÃ£o recebemos a confirmaÃ§Ã£o do pagamento. Assim que o Mercado Pago aprovar, vamos atualizar seus crÃ©ditos automaticamente.",
         type: "Info",
       });
     }, 2 * 60 * 1000);
@@ -151,7 +151,7 @@ export default function SessionManager({
         showPaymentStatus({
           title: "Erro ao iniciar pagamento",
           message:
-            "Não foi possível obter as informações de pagamento. Tente novamente.",
+            "NÃ£o foi possÃ­vel obter as informaÃ§Ãµes de pagamento. Tente novamente.",
           type: "error",
         });
       }
@@ -161,7 +161,7 @@ export default function SessionManager({
       setOrderAmount(DEFAULT_CREDIT_PRICE);
       setStatus("NEEDS_PAYMENT");
       showPaymentStatus({
-        title: "Não foi possível iniciar",
+        title: "NÃ£o foi possÃ­vel iniciar",
         message: extractErrorMessage(error),
         type: "error",
       });
@@ -218,7 +218,7 @@ export default function SessionManager({
     showPaymentStatus({
       title: "Estamos verificando",
       message:
-        "Atualizamos suas informações. Assim que novos créditos forem detectados, você será redirecionado automaticamente para a plataforma.",
+        "Atualizamos suas informaÃ§Ãµes. Assim que novos crÃ©ditos forem detectados, vocÃª serÃ¡ redirecionado automaticamente para a plataforma.",
       type: "Info",
     });
   }, [refresh, startBalancePolling, showPaymentStatus]);
@@ -402,7 +402,7 @@ export default function SessionManager({
             </button>
             <div className="pr-8">
               <h3 className="text-xl font-semibold text-slate-900">Gerar pagamento PIX</h3>
-              <p className="mt-1 text-sm text-slate-600">Valor único de {formattedOrderAmount}.</p>
+              <p className="mt-1 text-sm text-slate-600">Valor Ãºnico de {formattedOrderAmount}.</p>
             </div>
             {isCreateOrderError && (
               <div className="mt-4 rounded-lg border border-red-200 bg-red-50 p-3 text-sm text-red-700">
@@ -429,7 +429,7 @@ export default function SessionManager({
                       : `Gerar PIX de ${formattedOrderAmount}`}
                   </button>
                   <p className="text-center text-xs text-slate-500">
-                    Você verá o QR Code oficial do Mercado Pago em seguida.
+                    VocÃª verÃ¡ o QR Code oficial do Mercado Pago em seguida.
                   </p>
                 </div>
               )}
@@ -440,7 +440,7 @@ export default function SessionManager({
                 className="text-sm font-medium text-green-700 hover:text-green-800"
                 onClick={handleCheckBalance}
               >
-                Já paguei, verificar saldo
+                JÃ¡ paguei, verificar saldo
               </button>
             </div>
           </div>
