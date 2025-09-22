@@ -11,7 +11,6 @@ import "swiper/css/pagination";
 import "swiper/css/effect-fade";
 import { useMutation } from "@tanstack/react-query";
 import AuthModal from "@/components/AuthModal";
-import CheckoutModal from "@/components/CheckoutModal";
 import MercadoPagoBrick from "@/components/MercadoPagoBrick";
 import { LucideIcon, type IconName } from "@/components/LucideIcon";
 import useAuth from "@/hooks/useAuth";
@@ -48,6 +47,8 @@ type PaymentStatus = {
   message: string;
   type: "Info" | "success" | "error";
 };
+
+const DEFAULT_CREDIT_PRICE = 5;
 
 const heroSlides = [
   { src: "https://i.imgur.com/QpHVTbh.mp4", autoPlay: true },
@@ -267,9 +268,8 @@ export default function LandingPage() {
   const [authView, setAuthView] = useState<AuthView>("login");
   const [isPaymentCardOpen, setIsPaymentCardOpen] = useState(false);
   const [isPaymentStatusOpen, setIsPaymentStatusOpen] = useState(false);
-  const [isCheckoutModalOpen, setIsCheckoutModalOpen] = useState(false);
-  const [checkoutUrl, setCheckoutUrl] = useState("");
   const [preferenceId, setPreferenceId] = useState<string | null>(null);
+  const [orderAmount, setOrderAmount] = useState<number>(DEFAULT_CREDIT_PRICE);
   const [paymentStatus, setPaymentStatus] = useState<PaymentStatus>({
     title: "Status do pagamento",
     message: "Estamos analisando as informações do seu pagamento.",
@@ -293,6 +293,15 @@ export default function LandingPage() {
 
   const balancePollingIntervalRef = useRef<number | null>(null);
   const balancePollingTimeoutRef = useRef<number | null>(null);
+
+  const currencyFormatter = useMemo(
+    () => new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }),
+    []
+  );
+  const formattedOrderAmount = useMemo(
+    () => currencyFormatter.format(orderAmount),
+    [currencyFormatter, orderAmount]
+  );
 
   const stopBalancePolling = useCallback(() => {
     if (balancePollingIntervalRef.current) {
@@ -332,8 +341,6 @@ export default function LandingPage() {
     stopBalancePolling();
     setIsPaymentCardOpen(false);
     setIsPaymentStatusOpen(false);
-    setIsCheckoutModalOpen(false);
-    setCheckoutUrl("");
     setPreferenceId(null);
     if (
       typeof window !== "undefined" &&
@@ -363,8 +370,6 @@ export default function LandingPage() {
       }
       stopBalancePolling();
       setIsPaymentCardOpen(false);
-      setIsCheckoutModalOpen(false);
-      setCheckoutUrl("");
       redirectToPlatform();
       return () => {
         isMounted = false;
@@ -1019,6 +1024,11 @@ export default function LandingPage() {
     onSuccess: (data) => {
       if (data.preference_id) {
         setPreferenceId(data.preference_id);
+        if (typeof data.amount === "number") {
+          setOrderAmount(data.amount);
+        } else {
+          setOrderAmount(DEFAULT_CREDIT_PRICE);
+        }
       } else {
         setPaymentStatus({
           title: "Erro ao iniciar pagamento",
@@ -1069,12 +1079,14 @@ export default function LandingPage() {
       return;
     }
     setPreferenceId(null);
+    setOrderAmount(DEFAULT_CREDIT_PRICE);
     createOrderMutation.reset();
     setIsPaymentCardOpen(true);
   };
 
   const handleBuyCredits = () => {
     setPreferenceId(null);
+    setOrderAmount(DEFAULT_CREDIT_PRICE);
     createOrderMutation.reset();
     createOrderMutation.mutate();
   };
@@ -1098,14 +1110,16 @@ export default function LandingPage() {
   const closePaymentCard = () => {
     setIsPaymentCardOpen(false);
     setPreferenceId(null);
+    setOrderAmount(DEFAULT_CREDIT_PRICE);
     createOrderMutation.reset();
   };
 
-  const handlePaymentSuccess = () => {
+  const handlePaymentSuccess = useCallback(async () => {
     setPreferenceId(null);
     setIsPaymentCardOpen(false);
+    await refresh();
     redirectToPlatform();
-  };
+  }, [refresh, redirectToPlatform]);
 
   const toggleSessionPanel = () => {
     setIsSessionPanelOpen((prev) => !prev);
@@ -1455,15 +1469,6 @@ export default function LandingPage() {
 
       <AuthModal isOpen={isAuthModalOpen} onClose={handleCloseAuth} defaultView={authView} />
 
-      <CheckoutModal
-        isOpen={isCheckoutModalOpen}
-        onClose={() => {
-          setIsCheckoutModalOpen(false);
-          setCheckoutUrl("");
-        }}
-        checkoutUrl={checkoutUrl}
-      />
-
       {isPaymentStatusOpen && (
         <div className="fixed inset-0 z-[70] flex items-center justify-center bg-slate-900/70 px-4">
           <div className="relative w-full max-w-lg rounded-2xl bg-white p-6 text-center shadow-2xl md:p-8">
@@ -1523,7 +1528,7 @@ export default function LandingPage() {
               </button>
             </div>
             <div className="mb-6 rounded-xl border border-green-100 bg-green-50 p-4 text-green-800">
-              <p className="font-bold">Desbloqueie agora sua análise exclusiva por apenas R$5!</p>
+              <p className="font-bold">Desbloqueie agora sua análise exclusiva por apenas {formattedOrderAmount}!</p>
               <p className="mt-1 text-sm">
                 Ganhe acesso imediato e descubra oportunidades que você não pode perder. <strong>Oferta limitada</strong>, aproveite enquanto está disponível.
               </p>
@@ -1533,23 +1538,35 @@ export default function LandingPage() {
                 {extractErrorMessage(createOrderMutation.error)}
               </div>
             )}
-            {preferenceId ? (
-              <MercadoPagoBrick
-                preferenceId={preferenceId}
-                onPaymentSuccess={handlePaymentSuccess}
-              />
-            ) : (
-              <button
-                type="button"
-                className="btn-gradient-animated w-full rounded-xl py-4 text-lg font-bold text-white transition hover:scale-[1.03]"
-                onClick={handleBuyCredits}
-                disabled={createOrderMutation.isPending}
-              >
-                {createOrderMutation.isPending
-                  ? "Gerando checkout..."
-                  : "Comprar créditos!"}
-              </button>
-            )}
+            <div className="rounded-2xl border border-slate-200 bg-white/80 p-4 shadow-inner">
+              {preferenceId ? (
+                <MercadoPagoBrick
+                  preferenceId={preferenceId}
+                  amount={orderAmount}
+                  payerEmail={user?.email ?? ""}
+                  payerFirstName={user?.first_name}
+                  payerLastName={user?.last_name}
+                  onPaymentCreated={() => startBalancePolling()}
+                  onPaymentSuccess={handlePaymentSuccess}
+                />
+              ) : (
+                <div className="flex flex-col items-center gap-4 py-4">
+                  <p className="text-center text-sm text-slate-600">
+                    Clique em pagar para gerar seu PIX seguro imediatamente dentro da CalculaConfia.
+                  </p>
+                  <button
+                    type="button"
+                    className="btn-gradient-animated w-full rounded-xl py-4 text-lg font-bold text-white transition hover:scale-[1.03]"
+                    onClick={handleBuyCredits}
+                    disabled={createOrderMutation.isPending}
+                  >
+                    {createOrderMutation.isPending
+                      ? "Preparando pagamento..."
+                      : "Gerar pagamento PIX"}
+                  </button>
+                </div>
+              )}
+            </div>
             <div className="mt-4 text-center">
               <button
                 type="button"

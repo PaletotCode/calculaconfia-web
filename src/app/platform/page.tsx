@@ -12,18 +12,35 @@ import MercadoPagoBrick from "@/components/MercadoPagoBrick";
 
 const Calculator = dynamic(() => import("@/components/Calculator"), { ssr: false });
 
+const DEFAULT_PLATFORM_CREDIT_PRICE = 5;
+
 function PlatformContent() {
   const router = useRouter();
   const { user, isAuthenticated, isLoading, refresh } = useAuth();
   const searchParams = useSearchParams();
   const [isPaymentCardOpen, setIsPaymentCardOpen] = useState(false);
   const [preferenceId, setPreferenceId] = useState<string | null>(null);
+  const [orderAmount, setOrderAmount] = useState<number>(DEFAULT_PLATFORM_CREDIT_PRICE);
+
+  const currencyFormatter = useMemo(
+    () => new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }),
+    []
+  );
+  const formattedOrderAmount = useMemo(
+    () => currencyFormatter.format(orderAmount),
+    [currencyFormatter, orderAmount]
+  );
 
   const createOrderMutation = useMutation({
     mutationFn: createOrder,
     onSuccess: (data) => {
       if (data.preference_id) {
         setPreferenceId(data.preference_id);
+        if (typeof data.amount === "number") {
+          setOrderAmount(data.amount);
+        } else {
+          setOrderAmount(DEFAULT_PLATFORM_CREDIT_PRICE);
+        }
       } else {
         alert("Não foi possível iniciar o checkout. Tente novamente em instantes.");
       }
@@ -44,6 +61,7 @@ function PlatformContent() {
 
   const handleBuyCredits = () => {
     setPreferenceId(null);
+    setOrderAmount(DEFAULT_PLATFORM_CREDIT_PRICE);
     resetCreateOrder();
     triggerCreateOrder();
   };
@@ -51,13 +69,14 @@ function PlatformContent() {
   const closePaymentCard = () => {
     setIsPaymentCardOpen(false);
     setPreferenceId(null);
+    setOrderAmount(DEFAULT_PLATFORM_CREDIT_PRICE);
     resetCreateOrder();
   };
 
-  const handlePaymentSuccess = () => {
+  const handlePaymentSuccess = async () => {
     setPreferenceId(null);
     setIsPaymentCardOpen(false);
-    void refresh();
+    await refresh();
     router.replace("/platform", { scroll: false });
   };
 
@@ -65,6 +84,7 @@ function PlatformContent() {
     if (searchParams.get("new_user") === "true") {
       setIsPaymentCardOpen(true);
       setPreferenceId(null);
+      setOrderAmount(DEFAULT_PLATFORM_CREDIT_PRICE);
       resetCreateOrder();
       // Limpa a URL para não mostrar o modal novamente em um refresh
       router.replace("/platform", { scroll: false });
@@ -126,7 +146,7 @@ function PlatformContent() {
             <div className="mb-6 rounded-xl border border-green-100 bg-green-50 p-4 text-green-800">
               <p className="font-bold">Bem-vindo(a)! Desbloqueie sua primeira análise.</p>
               <p className="mt-1 text-sm">
-                Ganhe acesso imediato por apenas R$5 e descubra oportunidades que você não pode perder. <strong>Oferta de boas-vindas!</strong>
+                Ganhe acesso imediato por apenas {formattedOrderAmount} e descubra oportunidades que você não pode perder. <strong>Oferta de boas-vindas!</strong>
               </p>
             </div>
             {isError && (
@@ -134,21 +154,33 @@ function PlatformContent() {
                 {extractErrorMessage(error)}
               </div>
             )}
-            {preferenceId ? (
-              <MercadoPagoBrick
-                preferenceId={preferenceId}
-                onPaymentSuccess={handlePaymentSuccess}
-              />
-            ) : (
-              <button
-                type="button"
-                className="btn-gradient-animated w-full rounded-xl py-4 text-lg font-bold text-white transition hover:scale-[1.03]"
-                onClick={handleBuyCredits}
-                disabled={isPending}
-              >
-                {isPending ? "Gerando checkout..." : "Comprar créditos!"}
-              </button>
-            )}
+            <div className="rounded-2xl border border-slate-200 bg-white/80 p-4 shadow-inner">
+              {preferenceId ? (
+                <MercadoPagoBrick
+                  preferenceId={preferenceId}
+                  amount={orderAmount}
+                  payerEmail={user?.email ?? ""}
+                  payerFirstName={user?.first_name}
+                  payerLastName={user?.last_name}
+                  onPaymentCreated={() => void refresh()}
+                  onPaymentSuccess={handlePaymentSuccess}
+                />
+              ) : (
+                <div className="flex flex-col items-center gap-4 py-4">
+                  <p className="text-center text-sm text-slate-600">
+                    Clique em pagar para gerar seu PIX seguro sem sair da plataforma.
+                  </p>
+                  <button
+                    type="button"
+                    className="btn-gradient-animated w-full rounded-xl py-4 text-lg font-bold text-white transition hover:scale-[1.03]"
+                    onClick={handleBuyCredits}
+                    disabled={isPending}
+                  >
+                    {isPending ? "Preparando pagamento..." : "Gerar pagamento PIX"}
+                  </button>
+                </div>
+              )}
+            </div>
           </div>
         </div>
       )}
