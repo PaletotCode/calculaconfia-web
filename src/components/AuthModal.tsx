@@ -628,7 +628,7 @@ export function AuthModal({ isOpen, onClose, defaultView = "login" }: AuthModalP
                           className={clsx("pw-rule", rule.met ? "pw-rule--ok" : "pw-rule--pending")}
                         >
                           <LucideIcon
-                            name={rule.met ? "CheckCircle2" : "Circle"}
+                            name={rule.met ? "CircleCheckBig" : "Circle"} // Mudando "CheckCircle2" para "CheckCircle"
                             className="h-4 w-4 flex-shrink-0"
                           />
                           <span>{rule.label}</span>
