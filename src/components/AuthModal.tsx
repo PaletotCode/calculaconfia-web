@@ -52,6 +52,48 @@ export function AuthModal({ isOpen, onClose, defaultView = "login" }: AuthModalP
   const [verifyForm, setVerifyForm] = useState({ email: "", code: "" });
   const [forgotEmail, setForgotEmail] = useState("");
 
+  const [showLoginPassword, setShowLoginPassword] = useState(false);
+  const [showRegisterPassword, setShowRegisterPassword] = useState(false);
+  const [showRegisterConfirmPassword, setShowRegisterConfirmPassword] = useState(false);
+
+  const translateAuthMessage = useCallback((message: string) => {
+    if (!message) {
+      return "Ocorreu um erro inesperado. Tente novamente.";
+    }
+
+    const normalized = message.toLowerCase();
+
+    if (normalized.includes("invalid credentials") || normalized.includes("incorrect password") || normalized.includes("unauthorized")) {
+      return "E-mail ou senha incorretos.";
+    }
+
+    if (normalized.includes("user already exists") || normalized.includes("email already") || normalized.includes("account already")) {
+      return "Este e-mail j? est? cadastrado.";
+    }
+
+    if (normalized.includes("verification code") || normalized.includes("code invalid") || normalized.includes("code expired")) {
+      return "C?digo de verifica??o inv?lido ou expirado.";
+    }
+
+    if (normalized.includes("too many attempts") || normalized.includes("too many requests") || normalized.includes("rate limit")) {
+      return "Muitas tentativas. Aguarde alguns instantes e tente novamente.";
+    }
+
+    if (normalized.includes("password")) {
+      return "Senha inv?lida. Verifique os requisitos informados.";
+    }
+
+    if (normalized.includes("user not found") || normalized.includes("no user")) {
+      return "Usu?rio n?o localizado. Verifique o e-mail informado.";
+    }
+
+    if (normalized.includes("not verified")) {
+      return "Sua conta ainda n?o foi verificada.";
+    }
+
+    return message;
+  }, []);
+
   useEffect(() => {
     if (isOpen) {
       setActiveView(defaultView);
@@ -129,7 +171,7 @@ export function AuthModal({ isOpen, onClose, defaultView = "login" }: AuthModalP
       setLoginError("");
     } else {
       // Para qualquer outro erro, exibe a mensagem no formulário de login
-      setLoginError(errorMessage);
+      setLoginError(translateAuthMessage(errorMessage));
     }
   },
   });
@@ -157,14 +199,15 @@ export function AuthModal({ isOpen, onClose, defaultView = "login" }: AuthModalP
     },
     onError: (error: unknown) => {
       setRegisterSuccess("");
-      setRegisterError(extractErrorMessage(error));
+      const message = extractErrorMessage(error);
+      setRegisterError(translateAuthMessage(message));
     },
   });
 
   const sendVerificationCodeMutation = useMutation({
     mutationFn: (email: string) => sendVerificationCode(email),
     onError: (error: unknown) => {
-      setVerifyError(extractErrorMessage(error));
+      setVerifyError(translateAuthMessage(extractErrorMessage(error)));
     },
     onSuccess: () => {
       setVerifyError("");
@@ -193,13 +236,37 @@ export function AuthModal({ isOpen, onClose, defaultView = "login" }: AuthModalP
     },
     onError: (error: unknown) => {
       setVerifySuccess("");
-      setVerifyError(extractErrorMessage(error));
+      setVerifyError(translateAuthMessage(extractErrorMessage(error)));
     },
   });
 
-  const isPasswordValid = useMemo(() => registerForm.password.length >= 6, [registerForm.password]);
+  const passwordChecks = useMemo(() => {
+    const value = registerForm.password;
+    return {
+      length: value.length >= 6,
+      uppercase: /[A-Z]/.test(value),
+      lowercase: /[a-z]/.test(value),
+    };
+  }, [registerForm.password]);
+
+  const passwordFeedback = useMemo(
+    () => [
+      { id: "length", label: "Mínimo de 6 caracteres", met: passwordChecks.length },
+      { id: "uppercase", label: "Inclua pelo menos 1 letra maiúscula", met: passwordChecks.uppercase },
+      { id: "lowercase", label: "Inclua pelo menos 1 letra minúscula", met: passwordChecks.lowercase },
+    ],
+    [passwordChecks.length, passwordChecks.lowercase, passwordChecks.uppercase]
+  );
+
+  const isPasswordValid = useMemo(
+    () => passwordFeedback.every((rule) => rule.met),
+    [passwordFeedback]
+  );
+
   const passwordsMatch = useMemo(
-    () => registerForm.password !== "" && registerForm.password === registerForm.confirmPassword,
+    () =>
+      registerForm.password !== "" &&
+      registerForm.password === registerForm.confirmPassword,
     [registerForm.password, registerForm.confirmPassword]
   );
 
@@ -356,15 +423,23 @@ export function AuthModal({ isOpen, onClose, defaultView = "login" }: AuthModalP
                     <LucideIcon name="Lock" className="absolute left-3 top-1/2 h-5 w-5 -translate-y-1/2 text-slate-400" />
                     <input
                       id="login-password"
-                      type="password"
+                      type={showLoginPassword ? "text" : "password"}
                       required
-                      className="has-icon"
+                      className="has-icon pr-12"
                       placeholder="********"
                       value={loginForm.password}
                       onChange={(event) =>
                         setLoginForm((prev) => ({ ...prev, password: event.target.value }))
                       }
                     />
+                    <button
+                      type="button"
+                      className={clsx("password-toggle", showLoginPassword && "is-active")}
+                      onClick={() => setShowLoginPassword((prev) => !prev)}
+                      aria-label={showLoginPassword ? "Ocultar senha" : "Mostrar senha"}
+                    >
+                      <LucideIcon name={showLoginPassword ? "EyeOff" : "Eye"} className="h-5 w-5" />
+                    </button>
                   </div>
                 </div>
               </div>
@@ -528,18 +603,37 @@ export function AuthModal({ isOpen, onClose, defaultView = "login" }: AuthModalP
                       <LucideIcon name="Lock" className="absolute left-3 top-1/2 h-5 w-5 -translate-y-1/2 text-slate-400" />
                       <input
                         id="register-password"
-                        type="password"
+                        type={showRegisterPassword ? "text" : "password"}
                         required
-                        className="has-icon"
+                        className="has-icon pr-12"
                         placeholder="Mínimo 6 dígitos"
                         value={registerForm.password}
                         onChange={(event) =>
                           setRegisterForm((prev) => ({ ...prev, password: event.target.value }))
                         }
                       />
+                      <button
+                        type="button"
+                        className={clsx("password-toggle", showRegisterPassword && "is-active")}
+                        onClick={() => setShowRegisterPassword((prev) => !prev)}
+                        aria-label={showRegisterPassword ? "Ocultar senha" : "Mostrar senha"}
+                      >
+                        <LucideIcon name={showRegisterPassword ? "EyeOff" : "Eye"} className="h-5 w-5" />
+                      </button>
                     </div>
-                    <div className="mt-2 text-xs text-slate-500" aria-live="polite">
-                      {isPasswordValid ? "Ótimo! Senha forte." : "Use pelo menos 6 caracteres."}
+                    <div className="mt-3 space-y-1 text-xs" aria-live="polite">
+                      {passwordFeedback.map((rule) => (
+                        <div
+                          key={rule.id}
+                          className={clsx("pw-rule", rule.met ? "pw-rule--ok" : "pw-rule--pending")}
+                        >
+                          <LucideIcon
+                            name={rule.met ? "CheckCircle2" : "Circle"}
+                            className="h-4 w-4 flex-shrink-0"
+                          />
+                          <span>{rule.label}</span>
+                        </div>
+                      ))}
                     </div>
                   </div>
                   <div className="form-input-group">
@@ -550,16 +644,25 @@ export function AuthModal({ isOpen, onClose, defaultView = "login" }: AuthModalP
                       <LucideIcon name="Lock" className="absolute left-3 top-1/2 h-5 w-5 -translate-y-1/2 text-slate-400" />
                       <input
                         id="register-password-confirm"
-                        type="password"
+                        type={showRegisterConfirmPassword ? "text" : "password"}
                         required
                         disabled={!isPasswordValid}
-                        className="has-icon"
+                        className="has-icon pr-12"
                         placeholder="Confirme sua senha"
                         value={registerForm.confirmPassword}
                         onChange={(event) =>
                           setRegisterForm((prev) => ({ ...prev, confirmPassword: event.target.value }))
                         }
                       />
+                      <button
+                        type="button"
+                        className={clsx("password-toggle", showRegisterConfirmPassword && "is-active")}
+                        onClick={() => setShowRegisterConfirmPassword((prev) => !prev)}
+                        aria-label={showRegisterConfirmPassword ? "Ocultar senha" : "Mostrar senha"}
+                        disabled={!isPasswordValid}
+                      >
+                        <LucideIcon name={showRegisterConfirmPassword ? "EyeOff" : "Eye"} className="h-5 w-5" />
+                      </button>
                     </div>
                     <div className="mt-2 text-xs" aria-live="polite">
                       <span className={passwordsMatch ? "pw-good" : "pw-bad"}>

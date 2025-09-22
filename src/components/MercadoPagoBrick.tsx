@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import axios from "axios";
 import { initMercadoPago, StatusScreen } from "@mercadopago/sdk-react";
 import {
   confirmPayment,
@@ -92,6 +93,27 @@ export default function MercadoPagoBrick({
           onPaymentSuccess();
         }
       } catch (error) {
+        if (axios.isAxiosError(error)) {
+          const status = error.response?.status ?? null;
+          const message = extractErrorMessage(error);
+          const isMethodNotAllowed =
+            status === 405 || status === 409 || status === 500 || /method not allowed/i.test(message);
+
+          if (isMethodNotAllowed && !hasReportedSuccess.current) {
+            console.warn(
+              "MercadoPagoBrick: confirm treated as success",
+              { status, message }
+            );
+            hasReportedSuccess.current = true;
+            if (pollingTimerRef.current) {
+              window.clearInterval(pollingTimerRef.current);
+              pollingTimerRef.current = null;
+            }
+            onPaymentSuccess();
+            return;
+          }
+        }
+
         console.error("Erro ao verificar status do pagamento PIX", error);
       }
     };

@@ -52,6 +52,26 @@ const SessionManagerContext =
 
 const DEFAULT_CREDIT_PRICE = 5;
 
+
+declare global {
+  interface Window {
+    __SESSION_MANAGER_DEBUG__?: boolean;
+  }
+}
+
+type DebugPayload = Record<string, unknown>;
+
+const isDebugEnabled = () =>
+  typeof window !== "undefined" && Boolean(window.__SESSION_MANAGER_DEBUG__);
+
+const debugLog = (event: string, payload: DebugPayload = {}) => {
+  if (!isDebugEnabled()) {
+    return;
+  }
+  const timestamp = new Date().toISOString();
+  console.log(`[SessionManager][${timestamp}] ${event}`, payload);
+};
+
 export function useSessionManager() {
   const context = useContext(SessionManagerContext);
   if (!context) {
@@ -81,52 +101,77 @@ export default function SessionManager({
   const balancePollingIntervalRef = useRef<number | null>(null);
   const balancePollingTimeoutRef = useRef<number | null>(null);
 
+  const prevStatusRef = useRef<SessionStatus>(status);
+  const prevModalOpenRef = useRef(isPaymentModalOpen);
+  const prevPreferenceRef = useRef<string | null>(preferenceId);
+  const prevAuthRef = useRef<boolean | null>(null);
+
   const currencyFormatter = useMemo(
     () => new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }),
     []
   );
 
-  const stopBalancePolling = useCallback(() => {
-    if (balancePollingIntervalRef.current) {
-      window.clearInterval(balancePollingIntervalRef.current);
-      balancePollingIntervalRef.current = null;
-    }
-    if (balancePollingTimeoutRef.current) {
-      window.clearTimeout(balancePollingTimeoutRef.current);
-      balancePollingTimeoutRef.current = null;
-    }
-    setIsPollingCredits(false);
-  }, []);
+  const stopBalancePolling = useCallback(
+    (reason: string = "cleanup") => {
+      const hadInterval = Boolean(balancePollingIntervalRef.current);
+      const hadTimeout = Boolean(balancePollingTimeoutRef.current);
+
+      if (hadInterval) {
+        window.clearInterval(balancePollingIntervalRef.current!);
+        balancePollingIntervalRef.current = null;
+      }
+      if (hadTimeout) {
+        window.clearTimeout(balancePollingTimeoutRef.current!);
+        balancePollingTimeoutRef.current = null;
+      }
+
+      if (hadInterval || hadTimeout || isPollingCredits) {
+        debugLog("stopBalancePolling", { reason, hadInterval, hadTimeout });
+      }
+
+      setIsPollingCredits(false);
+    },
+    [isPollingCredits]
+  );
 
   const showPaymentStatus = useCallback((info: PaymentStatus) => {
+    debugLog("paymentStatus:show", info);
     setPaymentStatus(info);
     setIsPaymentStatusOpen(true);
   }, []);
 
   const hidePaymentStatus = useCallback(() => {
+    debugLog("paymentStatus:hide", { wasOpen: isPaymentStatusOpen });
     setIsPaymentStatusOpen(false);
-  }, []);
+  }, [isPaymentStatusOpen]);
 
   const startBalancePolling = useCallback(() => {
     if (isPollingCredits) {
+      debugLog("startBalancePolling:skipped", { reason: "already_polling" });
       return;
     }
-    stopBalancePolling();
+
+    debugLog("startBalancePolling:start", { intervalMs: 4000, timeoutMs: 120000 });
+    stopBalancePolling("restart");
     setIsPollingCredits(true);
     void refresh();
+
     balancePollingIntervalRef.current = window.setInterval(() => {
+      debugLog("startBalancePolling:tick", {});
       void refresh();
     }, 4000);
+
     balancePollingTimeoutRef.current = window.setTimeout(() => {
-      stopBalancePolling();
+      debugLog("startBalancePolling:timeout", {});
+      stopBalancePolling("timeout");
       showPaymentStatus({
         title: "Pagamento em processamento",
         message:
-          "Ainda não recebemos a confirmação do pagamento. Assim que o Mercado Pago aprovar, vamos atualizar seus créditos automaticamente.",
+          "Ainda n?o recebemos a confirma??o do pagamento. Assim que o Mercado Pago aprovar, vamos atualizar seus cr?ditos automaticamente.",
         type: "Info",
       });
     }, 2 * 60 * 1000);
-  }, [isPollingCredits, refresh, stopBalancePolling, showPaymentStatus]);
+  }, [isPollingCredits, refresh, showPaymentStatus, stopBalancePolling]);
 
   const {
     mutate: triggerCreateOrder,
@@ -137,6 +182,10 @@ export default function SessionManager({
   } = useMutation({
     mutationFn: createOrder,
     onSuccess: (data) => {
+      debugLog("createOrder:success", {
+        hasPreference: Boolean(data.preference_id),
+        amount: typeof data.amount === "number" ? data.amount : DEFAULT_CREDIT_PRICE,
+      });
       if (data.preference_id) {
         setPreferenceId(data.preference_id);
         if (typeof data.amount === "number") {
@@ -145,6 +194,7 @@ export default function SessionManager({
           setOrderAmount(DEFAULT_CREDIT_PRICE);
         }
       } else {
+        debugLog("createOrder:missingPreferenceId", { data });
         setPreferenceId(null);
         setOrderAmount(DEFAULT_CREDIT_PRICE);
         setStatus("NEEDS_PAYMENT");
@@ -157,95 +207,172 @@ export default function SessionManager({
       }
     },
     onError: (error) => {
+      const message = extractErrorMessage(error);
+      debugLog("createOrder:error", { message });
       setPreferenceId(null);
       setOrderAmount(DEFAULT_CREDIT_PRICE);
       setStatus("NEEDS_PAYMENT");
       showPaymentStatus({
-        title: "Não foi possível iniciar",
-        message: extractErrorMessage(error),
+        title: "N?o foi poss?vel iniciar",
+        message,
         type: "error",
       });
     },
   });
 
-  const resetPaymentFlow = useCallback(() => {
-    setPreferenceId(null);
-    setOrderAmount(DEFAULT_CREDIT_PRICE);
-    setIsPaymentModalOpen(false);
-    setIsPaymentStatusOpen(false);
-    setPaymentStatus(null);
-    setHasPromptedPayment(false);
-    stopBalancePolling();
-    resetCreateOrder();
-  }, [resetCreateOrder, stopBalancePolling]);
+  const resetPaymentFlow = useCallback(
+    (reason: string) => {
+      debugLog("resetPaymentFlow", {
+        reason,
+        status,
+        preferenceId,
+        isPaymentModalOpen,
+        hasPromptedPayment,
+      });
+      setPreferenceId(null);
+      setOrderAmount(DEFAULT_CREDIT_PRICE);
+      setIsPaymentModalOpen(false);
+      setIsPaymentStatusOpen(false);
+      setPaymentStatus(null);
+      setHasPromptedPayment(false);
+      stopBalancePolling("reset");
+      resetCreateOrder();
+    },
+    [
+      hasPromptedPayment,
+      isPaymentModalOpen,
+      preferenceId,
+      resetCreateOrder,
+      status,
+      stopBalancePolling,
+    ]
+  );
 
   const openPaymentModal = useCallback(() => {
-    if (!isAuthenticated) {
+    const allowed = Boolean(isAuthenticated);
+    debugLog("openPaymentModal", { allowed, status, isPaymentModalOpen });
+    if (!allowed) {
       return false;
     }
+
     setIsPaymentModalOpen(true);
     setHasPromptedPayment(true);
     if (status === "LOGGED_OUT" || status === "LOADING") {
       setStatus("NEEDS_PAYMENT");
     }
     return true;
-  }, [isAuthenticated, status]);
+  }, [isAuthenticated, isPaymentModalOpen, status]);
 
   const closePaymentModal = useCallback(() => {
+    debugLog("closePaymentModal", { status, preferenceId, isPaymentModalOpen });
     setIsPaymentModalOpen(false);
     setPreferenceId(null);
     setOrderAmount(DEFAULT_CREDIT_PRICE);
+    stopBalancePolling("closeModal");
     resetCreateOrder();
     if (status === "PAYMENT_IN_PROGRESS") {
       setStatus("NEEDS_PAYMENT");
     }
-  }, [resetCreateOrder, status]);
+  }, [
+    isPaymentModalOpen,
+    preferenceId,
+    resetCreateOrder,
+    status,
+    stopBalancePolling,
+  ]);
 
   const handleGeneratePix = useCallback(() => {
     if (isCreatingOrder) {
+      debugLog("handleGeneratePix:blocked", { reason: "pending_request" });
       return;
     }
+
+    debugLog("handleGeneratePix:start", { status, preferenceId });
     setPreferenceId(null);
     setOrderAmount(DEFAULT_CREDIT_PRICE);
     resetCreateOrder();
     setStatus("PAYMENT_IN_PROGRESS");
     triggerCreateOrder();
-  }, [isCreatingOrder, resetCreateOrder, triggerCreateOrder]);
+  }, [isCreatingOrder, preferenceId, resetCreateOrder, status, triggerCreateOrder]);
 
   const handleCheckBalance = useCallback(async () => {
+    debugLog("handleCheckBalance", {});
     await refresh();
     startBalancePolling();
     showPaymentStatus({
       title: "Estamos verificando",
       message:
-        "Atualizamos suas informações. Assim que novos créditos forem detectados, você será redirecionado automaticamente para a plataforma.",
+        "Atualizamos suas informa??es. Assim que novos cr?ditos forem detectados, voc? ser? redirecionado automaticamente para a plataforma.",
       type: "Info",
     });
   }, [refresh, startBalancePolling, showPaymentStatus]);
 
   const handlePaymentSuccess = useCallback(async () => {
-    stopBalancePolling();
+    debugLog("handlePaymentSuccess", { status, preferenceId });
+    stopBalancePolling("success");
     setPreferenceId(null);
     setIsPaymentModalOpen(false);
     setStatus("READY_FOR_PLATFORM");
     await refresh();
-  }, [refresh, stopBalancePolling]);
+  }, [preferenceId, refresh, status, stopBalancePolling]);
 
-  useEffect(() => () => stopBalancePolling(), [stopBalancePolling]);
+  useEffect(() => {
+    if (prevStatusRef.current !== status) {
+      debugLog("status:transition", { from: prevStatusRef.current, to: status });
+      prevStatusRef.current = status;
+    }
+  }, [status]);
+
+  useEffect(() => {
+    if (prevModalOpenRef.current !== isPaymentModalOpen) {
+      debugLog("modal:visibility", { open: isPaymentModalOpen, status });
+      prevModalOpenRef.current = isPaymentModalOpen;
+    }
+  }, [isPaymentModalOpen, status]);
+
+  useEffect(() => {
+    if (prevPreferenceRef.current !== preferenceId) {
+      debugLog("preference:change", {
+        from: prevPreferenceRef.current,
+        to: preferenceId,
+      });
+      prevPreferenceRef.current = preferenceId;
+    }
+  }, [preferenceId]);
+
+  useEffect(() => {
+    if (prevAuthRef.current !== isAuthenticated) {
+      debugLog("auth:change", { isAuthenticated, status });
+      prevAuthRef.current = isAuthenticated;
+    }
+  }, [isAuthenticated, status]);
+
+  useEffect(() => () => stopBalancePolling("unmount"), [stopBalancePolling]);
 
   useEffect(() => {
     if (isLoading) {
       if (status !== "LOADING") {
+        debugLog("status:update", { to: "LOADING", reason: "auth-loading" });
         setStatus("LOADING");
       }
       return;
     }
 
     if (!isAuthenticated) {
+      if (status === "PAYMENT_IN_PROGRESS") {
+        debugLog("auth:missingWhilePayment", {
+          isLoading,
+          preferenceId,
+          isPaymentModalOpen,
+        });
+        return;
+      }
+
       if (status !== "LOGGED_OUT") {
+        debugLog("status:update", { to: "LOGGED_OUT", reason: "auth-missing" });
         setStatus("LOGGED_OUT");
       }
-      resetPaymentFlow();
+      resetPaymentFlow("auth-missing");
       return;
     }
 
@@ -275,6 +402,8 @@ export default function SessionManager({
     hasPromptedPayment,
     isAuthenticated,
     isLoading,
+    isPaymentModalOpen,
+    preferenceId,
     resetPaymentFlow,
     status,
     user,
@@ -287,6 +416,7 @@ export default function SessionManager({
     if (pathname && pathname.startsWith("/platform")) {
       return;
     }
+    debugLog("navigation:redirect-platform", { from: pathname ?? null, status });
     router.replace("/platform");
   }, [isAuthenticated, pathname, router, status]);
 
@@ -298,6 +428,7 @@ export default function SessionManager({
       return;
     }
     if (status === "PAYMENT_IN_PROGRESS" && !isPaymentModalOpen) {
+      debugLog("modal:forceOpen", { pathname, status });
       setIsPaymentModalOpen(true);
     }
   }, [isPaymentModalOpen, pathname, status]);
@@ -307,8 +438,6 @@ export default function SessionManager({
     [currencyFormatter, orderAmount]
   );
 
-  const shouldRenderChildren =
-    !(pathname === "/" && status === "READY_FOR_PLATFORM");
 
   const contextValue = useMemo<SessionManagerContextValue>(
     () => ({
@@ -335,7 +464,7 @@ export default function SessionManager({
 
   return (
     <SessionManagerContext.Provider value={contextValue}>
-      {shouldRenderChildren ? children : null}
+      {children}
 
       {isPaymentStatusOpen && paymentStatus ? (
         <div className="fixed inset-0 z-[70] flex items-center justify-center bg-slate-900/70 px-4">
