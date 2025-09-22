@@ -352,9 +352,11 @@ export default function LandingPage() {
   }, [stopBalancePolling]);
 
   useEffect(() => {
+    // 🔥 CORREÇÃO PRINCIPAL: Se o pagamento está ativo, não faz nada
     if (isPaymentFlowActive) {
-      return; // <<-- SE O PAGAMENTO ESTÁ ATIVO, NÃO FAZ NADA
+      return; // <<-- IMPEDE O LOOP QUANDO O FLUXO ESTÁ ATIVO
     }
+
     if (!isAuthenticated) {
       setHasPromptedPurchase(false);
       setHistoryState({ status: "idle", hasPurchase: false });
@@ -368,6 +370,7 @@ export default function LandingPage() {
 
     const credits = extractCreditsFromUser(user);
     const inferredPurchase = inferPurchaseFromUser(user);
+
     if (credits > 0) {
       if (historyState.status !== "success" || !historyState.hasPurchase) {
         setHistoryState({ status: "success", hasPurchase: true });
@@ -450,7 +453,7 @@ export default function LandingPage() {
     redirectToPlatform,
     stopBalancePolling,
     user,
-    isPaymentFlowActive
+    isPaymentFlowActive // <<-- ADICIONADO NA DEPENDÊNCIA
   ]);
 
   useEffect(() => {
@@ -1099,6 +1102,7 @@ export default function LandingPage() {
   const handleBuyCredits = () => {
     // Previne cliques duplos e reinício se o fluxo já começou
     if (createOrderMutation.isPending || isPaymentFlowActive) return;
+    
     setIsPaymentFlowActive(true); // <<-- TRAVA O FLUXO AQUI
     setPreferenceId(null);
     setOrderAmount(DEFAULT_CREDIT_PRICE);
