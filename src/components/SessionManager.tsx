@@ -47,11 +47,11 @@ interface SessionManagerContextValue {
   hidePaymentStatus: () => void;
 }
 
-const SessionManagerContext =
-  createContext<SessionManagerContextValue | undefined>(undefined);
+const SessionManagerContext = createContext<
+  SessionManagerContextValue | undefined
+>(undefined);
 
 const DEFAULT_CREDIT_PRICE = 5;
-
 
 declare global {
   interface Window {
@@ -80,11 +80,7 @@ export function useSessionManager() {
   return context;
 }
 
-export default function SessionManager({
-  children,
-}: {
-  children: ReactNode;
-}) {
+export default function SessionManager({ children }: { children: ReactNode }) {
   const router = useRouter();
   const pathname = usePathname();
   const { user, isAuthenticated, isLoading, refresh } = useAuth();
@@ -92,17 +88,17 @@ export default function SessionManager({
   const [status, setStatus] = useState<SessionStatus>("LOADING");
   const [isPaymentModalOpen, setIsPaymentModalOpen] = useState(false);
   const [isPaymentStatusOpen, setIsPaymentStatusOpen] = useState(false);
-  const [paymentStatus, setPaymentStatus] = useState<PaymentStatus | null>(null);
+  const [paymentStatus, setPaymentStatus] = useState<PaymentStatus | null>(
+    null,
+  );
   const [preferenceId, setPreferenceId] = useState<string | null>(null);
   const [orderAmount, setOrderAmount] = useState<number>(DEFAULT_CREDIT_PRICE);
   const [isPollingCredits, setIsPollingCredits] = useState(false);
   const [hasPromptedPayment, setHasPromptedPayment] = useState(false);
-  const [isAwaitingRedirect, setIsAwaitingRedirect] = useState(false);
+  const [hasShownSuccess, setHasShownSuccess] = useState(false);
 
   const balancePollingIntervalRef = useRef<number | null>(null);
   const balancePollingTimeoutRef = useRef<number | null>(null);
-  const successRedirectTimeoutRef = useRef<number | null>(null);
-  const hasHandledSuccessfulPaymentRef = useRef(false);
 
   const prevStatusRef = useRef<SessionStatus>(status);
   const prevModalOpenRef = useRef(isPaymentModalOpen);
@@ -110,8 +106,9 @@ export default function SessionManager({
   const prevAuthRef = useRef<boolean | null>(null);
 
   const currencyFormatter = useMemo(
-    () => new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }),
-    []
+    () =>
+      new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }),
+    [],
   );
 
   const stopBalancePolling = useCallback(
@@ -134,73 +131,51 @@ export default function SessionManager({
 
       setIsPollingCredits(false);
     },
-    [isPollingCredits]
+    [isPollingCredits],
   );
-
-  const clearSuccessRedirect = useCallback(() => {
-    if (successRedirectTimeoutRef.current) {
-      window.clearTimeout(successRedirectTimeoutRef.current);
-      successRedirectTimeoutRef.current = null;
-    }
-  }, []);
 
   const showPaymentStatus = useCallback((info: PaymentStatus) => {
     debugLog("paymentStatus:show", info);
+
     setPaymentStatus(info);
+
     setIsPaymentStatusOpen(true);
   }, []);
 
   const hidePaymentStatus = useCallback(() => {
     debugLog("paymentStatus:hide", { wasOpen: isPaymentStatusOpen });
+
     setIsPaymentStatusOpen(false);
   }, [isPaymentStatusOpen]);
 
-  const finalizePaymentSuccess = useCallback(
-    (origin: string) => {
-      if (hasHandledSuccessfulPaymentRef.current) {
-        debugLog("finalizePaymentSuccess:skipped", { origin, reason: "already_handled" });
-        return;
-      }
-
-      debugLog("finalizePaymentSuccess:start", { origin });
-      hasHandledSuccessfulPaymentRef.current = true;
-
-      clearSuccessRedirect();
-      stopBalancePolling("success");
-
-      setPreferenceId(null);
-      setOrderAmount(DEFAULT_CREDIT_PRICE);
+  const finalizeAccessReadyState = useCallback(() => {
+    stopBalancePolling("credits-detected");
+    setPreferenceId(null);
+    setOrderAmount(DEFAULT_CREDIT_PRICE);
+    if (isPaymentModalOpen) {
       setIsPaymentModalOpen(false);
+    }
+    if (hasPromptedPayment) {
       setHasPromptedPayment(false);
-      setIsAwaitingRedirect(true);
+    }
+    if (isPaymentStatusOpen) {
+      hidePaymentStatus();
+    }
+    if (hasShownSuccess) {
+      setHasShownSuccess(false);
+    }
+    if (status !== "READY_FOR_PLATFORM") {
       setStatus("READY_FOR_PLATFORM");
-
-      showPaymentStatus({
-        title: "Seu pagamento foi aprovado",
-        message: "Creditos adicionados com sucesso! Redirecionando para a plataforma...",
-        type: "success",
-      });
-
-      successRedirectTimeoutRef.current = window.setTimeout(() => {
-        debugLog("finalizePaymentSuccess:redirect", { origin, pathname });
-        successRedirectTimeoutRef.current = null;
-        hidePaymentStatus();
-        setIsAwaitingRedirect(false);
-        if (pathname && pathname.startsWith("/platform")) {
-          return;
-        }
-        router.replace("/platform");
-      }, 2000);
-    },
-    [
-      clearSuccessRedirect,
-      hidePaymentStatus,
-      pathname,
-      router,
-      showPaymentStatus,
-      stopBalancePolling,
-    ]
-  );
+    }
+  }, [
+    hasPromptedPayment,
+    hasShownSuccess,
+    hidePaymentStatus,
+    isPaymentModalOpen,
+    isPaymentStatusOpen,
+    status,
+    stopBalancePolling,
+  ]);
 
   const startBalancePolling = useCallback(() => {
     if (isPollingCredits) {
@@ -208,7 +183,10 @@ export default function SessionManager({
       return;
     }
 
-    debugLog("startBalancePolling:start", { intervalMs: 4000, timeoutMs: 120000 });
+    debugLog("startBalancePolling:start", {
+      intervalMs: 4000,
+      timeoutMs: 120000,
+    });
     stopBalancePolling("restart");
     setIsPollingCredits(true);
     void refresh();
@@ -218,16 +196,19 @@ export default function SessionManager({
       void refresh();
     }, 4000);
 
-    balancePollingTimeoutRef.current = window.setTimeout(() => {
-      debugLog("startBalancePolling:timeout", {});
-      stopBalancePolling("timeout");
-      showPaymentStatus({
-        title: "Pagamento em processamento",
-        message:
-          "Ainda n?o recebemos a confirma??o do pagamento. Assim que o Mercado Pago aprovar, vamos atualizar seus cr?ditos automaticamente.",
-        type: "Info",
-      });
-    }, 2 * 60 * 1000);
+    balancePollingTimeoutRef.current = window.setTimeout(
+      () => {
+        debugLog("startBalancePolling:timeout", {});
+        stopBalancePolling("timeout");
+        showPaymentStatus({
+          title: "Pagamento em processamento",
+          message:
+            "Ainda n?o recebemos a confirma??o do pagamento. Assim que o Mercado Pago aprovar, vamos atualizar seus cr?ditos automaticamente.",
+          type: "Info",
+        });
+      },
+      2 * 60 * 1000,
+    );
   }, [isPollingCredits, refresh, showPaymentStatus, stopBalancePolling]);
 
   const {
@@ -241,7 +222,8 @@ export default function SessionManager({
     onSuccess: (data) => {
       debugLog("createOrder:success", {
         hasPreference: Boolean(data.preference_id),
-        amount: typeof data.amount === "number" ? data.amount : DEFAULT_CREDIT_PRICE,
+        amount:
+          typeof data.amount === "number" ? data.amount : DEFAULT_CREDIT_PRICE,
       });
       if (data.preference_id) {
         setPreferenceId(data.preference_id);
@@ -291,22 +273,19 @@ export default function SessionManager({
       setIsPaymentModalOpen(false);
       setIsPaymentStatusOpen(false);
       setPaymentStatus(null);
-      clearSuccessRedirect();
-      setIsAwaitingRedirect(false);
-      hasHandledSuccessfulPaymentRef.current = false;
       setHasPromptedPayment(false);
+      setHasShownSuccess(false);
       stopBalancePolling("reset");
       resetCreateOrder();
     },
     [
       hasPromptedPayment,
-      clearSuccessRedirect,
       isPaymentModalOpen,
       preferenceId,
       resetCreateOrder,
       status,
       stopBalancePolling,
-    ]
+    ],
   );
 
   const openPaymentModal = useCallback(() => {
@@ -329,16 +308,12 @@ export default function SessionManager({
     setIsPaymentModalOpen(false);
     setPreferenceId(null);
     setOrderAmount(DEFAULT_CREDIT_PRICE);
-    clearSuccessRedirect();
-    setIsAwaitingRedirect(false);
-    hasHandledSuccessfulPaymentRef.current = false;
     stopBalancePolling("closeModal");
     resetCreateOrder();
     if (status === "PAYMENT_IN_PROGRESS") {
       setStatus("NEEDS_PAYMENT");
     }
   }, [
-    clearSuccessRedirect,
     isPaymentModalOpen,
     preferenceId,
     resetCreateOrder,
@@ -355,15 +330,11 @@ export default function SessionManager({
     debugLog("handleGeneratePix:start", { status, preferenceId });
     setPreferenceId(null);
     setOrderAmount(DEFAULT_CREDIT_PRICE);
-    clearSuccessRedirect();
-    setIsAwaitingRedirect(false);
-    hasHandledSuccessfulPaymentRef.current = false;
     setPaymentStatus(null);
     resetCreateOrder();
     setStatus("PAYMENT_IN_PROGRESS");
     triggerCreateOrder();
   }, [
-    clearSuccessRedirect,
     isCreatingOrder,
     preferenceId,
     resetCreateOrder,
@@ -385,13 +356,21 @@ export default function SessionManager({
 
   const handlePaymentSuccess = useCallback(async () => {
     debugLog("handlePaymentSuccess", { status, preferenceId });
+    setHasShownSuccess(true);
+    showPaymentStatus({
+      title: "Pagamento aprovado",
+      message: "Atualizando seu acesso para a plataforma...",
+      type: "success",
+    });
     await refresh();
-    finalizePaymentSuccess("mercadopago-success");
-  }, [finalizePaymentSuccess, preferenceId, refresh, status]);
+  }, [preferenceId, refresh, showPaymentStatus, status]);
 
   useEffect(() => {
     if (prevStatusRef.current !== status) {
-      debugLog("status:transition", { from: prevStatusRef.current, to: status });
+      debugLog("status:transition", {
+        from: prevStatusRef.current,
+        to: status,
+      });
       prevStatusRef.current = status;
     }
   }, [status]);
@@ -421,7 +400,6 @@ export default function SessionManager({
   }, [isAuthenticated, status]);
 
   useEffect(() => () => stopBalancePolling("unmount"), [stopBalancePolling]);
-  useEffect(() => () => clearSuccessRedirect(), [clearSuccessRedirect]);
 
   useEffect(() => {
     if (isLoading) {
@@ -455,18 +433,7 @@ export default function SessionManager({
     const hasConfirmedCredits = credits > 0 || hasPurchase;
 
     if (hasConfirmedCredits) {
-      const shouldFinalize =
-        (isPollingCredits || status === "PAYMENT_IN_PROGRESS" || isPaymentModalOpen || hasPromptedPayment) &&
-        !hasHandledSuccessfulPaymentRef.current;
-
-      if (shouldFinalize) {
-        finalizePaymentSuccess("credits-detected");
-        return;
-      }
-
-      if (status !== "READY_FOR_PLATFORM") {
-        setStatus("READY_FOR_PLATFORM");
-      }
+      finalizeAccessReadyState();
       return;
     }
 
@@ -483,7 +450,7 @@ export default function SessionManager({
       setHasPromptedPayment(true);
     }
   }, [
-    finalizePaymentSuccess,
+    finalizeAccessReadyState,
     hasPromptedPayment,
     isAuthenticated,
     isLoading,
@@ -499,15 +466,15 @@ export default function SessionManager({
     if (status !== "READY_FOR_PLATFORM" || !isAuthenticated) {
       return;
     }
-    if (isAwaitingRedirect) {
-      return;
-    }
     if (pathname && pathname.startsWith("/platform")) {
       return;
     }
-    debugLog("navigation:redirect-platform", { from: pathname ?? null, status });
+    debugLog("navigation:redirect-platform", {
+      from: pathname ?? null,
+      status,
+    });
     router.replace("/platform");
-  }, [isAuthenticated, isAwaitingRedirect, pathname, router, status]);
+  }, [isAuthenticated, pathname, router, status]);
 
   useEffect(() => {
     if (!pathname) {
@@ -524,9 +491,8 @@ export default function SessionManager({
 
   const formattedOrderAmount = useMemo(
     () => currencyFormatter.format(orderAmount),
-    [currencyFormatter, orderAmount]
+    [currencyFormatter, orderAmount],
   );
-
 
   const contextValue = useMemo<SessionManagerContextValue>(
     () => ({
@@ -548,7 +514,7 @@ export default function SessionManager({
       paymentStatus,
       showPaymentStatus,
       status,
-    ]
+    ],
   );
 
   return (
@@ -571,16 +537,16 @@ export default function SessionManager({
                 paymentStatus.type === "success"
                   ? "CircleCheckBig"
                   : paymentStatus.type === "error"
-                  ? "TriangleAlert"
-                  : "Info"
+                    ? "TriangleAlert"
+                    : "Info"
               }
               className={clsx(
                 "mx-auto mb-4 h-12 w-12",
                 paymentStatus.type === "success"
                   ? "text-green-500"
                   : paymentStatus.type === "error"
-                  ? "text-red-500"
-                  : "text-slate-500"
+                    ? "text-red-500"
+                    : "text-slate-500",
               )}
             />
             <h2 className="mb-2 text-xl font-bold text-slate-800">
@@ -619,8 +585,12 @@ export default function SessionManager({
               <LucideIcon name="X" className="h-5 w-5" />
             </button>
             <div className="pr-6 sm:pr-7">
-              <h3 className="text-lg font-semibold text-slate-900 sm:text-xl">Gerar pagamento PIX</h3>
-              <p className="mt-1 text-xs text-slate-600 sm:text-sm">Valor único de {formattedOrderAmount}.</p>
+              <h3 className="text-lg font-semibold text-slate-900 sm:text-xl">
+                Gerar pagamento PIX
+              </h3>
+              <p className="mt-1 text-xs text-slate-600 sm:text-sm">
+                Valor único de {formattedOrderAmount}.
+              </p>
             </div>
             {isCreateOrderError && (
               <div className="mt-4 rounded-lg border border-red-200 bg-red-50 p-3 text-sm text-red-700">
