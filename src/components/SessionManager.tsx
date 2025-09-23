@@ -97,9 +97,12 @@ export default function SessionManager({
   const [orderAmount, setOrderAmount] = useState<number>(DEFAULT_CREDIT_PRICE);
   const [isPollingCredits, setIsPollingCredits] = useState(false);
   const [hasPromptedPayment, setHasPromptedPayment] = useState(false);
+  const [isAwaitingRedirect, setIsAwaitingRedirect] = useState(false);
 
   const balancePollingIntervalRef = useRef<number | null>(null);
   const balancePollingTimeoutRef = useRef<number | null>(null);
+  const successRedirectTimeoutRef = useRef<number | null>(null);
+  const hasHandledSuccessfulPaymentRef = useRef(false);
 
   const prevStatusRef = useRef<SessionStatus>(status);
   const prevModalOpenRef = useRef(isPaymentModalOpen);
@@ -134,6 +137,13 @@ export default function SessionManager({
     [isPollingCredits]
   );
 
+  const clearSuccessRedirect = useCallback(() => {
+    if (successRedirectTimeoutRef.current) {
+      window.clearTimeout(successRedirectTimeoutRef.current);
+      successRedirectTimeoutRef.current = null;
+    }
+  }, []);
+
   const showPaymentStatus = useCallback((info: PaymentStatus) => {
     debugLog("paymentStatus:show", info);
     setPaymentStatus(info);
@@ -144,6 +154,53 @@ export default function SessionManager({
     debugLog("paymentStatus:hide", { wasOpen: isPaymentStatusOpen });
     setIsPaymentStatusOpen(false);
   }, [isPaymentStatusOpen]);
+
+  const finalizePaymentSuccess = useCallback(
+    (origin: string) => {
+      if (hasHandledSuccessfulPaymentRef.current) {
+        debugLog("finalizePaymentSuccess:skipped", { origin, reason: "already_handled" });
+        return;
+      }
+
+      debugLog("finalizePaymentSuccess:start", { origin });
+      hasHandledSuccessfulPaymentRef.current = true;
+
+      clearSuccessRedirect();
+      stopBalancePolling("success");
+
+      setPreferenceId(null);
+      setOrderAmount(DEFAULT_CREDIT_PRICE);
+      setIsPaymentModalOpen(false);
+      setHasPromptedPayment(false);
+      setIsAwaitingRedirect(true);
+      setStatus("READY_FOR_PLATFORM");
+
+      showPaymentStatus({
+        title: "Seu pagamento foi aprovado",
+        message: "Creditos adicionados com sucesso! Redirecionando para a plataforma...",
+        type: "success",
+      });
+
+      successRedirectTimeoutRef.current = window.setTimeout(() => {
+        debugLog("finalizePaymentSuccess:redirect", { origin, pathname });
+        successRedirectTimeoutRef.current = null;
+        hidePaymentStatus();
+        setIsAwaitingRedirect(false);
+        if (pathname && pathname.startsWith("/platform")) {
+          return;
+        }
+        router.replace("/platform");
+      }, 2000);
+    },
+    [
+      clearSuccessRedirect,
+      hidePaymentStatus,
+      pathname,
+      router,
+      showPaymentStatus,
+      stopBalancePolling,
+    ]
+  );
 
   const startBalancePolling = useCallback(() => {
     if (isPollingCredits) {
@@ -234,12 +291,16 @@ export default function SessionManager({
       setIsPaymentModalOpen(false);
       setIsPaymentStatusOpen(false);
       setPaymentStatus(null);
+      clearSuccessRedirect();
+      setIsAwaitingRedirect(false);
+      hasHandledSuccessfulPaymentRef.current = false;
       setHasPromptedPayment(false);
       stopBalancePolling("reset");
       resetCreateOrder();
     },
     [
       hasPromptedPayment,
+      clearSuccessRedirect,
       isPaymentModalOpen,
       preferenceId,
       resetCreateOrder,
@@ -268,12 +329,16 @@ export default function SessionManager({
     setIsPaymentModalOpen(false);
     setPreferenceId(null);
     setOrderAmount(DEFAULT_CREDIT_PRICE);
+    clearSuccessRedirect();
+    setIsAwaitingRedirect(false);
+    hasHandledSuccessfulPaymentRef.current = false;
     stopBalancePolling("closeModal");
     resetCreateOrder();
     if (status === "PAYMENT_IN_PROGRESS") {
       setStatus("NEEDS_PAYMENT");
     }
   }, [
+    clearSuccessRedirect,
     isPaymentModalOpen,
     preferenceId,
     resetCreateOrder,
@@ -290,10 +355,21 @@ export default function SessionManager({
     debugLog("handleGeneratePix:start", { status, preferenceId });
     setPreferenceId(null);
     setOrderAmount(DEFAULT_CREDIT_PRICE);
+    clearSuccessRedirect();
+    setIsAwaitingRedirect(false);
+    hasHandledSuccessfulPaymentRef.current = false;
+    setPaymentStatus(null);
     resetCreateOrder();
     setStatus("PAYMENT_IN_PROGRESS");
     triggerCreateOrder();
-  }, [isCreatingOrder, preferenceId, resetCreateOrder, status, triggerCreateOrder]);
+  }, [
+    clearSuccessRedirect,
+    isCreatingOrder,
+    preferenceId,
+    resetCreateOrder,
+    status,
+    triggerCreateOrder,
+  ]);
 
   const handleCheckBalance = useCallback(async () => {
     debugLog("handleCheckBalance", {});
@@ -309,12 +385,9 @@ export default function SessionManager({
 
   const handlePaymentSuccess = useCallback(async () => {
     debugLog("handlePaymentSuccess", { status, preferenceId });
-    stopBalancePolling("success");
-    setPreferenceId(null);
-    setIsPaymentModalOpen(false);
-    setStatus("READY_FOR_PLATFORM");
     await refresh();
-  }, [preferenceId, refresh, status, stopBalancePolling]);
+    finalizePaymentSuccess("mercadopago-success");
+  }, [finalizePaymentSuccess, preferenceId, refresh, status]);
 
   useEffect(() => {
     if (prevStatusRef.current !== status) {
@@ -348,6 +421,7 @@ export default function SessionManager({
   }, [isAuthenticated, status]);
 
   useEffect(() => () => stopBalancePolling("unmount"), [stopBalancePolling]);
+  useEffect(() => () => clearSuccessRedirect(), [clearSuccessRedirect]);
 
   useEffect(() => {
     if (isLoading) {
@@ -378,8 +452,18 @@ export default function SessionManager({
 
     const credits = extractCreditsFromUser(user);
     const hasPurchase = inferPurchaseFromUser(user);
+    const hasConfirmedCredits = credits > 0 || hasPurchase;
 
-    if (credits > 0 || hasPurchase) {
+    if (hasConfirmedCredits) {
+      const shouldFinalize =
+        (isPollingCredits || status === "PAYMENT_IN_PROGRESS" || isPaymentModalOpen || hasPromptedPayment) &&
+        !hasHandledSuccessfulPaymentRef.current;
+
+      if (shouldFinalize) {
+        finalizePaymentSuccess("credits-detected");
+        return;
+      }
+
       if (status !== "READY_FOR_PLATFORM") {
         setStatus("READY_FOR_PLATFORM");
       }
@@ -399,10 +483,12 @@ export default function SessionManager({
       setHasPromptedPayment(true);
     }
   }, [
+    finalizePaymentSuccess,
     hasPromptedPayment,
     isAuthenticated,
     isLoading,
     isPaymentModalOpen,
+    isPollingCredits,
     preferenceId,
     resetPaymentFlow,
     status,
@@ -413,12 +499,15 @@ export default function SessionManager({
     if (status !== "READY_FOR_PLATFORM" || !isAuthenticated) {
       return;
     }
+    if (isAwaitingRedirect) {
+      return;
+    }
     if (pathname && pathname.startsWith("/platform")) {
       return;
     }
     debugLog("navigation:redirect-platform", { from: pathname ?? null, status });
     router.replace("/platform");
-  }, [isAuthenticated, pathname, router, status]);
+  }, [isAuthenticated, isAwaitingRedirect, pathname, router, status]);
 
   useEffect(() => {
     if (!pathname) {
@@ -467,8 +556,8 @@ export default function SessionManager({
       {children}
 
       {isPaymentStatusOpen && paymentStatus ? (
-        <div className="fixed inset-0 z-[70] flex items-center justify-center bg-slate-900/70 px-4">
-          <div className="relative w-full max-w-lg rounded-2xl bg-white p-6 text-center shadow-2xl md:p-8">
+        <div className="fixed inset-0 z-[70] flex items-center justify-center bg-slate-900/70 px-3 sm:px-4">
+          <div className="relative w-full max-w-md rounded-2xl bg-white p-5 text-center shadow-2xl sm:p-6 md:p-7">
             <button
               type="button"
               onClick={hidePaymentStatus}
@@ -519,19 +608,19 @@ export default function SessionManager({
       ) : null}
 
       {isPaymentModalOpen ? (
-        <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/60 px-4">
-          <div className="relative w-full max-w-md rounded-2xl border border-slate-200 bg-white p-6 shadow-2xl">
+        <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/60 px-3 sm:px-4">
+          <div className="relative w-full max-w-sm rounded-2xl border border-slate-200 bg-white p-5 shadow-2xl sm:p-6">
             <button
               type="button"
               onClick={closePaymentModal}
-              className="absolute right-5 top-5 text-slate-400 hover:text-slate-600"
+              className="absolute right-4 top-4 text-slate-400 hover:text-slate-600"
               title="Fechar"
             >
               <LucideIcon name="X" className="h-5 w-5" />
             </button>
-            <div className="pr-8">
-              <h3 className="text-xl font-semibold text-slate-900">Gerar pagamento PIX</h3>
-              <p className="mt-1 text-sm text-slate-600">Valor único de {formattedOrderAmount}.</p>
+            <div className="pr-6 sm:pr-7">
+              <h3 className="text-lg font-semibold text-slate-900 sm:text-xl">Gerar pagamento PIX</h3>
+              <p className="mt-1 text-xs text-slate-600 sm:text-sm">Valor único de {formattedOrderAmount}.</p>
             </div>
             {isCreateOrderError && (
               <div className="mt-4 rounded-lg border border-red-200 bg-red-50 p-3 text-sm text-red-700">
@@ -549,7 +638,7 @@ export default function SessionManager({
                 <div className="space-y-4">
                   <button
                     type="button"
-                    className="w-full rounded-xl bg-green-600 px-4 py-3 text-base font-semibold text-white transition hover:bg-green-700 disabled:cursor-not-allowed disabled:opacity-70"
+                    className="w-full rounded-xl bg-green-600 px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-green-700 sm:text-base disabled:cursor-not-allowed disabled:opacity-70"
                     onClick={handleGeneratePix}
                     disabled={isCreatingOrder}
                   >
@@ -566,7 +655,7 @@ export default function SessionManager({
             <div className="mt-6 text-center">
               <button
                 type="button"
-                className="text-sm font-medium text-green-700 hover:text-green-800"
+                className="text-xs font-medium text-green-700 hover:text-green-800 sm:text-sm"
                 onClick={handleCheckBalance}
               >
                 Já paguei, verificar saldo

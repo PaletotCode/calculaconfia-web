@@ -138,9 +138,10 @@ export default function MercadoPagoBrick({
             },
           }
         : {}),
+      // Hide Mercado Pago extra timeline blocks so the modal stays compact.
       visual: {
-        hideStatusDetails: false,
-        hideTransactionDate: false,
+        hideStatusDetails: true,
+        hideTransactionDate: true,
         showExternalReference: false,
       },
     }),
@@ -198,19 +199,19 @@ export default function MercadoPagoBrick({
   }, [preferenceId, handleGeneratePix]);
 
   const renderProcessing = () => (
-    <div className="rounded-lg border border-slate-200 bg-slate-50 p-4 text-sm text-slate-600">
+    <div className="rounded-lg border border-slate-200 bg-slate-50 p-3 text-xs text-slate-600 sm:text-sm">
       Gerando pagamento PIX seguro...
     </div>
   );
 
   const renderRetry = () => (
-    <div className="space-y-3 text-center">
-      <p className="text-sm text-slate-600">
+    <div className="space-y-2 text-center">
+      <p className="text-xs text-slate-600 sm:text-sm">
         Não foi possível gerar o PIX. Tente novamente.
       </p>
       <button
         type="button"
-        className="inline-flex w-full items-center justify-center rounded-xl bg-green-600 px-4 py-3 text-sm font-semibold text-white transition hover:bg-green-700 disabled:opacity-60"
+        className="inline-flex w-full items-center justify-center rounded-xl bg-green-600 px-4 py-2.5 text-xs font-semibold sm:text-sm text-white transition hover:bg-green-700 disabled:opacity-60"
         onClick={() => {
           autoStartRef.current = null;
           void handleGeneratePix();
@@ -228,9 +229,10 @@ export default function MercadoPagoBrick({
     }
 
     return (
-      <div className="rounded-2xl border border-slate-200 bg-white p-3">
+      <div className="rounded-2xl border border-slate-200 bg-white p-2.5 sm:p-3">
         {!statusScreenFailed ? (
-          <StatusScreen
+          <div className="mx-auto w-full max-w-full origin-top transform scale-95 sm:scale-90">
+            <StatusScreen
             key={paymentInfo.id}
             id="mercado-pago-status-brick"
             locale="pt-BR"
@@ -246,8 +248,9 @@ export default function MercadoPagoBrick({
               );
             }}
           />
+          </div>
         ) : (
-          <div className="rounded-lg border border-slate-200 bg-white p-4 text-sm text-slate-600">
+          <div className="rounded-lg border border-slate-200 bg-white p-3 text-xs text-slate-600 sm:p-4 sm:text-sm">
             Não foi possível exibir o painel do Mercado Pago. Feche o modal e gere um novo pagamento.
           </div>
         )}
@@ -278,9 +281,9 @@ export default function MercadoPagoBrick({
   }
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-3">
       {errorMessage && (
-        <div className="rounded-lg border border-red-200 bg-red-50 p-3 text-sm text-red-700">
+        <div className="rounded-lg border border-red-200 bg-red-50 p-2.5 text-xs text-red-700 sm:text-sm">
           {errorMessage}
         </div>
       )}

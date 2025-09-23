@@ -342,7 +342,7 @@ export function AuthModal({ isOpen, onClose, defaultView = "login" }: AuthModalP
 
   return (
     <div
-      className="fixed inset-0 z-[200] flex items-center justify-center bg-slate-900/50 backdrop-blur-sm p-4"
+      className="fixed inset-0 z-[200] flex items-center justify-center bg-slate-900/50 backdrop-blur-sm p-3 sm:p-6"
       onClick={handleOverlayClick}
       role="dialog"
       aria-modal="true"
@@ -359,20 +359,20 @@ export function AuthModal({ isOpen, onClose, defaultView = "login" }: AuthModalP
           Fechar janela
         </button>
 
-        <div className="border-b border-slate-200 p-6 text-center">
+        <div className="border-b border-slate-200 p-5 text-center sm:p-6">
           <Image
             src="https://i.imgur.com/64Tovft.png"
             alt="Logotipo CalculaConfia"
             width={160}
             height={40}
-            className="mx-auto mb-4 h-10 w-auto"
+            className="mx-auto mb-3 h-9 w-auto sm:mb-4 sm:h-10"
             priority={false}
           />
           <div className="inline-flex rounded-lg bg-slate-100 p-1">
             <button
               type="button"
               className={clsx(
-                "auth-tab px-6 py-1.5 text-sm font-semibold rounded-md",
+                "auth-tab px-5 py-1.5 text-sm font-semibold rounded-md",
                 activeView === "login" && "active-tab"
               )}
               onClick={() => setActiveView("login")}
@@ -382,7 +382,7 @@ export function AuthModal({ isOpen, onClose, defaultView = "login" }: AuthModalP
             <button
               type="button"
               className={clsx(
-                "auth-tab px-6 py-1.5 text-sm font-semibold rounded-md",
+                "auth-tab px-5 py-1.5 text-sm font-semibold rounded-md",
                 activeView === "register" && "active-tab"
               )}
               onClick={() => setActiveView("register")}
@@ -393,9 +393,9 @@ export function AuthModal({ isOpen, onClose, defaultView = "login" }: AuthModalP
         </div>
 
         {activeView === "login" && (
-          <div className="auth-view p-8">
+          <div className="auth-view p-6 sm:p-8">
             <form onSubmit={handleLoginSubmit} className="flex h-full flex-col">
-              <div className="space-y-4">
+              <div className="space-y-3 sm:space-y-4">
                 <div className="form-input-group">
                   <label htmlFor="login-email" className="text-sm font-medium text-slate-700">
                     E-mail
@@ -451,12 +451,12 @@ export function AuthModal({ isOpen, onClose, defaultView = "login" }: AuthModalP
               </div>
               <button
                 type="submit"
-                className="auth-button mt-6"
+                className="auth-button mt-5 sm:mt-6"
                 disabled={loginMutation.isPending}
               >
                 {loginMutation.isPending ? "Entrando..." : "Entrar"}
               </button>
-              <div className="mt-4 text-center">
+              <div className="mt-3 text-center sm:mt-4">
                 <button
                   type="button"
                   onClick={() => setActiveView("forgot")}
@@ -482,17 +482,17 @@ export function AuthModal({ isOpen, onClose, defaultView = "login" }: AuthModalP
         )}
 
         {activeView === "register" && (
-          <div className="auth-view p-8">
+          <div className="auth-view p-6 sm:p-8">
             <form onSubmit={handleRegisterSubmit} className="flex h-full flex-col">
               <div className="text-center">
-                <h3 className="text-xl font-extrabold text-slate-800">
+                <h3 className="text-lg font-extrabold text-slate-800 sm:text-xl">
                   Antes de começarmos, vamos criar sua conta
                 </h3>
-                <p className="text-sm text-slate-600">
+                <p className="text-xs text-slate-600 sm:text-sm">
                   Leva menos de 1 minuto. Depois você já segue para a sua análise.
                 </p>
               </div>
-              <div className="wizard-progress my-4">
+              <div className="wizard-progress my-3">
                 <div
                   className="wizard-bar"
                   style={{ width: `${((registerStep + 1) / REGISTER_STEPS.length) * 100}%` }}
@@ -501,7 +501,7 @@ export function AuthModal({ isOpen, onClose, defaultView = "login" }: AuthModalP
 
               {registerStep === 0 && (
                 <div className="wizard-step flex-1 space-y-4">
-                  <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+                  <div className="grid grid-cols-1 gap-3 sm:gap-4 sm:grid-cols-2">
                     <div className="form-input-group">
                       <label htmlFor="register-firstname" className="text-sm font-medium text-slate-700">
                         Nome
@@ -533,7 +533,7 @@ export function AuthModal({ isOpen, onClose, defaultView = "login" }: AuthModalP
                       />
                     </div>
                   </div>
-                  <button type="button" className="auth-button mt-6" onClick={handleRegisterNext}>
+                  <button type="button" className="auth-button mt-5 sm:mt-6" onClick={handleRegisterNext}>
                     Próximo
                   </button>
                 </div>
@@ -708,13 +708,13 @@ export function AuthModal({ isOpen, onClose, defaultView = "login" }: AuthModalP
         )}
 
         {activeView === "verify" && (
-          <div className="auth-view p-8">
+          <div className="auth-view p-6 sm:p-8">
             <form onSubmit={handleVerifySubmit} className="flex h-full flex-col">
               <h3 className="mb-2 text-center font-bold text-slate-800">Verificar Conta</h3>
-              <p className="mb-6 text-center text-sm text-slate-600">
+              <p className="mb-6 text-center text-xs text-slate-600 sm:text-sm">
                 Enviamos um código de 6 dígitos para seu e-mail.
               </p>
-              <div className="space-y-4">
+              <div className="space-y-3 sm:space-y-4">
                 <div className="form-input-group">
                   <label htmlFor="verify-email" className="text-sm font-medium text-slate-700">
                     E-mail
@@ -763,10 +763,10 @@ export function AuthModal({ isOpen, onClose, defaultView = "login" }: AuthModalP
               <div className="success-message" aria-live="polite">
                 {verifySuccess}
               </div>
-              <button type="submit" className="auth-button mt-6" disabled={verifyMutation.isPending}>
+              <button type="submit" className="auth-button mt-5 sm:mt-6" disabled={verifyMutation.isPending}>
                 {verifyMutation.isPending ? "Verificando..." : "Verificar Conta"}
               </button>
-              <div className="mt-4 text-center">
+              <div className="mt-3 text-center sm:mt-4">
                 <button
                   type="button"
                   className="text-sm font-medium text-green-600 hover:text-green-700"
@@ -798,10 +798,10 @@ export function AuthModal({ isOpen, onClose, defaultView = "login" }: AuthModalP
         )}
 
         {activeView === "forgot" && (
-          <div className="auth-view p-8">
+          <div className="auth-view p-6 sm:p-8">
             <form onSubmit={handleForgotSubmit} className="flex h-full flex-col">
               <h3 className="mb-2 text-center font-bold text-slate-800">Recuperar Senha</h3>
-              <p className="mb-6 text-center text-sm text-slate-600">
+              <p className="mb-6 text-center text-xs text-slate-600 sm:text-sm">
                 Insira seu e-mail para receber o link de redefinição.
               </p>
               <div className="form-input-group">
@@ -827,7 +827,7 @@ export function AuthModal({ isOpen, onClose, defaultView = "login" }: AuthModalP
               <div className="success-message" aria-live="polite">
                 {forgotMessage}
               </div>
-              <button type="submit" className="auth-button mt-6">
+              <button type="submit" className="auth-button mt-5 sm:mt-6">
                 Enviar Redefinição
               </button>
             </form>
