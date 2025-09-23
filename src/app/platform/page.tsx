@@ -164,17 +164,17 @@ function PlatformContent() {
       <Calculator />
 
       {isPaymentCardOpen && (
-        <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/60 px-4">
-          <div className="relative w-full max-w-md rounded-2xl border border-slate-200 bg-white p-6 shadow-2xl">
+        <div className="fixed inset-0 z-[60] flex items-start justify-center overflow-y-auto bg-black/60 px-4 py-6 sm:py-8 md:items-center">
+          <div className="relative flex w-full max-w-md flex-col rounded-2xl border border-slate-200 bg-white p-5 shadow-2xl sm:p-6">
             <button
               type="button"
               onClick={closePaymentCard}
-              className="absolute right-5 top-5 text-slate-400 hover:text-slate-600"
+              className="absolute right-5 top-5 text-slate-400 transition hover:text-slate-600"
               title="Fechar"
             >
               <LucideIcon name="X" className="h-5 w-5" />
             </button>
-            <div className="pr-8">
+            <div className="flex-shrink-0 pr-8">
               <h3 className="text-xl font-semibold text-slate-900">Gerar pagamento PIX</h3>
               <p className="mt-1 text-sm text-slate-600">Valor único de {formattedOrderAmount}.</p>
             </div>
@@ -183,15 +183,16 @@ function PlatformContent() {
                 {extractErrorMessage(error)}
               </div>
             )}
-            <div className="mt-6">
+            <div className="mt-6 flex-1">
               {preferenceId ? (
                 <MercadoPagoBrick
                   preferenceId={preferenceId}
                   onPaymentCreated={() => void refresh()}
                   onPaymentSuccess={handlePaymentSuccess}
+                  formattedAmount={formattedOrderAmount}
                 />
               ) : (
-                <div className="space-y-4">
+                <div className="flex h-full flex-col justify-center gap-4">
                   <button
                     type="button"
                     className="w-full rounded-xl bg-green-600 px-4 py-3 text-base font-semibold text-white transition hover:bg-green-700 disabled:cursor-not-allowed disabled:opacity-70"
