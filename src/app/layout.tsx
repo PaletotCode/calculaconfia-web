@@ -1,10 +1,10 @@
 import type { Metadata } from "next";
-import Script from "next/script";
 import { Inter } from "next/font/google";
 import AppProviders from "@/components/AppProviders";
 import SessionManager from "@/components/SessionManager";
 import "./globals.css";
 import { type ReactNode } from "react";
+import Script from "next/script";
 
 const inter = Inter({
   subsets: ["latin"],
@@ -30,7 +30,6 @@ export default function RootLayout({
         <AppProviders>
           <SessionManager>{children}</SessionManager>
         </AppProviders>
-        <Script src="https://sdk.mercadopago.com/js/v2" strategy="afterInteractive" />
         <Script src="https://cdn.jsdelivr.net/npm/gradient-js/src/gradient.js" strategy="afterInteractive" />
         <Script id="gradient-init" strategy="afterInteractive">
           {`
