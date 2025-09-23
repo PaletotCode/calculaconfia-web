@@ -659,17 +659,17 @@ export default function SessionManager({ children }: { children: ReactNode }) {
       ) : null}
 
       {isPaymentModalOpen ? (
-        <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/60 px-3 sm:px-4">
-          <div className="relative w-full max-w-sm rounded-2xl border border-slate-200 bg-white p-5 shadow-2xl sm:p-6">
+        <div className="fixed inset-0 z-[60] flex items-start justify-center overflow-y-auto bg-black/60 px-3 py-6 sm:px-4 sm:py-8 md:items-center">
+          <div className="relative flex w-full max-w-sm flex-col rounded-2xl border border-slate-200 bg-white p-4 shadow-2xl sm:max-w-md sm:p-6">
             <button
               type="button"
               onClick={closePaymentModal}
-              className="absolute right-4 top-4 text-slate-400 hover:text-slate-600"
+              className="absolute right-4 top-4 text-slate-400 transition hover:text-slate-600"
               title="Fechar"
             >
               <LucideIcon name="X" className="h-5 w-5" />
             </button>
-            <div className="pr-6 sm:pr-7">
+            <div className="flex-shrink-0 pr-5 sm:pr-7">
               <h3 className="text-lg font-semibold text-slate-900 sm:text-xl">
                 Gerar pagamento PIX
               </h3>
@@ -682,15 +682,16 @@ export default function SessionManager({ children }: { children: ReactNode }) {
                 {extractErrorMessage(createOrderError)}
               </div>
             )}
-            <div className="mt-6">
+            <div className="mt-5 flex-1">
               {preferenceId ? (
                 <MercadoPagoBrick
                   preferenceId={preferenceId}
                   onPaymentCreated={() => startBalancePolling()}
                   onPaymentSuccess={handlePaymentSuccess}
+                  formattedAmount={formattedOrderAmount}
                 />
               ) : (
-                <div className="space-y-4">
+                <div className="flex h-full flex-col justify-center gap-4">
                   <button
                     type="button"
                     className="w-full rounded-xl bg-green-600 px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-green-700 sm:text-base disabled:cursor-not-allowed disabled:opacity-70"
@@ -707,7 +708,7 @@ export default function SessionManager({ children }: { children: ReactNode }) {
                 </div>
               )}
             </div>
-            <div className="mt-6 text-center">
+            <div className="mt-5 flex-shrink-0 border-t border-slate-100 pt-4 text-center">
               <button
                 type="button"
                 className="text-xs font-medium text-green-700 hover:text-green-800 sm:text-sm"
