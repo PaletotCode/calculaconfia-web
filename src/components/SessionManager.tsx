@@ -17,8 +17,14 @@ import clsx from "clsx";
 import MercadoPagoBrick from "@/components/MercadoPagoBrick";
 import { LucideIcon } from "@/components/LucideIcon";
 import useAuth from "@/hooks/useAuth";
-import { createOrder, extractErrorMessage, type User } from "@/lib/api";
 import {
+  createOrder,
+  extractErrorMessage,
+  getCreditsBalance,
+  type User,
+} from "@/lib/api";
+import {
+  extractCreditsFromBalanceResponse,
   extractCreditsFromUser,
   inferPurchaseFromUser,
 } from "@/utils/user-credits";
@@ -97,6 +103,10 @@ export default function SessionManager({ children }: { children: ReactNode }) {
   const [hasPromptedPayment, setHasPromptedPayment] = useState(false);
   const [hasShownSuccess, setHasShownSuccess] = useState(false);
   const [hasConfirmedCredits, setHasConfirmedCredits] = useState(false);
+  const [latestBalanceCredits, setLatestBalanceCredits] = useState(0);
+
+  const latestBalanceCreditsRef = useRef(0);
+  const isBalanceCheckInFlightRef = useRef(false);
 
   const balancePollingIntervalRef = useRef<number | null>(null);
   const balancePollingTimeoutRef = useRef<number | null>(null);
@@ -137,6 +147,19 @@ export default function SessionManager({ children }: { children: ReactNode }) {
     [isPollingCredits],
   );
 
+  const resetBalanceTracking = useCallback(
+    (reason: string) => {
+      const previous = latestBalanceCreditsRef.current;
+      if (previous !== 0) {
+        debugLog("balance:reset", { reason, previous });
+      }
+
+      latestBalanceCreditsRef.current = 0;
+      setLatestBalanceCredits(0);
+    },
+    [],
+  );
+
   const showPaymentStatus = useCallback((info: PaymentStatus) => {
     debugLog("paymentStatus:show", info);
 
@@ -153,6 +176,7 @@ export default function SessionManager({ children }: { children: ReactNode }) {
 
   const finalizeAccessReadyState = useCallback(() => {
     stopBalancePolling("credits-detected");
+    resetBalanceTracking("finalizeAccessReadyState");
     setPreferenceId(null);
     setOrderAmount(DEFAULT_CREDIT_PRICE);
     if (isPaymentModalOpen) {
@@ -176,9 +200,65 @@ export default function SessionManager({ children }: { children: ReactNode }) {
     hidePaymentStatus,
     isPaymentModalOpen,
     isPaymentStatusOpen,
+    resetBalanceTracking,
     status,
     stopBalancePolling,
   ]);
+
+  const checkCreditsBalance = useCallback(
+    async (context: string) => {
+      if (!isAuthenticated) {
+        debugLog("balance:check:skipped", {
+          context,
+          reason: "not_authenticated",
+        });
+        return null;
+      }
+
+      if (isBalanceCheckInFlightRef.current) {
+        debugLog("balance:check:skipped", {
+          context,
+          reason: "in_flight",
+        });
+        return null;
+      }
+
+      isBalanceCheckInFlightRef.current = true;
+
+      try {
+        const response = await getCreditsBalance();
+        const credits = extractCreditsFromBalanceResponse(response);
+        const previous = latestBalanceCreditsRef.current;
+
+        if (previous !== credits) {
+          latestBalanceCreditsRef.current = credits;
+          setLatestBalanceCredits(credits);
+          debugLog("balance:update", { context, previous, next: credits });
+        } else {
+          debugLog("balance:update:noop", { context, value: credits });
+        }
+
+        if (credits > 0 && previous <= 0) {
+          debugLog("balance:detected", { context, credits });
+        }
+
+        if (credits > 0 && extractCreditsFromUser(user) <= 0) {
+          debugLog("balance:triggerRefresh", { context });
+          void refresh();
+        }
+
+        return credits;
+      } catch (error) {
+        const message = extractErrorMessage(error);
+        console.error("Erro ao verificar saldo de créditos", error);
+        debugLog("balance:check:error", { context, message });
+        return null;
+      } finally {
+        isBalanceCheckInFlightRef.current = false;
+      }
+    },
+    [isAuthenticated, refresh, user],
+  );
 
   const startBalancePolling = useCallback(() => {
     if (isPollingCredits) {
@@ -193,10 +273,12 @@ export default function SessionManager({ children }: { children: ReactNode }) {
     stopBalancePolling("restart");
     setIsPollingCredits(true);
     void refresh();
+    void checkCreditsBalance("polling:start");
 
     balancePollingIntervalRef.current = window.setInterval(() => {
       debugLog("startBalancePolling:tick", {});
       void refresh();
+      void checkCreditsBalance("polling:tick");
     }, 4000);
 
     balancePollingTimeoutRef.current = window.setTimeout(
@@ -212,7 +294,13 @@ export default function SessionManager({ children }: { children: ReactNode }) {
       },
       2 * 60 * 1000,
     );
-  }, [isPollingCredits, refresh, showPaymentStatus, stopBalancePolling]);
+  }, [
+    checkCreditsBalance,
+    isPollingCredits,
+    refresh,
+    showPaymentStatus,
+    stopBalancePolling,
+  ]);
 
   const clearConfirmationState = useCallback(
     (reason: string) => {
@@ -233,9 +321,10 @@ export default function SessionManager({ children }: { children: ReactNode }) {
       if (hasConfirmedCredits) {
         setHasConfirmedCredits(false);
       }
+      resetBalanceTracking(reason);
       lastConfirmedUserRef.current = null;
     },
-    [hasConfirmedCredits],
+    [hasConfirmedCredits, resetBalanceTracking],
   );
 
   const scheduleRedirectAfterConfirmation = useCallback(() => {
@@ -398,21 +487,36 @@ export default function SessionManager({ children }: { children: ReactNode }) {
     showPaymentStatus({
       title: "Estamos verificando",
       message:
-        "Atualizamos suas informa??es. Assim que novos cr?ditos forem detectados, voc? ser? redirecionado automaticamente para a plataforma.",
+        "Atualizamos suas informações. Assim que novos créditos forem detectados, você será redirecionado automaticamente para a plataforma.",
       type: "Info",
     });
-  }, [refresh, startBalancePolling, showPaymentStatus]);
+  await checkCreditsBalance("manual-check");
+  }, [
+    checkCreditsBalance,
+    refresh,
+    startBalancePolling,
+    showPaymentStatus,
+  ]);
 
   const handlePaymentSuccess = useCallback(async () => {
     debugLog("handlePaymentSuccess", { status, preferenceId });
-    setHasShownSuccess(true);
+    startBalancePolling();
     showPaymentStatus({
-      title: "Pagamento aprovado",
-      message: "Atualizando seu acesso para a plataforma...",
-      type: "success",
+      title: "Confirmando pagamento",
+      message:
+        "Estamos verificando o crédito do seu PIX. Assim que o saldo for liberado, você será redirecionado automaticamente para a plataforma.",
+      type: "Info",
     });
     await refresh();
-  }, [preferenceId, refresh, showPaymentStatus, status]);
+    await checkCreditsBalance("payment-success");
+  }, [
+    checkCreditsBalance,
+    preferenceId,
+    refresh,
+    showPaymentStatus,
+    startBalancePolling,
+    status,
+  ]);
 
   useEffect(() => {
     if (prevStatusRef.current !== status) {
@@ -487,26 +591,38 @@ export default function SessionManager({ children }: { children: ReactNode }) {
 
     const credits = extractCreditsFromUser(user);
     const hasPurchase = inferPurchaseFromUser(user);
-    const detectedCredits = credits > 0 || hasPurchase;
+    const balanceCredits = latestBalanceCredits;
+    const hasBalanceCredits = balanceCredits > 0;
+    const detectedCredits = credits > 0 || hasPurchase || hasBalanceCredits;
 
     if (detectedCredits) {
       lastConfirmedUserRef.current = user;
       if (!hasConfirmedCredits) {
-        debugLog("credits:confirmed", { credits, hasPurchase });
+        debugLog("credits:confirmed", {
+          credits,
+          balanceCredits,
+          hasPurchase,
+          source:
+            credits > 0 || hasPurchase ? "session" : "balance-api",
+        });
         setHasConfirmedCredits(true);
         stopBalancePolling("credits-detected");
-        if (!hasShownSuccess) {
-          setHasShownSuccess(true);
-          showPaymentStatus({
-            title: "Pagamento aprovado",
-            message: "Atualizando seu acesso para a plataforma...",
-            type: "success",
-          });
-        }
       }
       scheduleRedirectAfterConfirmation();
       return;
     }
+
+    if (!hasShownSuccess) {
+        setHasShownSuccess(true);
+      }
+
+      if (!paymentStatus || paymentStatus.type !== "success") {
+        showPaymentStatus({
+          title: "Pagamento aprovado",
+          message: "Atualizando seu acesso para a plataforma...",
+          type: "success",
+        });
+      }
 
     if (hasConfirmedCredits) {
       if (lastConfirmedUserRef.current && user !== lastConfirmedUserRef.current) {
@@ -537,6 +653,8 @@ export default function SessionManager({ children }: { children: ReactNode }) {
     isAuthenticated,
     isLoading,
     isPaymentModalOpen,
+    latestBalanceCredits,
+    paymentStatus,
     preferenceId,
     resetPaymentFlow,
     scheduleRedirectAfterConfirmation,
