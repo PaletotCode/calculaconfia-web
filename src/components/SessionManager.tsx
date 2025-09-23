@@ -17,7 +17,7 @@ import clsx from "clsx";
 import MercadoPagoBrick from "@/components/MercadoPagoBrick";
 import { LucideIcon } from "@/components/LucideIcon";
 import useAuth from "@/hooks/useAuth";
-import { createOrder, extractErrorMessage } from "@/lib/api";
+import { createOrder, extractErrorMessage, type User } from "@/lib/api";
 import {
   extractCreditsFromUser,
   inferPurchaseFromUser,
@@ -83,7 +83,7 @@ export function useSessionManager() {
 export default function SessionManager({ children }: { children: ReactNode }) {
   const router = useRouter();
   const pathname = usePathname();
-  const { user, isAuthenticated, isLoading, refresh } = useAuth();
+  const { user, isAuthenticated, isLoading, refresh, setUser } = useAuth();
 
   const [status, setStatus] = useState<SessionStatus>("LOADING");
   const [isPaymentModalOpen, setIsPaymentModalOpen] = useState(false);
@@ -96,9 +96,12 @@ export default function SessionManager({ children }: { children: ReactNode }) {
   const [isPollingCredits, setIsPollingCredits] = useState(false);
   const [hasPromptedPayment, setHasPromptedPayment] = useState(false);
   const [hasShownSuccess, setHasShownSuccess] = useState(false);
+  const [hasConfirmedCredits, setHasConfirmedCredits] = useState(false);
 
   const balancePollingIntervalRef = useRef<number | null>(null);
   const balancePollingTimeoutRef = useRef<number | null>(null);
+  const redirectDelayTimeoutRef = useRef<number | null>(null);
+  const lastConfirmedUserRef = useRef<User | null>(null);
 
   const prevStatusRef = useRef<SessionStatus>(status);
   const prevModalOpenRef = useRef(isPaymentModalOpen);
@@ -211,6 +214,43 @@ export default function SessionManager({ children }: { children: ReactNode }) {
     );
   }, [isPollingCredits, refresh, showPaymentStatus, stopBalancePolling]);
 
+  const clearConfirmationState = useCallback(
+    (reason: string) => {
+      const hadTimer = Boolean(redirectDelayTimeoutRef.current);
+      if (hadTimer) {
+        window.clearTimeout(redirectDelayTimeoutRef.current!);
+        redirectDelayTimeoutRef.current = null;
+      }
+      const hadSnapshot = Boolean(lastConfirmedUserRef.current);
+      if (hasConfirmedCredits || hadTimer || hadSnapshot) {
+        debugLog("confirmation:clear", {
+          reason,
+          hadTimer,
+          hadSnapshot,
+          wasConfirmed: hasConfirmedCredits,
+        });
+      }
+      if (hasConfirmedCredits) {
+        setHasConfirmedCredits(false);
+      }
+      lastConfirmedUserRef.current = null;
+    },
+    [hasConfirmedCredits],
+  );
+
+  const scheduleRedirectAfterConfirmation = useCallback(() => {
+    if (redirectDelayTimeoutRef.current) {
+      return;
+    }
+    // Hold the success modal visible for a short time before redirecting.
+    debugLog("confirmation:scheduleRedirect", { delayMs: 2000 });
+    redirectDelayTimeoutRef.current = window.setTimeout(() => {
+      redirectDelayTimeoutRef.current = null;
+      debugLog("confirmation:redirect", {});
+      finalizeAccessReadyState();
+    }, 2000);
+  }, [finalizeAccessReadyState]);
+
   const {
     mutate: triggerCreateOrder,
     reset: resetCreateOrder,
@@ -275,6 +315,7 @@ export default function SessionManager({ children }: { children: ReactNode }) {
       setPaymentStatus(null);
       setHasPromptedPayment(false);
       setHasShownSuccess(false);
+      clearConfirmationState(reason);
       stopBalancePolling("reset");
       resetCreateOrder();
     },
@@ -285,6 +326,7 @@ export default function SessionManager({ children }: { children: ReactNode }) {
       resetCreateOrder,
       status,
       stopBalancePolling,
+      clearConfirmationState,
     ],
   );
 
@@ -308,12 +350,17 @@ export default function SessionManager({ children }: { children: ReactNode }) {
     setIsPaymentModalOpen(false);
     setPreferenceId(null);
     setOrderAmount(DEFAULT_CREDIT_PRICE);
+    if (!hasConfirmedCredits) {
+      clearConfirmationState("closePaymentModal");
+    }
     stopBalancePolling("closeModal");
     resetCreateOrder();
     if (status === "PAYMENT_IN_PROGRESS") {
       setStatus("NEEDS_PAYMENT");
     }
   }, [
+    clearConfirmationState,
+    hasConfirmedCredits,
     isPaymentModalOpen,
     preferenceId,
     resetCreateOrder,
@@ -328,6 +375,7 @@ export default function SessionManager({ children }: { children: ReactNode }) {
     }
 
     debugLog("handleGeneratePix:start", { status, preferenceId });
+    clearConfirmationState("generatePix");
     setPreferenceId(null);
     setOrderAmount(DEFAULT_CREDIT_PRICE);
     setPaymentStatus(null);
@@ -335,6 +383,7 @@ export default function SessionManager({ children }: { children: ReactNode }) {
     setStatus("PAYMENT_IN_PROGRESS");
     triggerCreateOrder();
   }, [
+    clearConfirmationState,
     isCreatingOrder,
     preferenceId,
     resetCreateOrder,
@@ -399,7 +448,15 @@ export default function SessionManager({ children }: { children: ReactNode }) {
     }
   }, [isAuthenticated, status]);
 
-  useEffect(() => () => stopBalancePolling("unmount"), [stopBalancePolling]);
+  useEffect(() => {
+    return () => {
+      stopBalancePolling("unmount");
+      if (redirectDelayTimeoutRef.current) {
+        window.clearTimeout(redirectDelayTimeoutRef.current);
+        redirectDelayTimeoutRef.current = null;
+      }
+    };
+  }, [stopBalancePolling]);
 
   useEffect(() => {
     if (isLoading) {
@@ -430,10 +487,34 @@ export default function SessionManager({ children }: { children: ReactNode }) {
 
     const credits = extractCreditsFromUser(user);
     const hasPurchase = inferPurchaseFromUser(user);
-    const hasConfirmedCredits = credits > 0 || hasPurchase;
+    const detectedCredits = credits > 0 || hasPurchase;
+
+    if (detectedCredits) {
+      lastConfirmedUserRef.current = user;
+      if (!hasConfirmedCredits) {
+        debugLog("credits:confirmed", { credits, hasPurchase });
+        setHasConfirmedCredits(true);
+        stopBalancePolling("credits-detected");
+        if (!hasShownSuccess) {
+          setHasShownSuccess(true);
+          showPaymentStatus({
+            title: "Pagamento aprovado",
+            message: "Atualizando seu acesso para a plataforma...",
+            type: "success",
+          });
+        }
+      }
+      scheduleRedirectAfterConfirmation();
+      return;
+    }
 
     if (hasConfirmedCredits) {
-      finalizeAccessReadyState();
+      if (lastConfirmedUserRef.current && user !== lastConfirmedUserRef.current) {
+        // Protect against stale polling responses overwriting the confirmed snapshot.
+        debugLog("credits:restoreSnapshot", {});
+        setUser(lastConfirmedUserRef.current);
+      }
+      scheduleRedirectAfterConfirmation();
       return;
     }
 
@@ -450,15 +531,19 @@ export default function SessionManager({ children }: { children: ReactNode }) {
       setHasPromptedPayment(true);
     }
   }, [
-    finalizeAccessReadyState,
+    hasConfirmedCredits,
     hasPromptedPayment,
+    hasShownSuccess,
     isAuthenticated,
     isLoading,
     isPaymentModalOpen,
-    isPollingCredits,
     preferenceId,
     resetPaymentFlow,
+    scheduleRedirectAfterConfirmation,
+    setUser,
+    showPaymentStatus,
     status,
+    stopBalancePolling,
     user,
   ]);
 
