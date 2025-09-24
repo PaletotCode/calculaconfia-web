@@ -71,12 +71,8 @@ export default function SessionManager({ children }: { children: ReactNode }) {
     queryKey: ["payment-status"],
     queryFn: getPaymentState,
     enabled: isAuthenticated,
-    refetchInterval: (data) => {
-      if (!data) {
-        return false;
-      }
-      return data.state === "awaiting_payment" ? 5000 : false;
-    },
+    refetchInterval: (query) =>
+      query.state.data?.state === "awaiting_payment" ? 5000 : false,
   });
 
   const paymentState = paymentStateQuery.data ?? null;
