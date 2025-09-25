@@ -77,8 +77,8 @@ export function Calculator({ onRequestBuyCredits }: CalculatorProps) {
   const isCalculateVisible = activeNavIndex === CALCULATE_INDEX;
 
   return (
-    <div className="calculator-root flex min-h-screen flex-col bg-slate-100">
-      <main className="flex-grow w-full overflow-hidden">
+    <div className="calculator-root flex min-h-screen w-full flex-col bg-gradient-to-br from-slate-50 via-white to-slate-200">
+      <main className="flex-grow w-full overflow-hidden pb-24 lg:pb-32">
         <div
           id="page-container"
           ref={pageContainerRef}

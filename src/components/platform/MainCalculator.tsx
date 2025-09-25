@@ -114,35 +114,6 @@ const useScript = (url: string, defer = true, onload?: () => void) => {
     }, [url, defer, onload]);
 };
 
-// Vanta.js Background
-const VantaBackground: FC = () => {
-    const vantaRef = useRef(null);
-    const [vantaEffect, setVantaEffect] = useState<any>(null);
-
-    useEffect(() => {
-        if ((window as any).VANTA && !vantaEffect) {
-            setVantaEffect((window as any).VANTA.CELLS({
-                el: vantaRef.current,
-                mouseControls: true,
-                touchControls: true,
-                gyroControls: false,
-                minHeight: 200.00,
-                minWidth: 200.00,
-                scale: 1.00,
-                color1: 0xd4d4d4,
-                color2: 0xececec,
-                size: 2.00,
-                speed: 1.0
-            }));
-        }
-        return () => {
-            if (vantaEffect) vantaEffect.destroy();
-        }
-    }, [vantaEffect]);
-
-    return <div ref={vantaRef} style={{ position: 'absolute', top: 0, left: 0, width: '100vw', height: '100vh', zIndex: 0 }}></div>;
-};
-
 // Mouse Light Effect
 const MouseLight: FC = () => {
     const lightRef = useRef<HTMLDivElement>(null);
@@ -262,7 +233,7 @@ const MainCalculator: FC<MainCalculatorProps> = ({ onRequestBuyCredits, onNaviga
     const [calculationError, setCalculationError] = useState<string>('');
     const [resultData, setResultData] = useState<CalcularResponse | null>(null);
     const [showInsufficientCredits, setShowInsufficientCredits] = useState(false);
-    const [libsLoaded, setLibsLoaded] = useState({ flatpickr: false, imask: false, three: false, vanta: false });
+    const [libsLoaded, setLibsLoaded] = useState({ flatpickr: false, imask: false });
 
     const { user, refresh } = useAuth();
     const creditsAvailable = useMemo(() => extractCreditsFromUser(user), [user]);
@@ -273,24 +244,9 @@ const MainCalculator: FC<MainCalculatorProps> = ({ onRequestBuyCredits, onNaviga
     const resultStepIndex = loadingStepIndex + 1;
 
     // --- EXTERNAL LIBRARIES ---
-    useScript("https://cdn.jsdelivr.net/npm/flatpickr", true, () => setLibsLoaded(prev => ({...prev, flatpickr: true})));
+    useScript("https://cdn.jsdelivr.net/npm/flatpickr", true, () => setLibsLoaded((prev) => ({ ...prev, flatpickr: true })));
     useScript("https://npmcdn.com/flatpickr/dist/l10n/pt.js", true);
-    useScript("https://unpkg.com/imask", true, () => setLibsLoaded(prev => ({...prev, imask: true})));
-    useScript("https://cdnjs.cloudflare.com/ajax/libs/three.js/r121/three.min.js", true, () => setLibsLoaded(prev => ({...prev, three: true})));
-    useEffect(() => {
-        if (libsLoaded.three) {
-            const vantaScript = document.createElement('script');
-            vantaScript.src = 'https://cdnjs.cloudflare.com/ajax/libs/vanta/0.5.21/vanta.cells.min.js';
-            vantaScript.defer = true;
-            vantaScript.onload = () => setLibsLoaded(prev => ({...prev, vanta: true}));
-            document.body.appendChild(vantaScript);
-
-            return () => {
-                document.body.removeChild(vantaScript);
-            }
-        }
-    }, [libsLoaded.three]);
-    
+    useScript("https://unpkg.com/imask", true, () => setLibsLoaded((prev) => ({ ...prev, imask: true })));
     // --- EFFECTS ---
     useEffect(() => {
        const currentFormIndex = calculatorStep - 2;
@@ -816,7 +772,7 @@ const MainCalculator: FC<MainCalculatorProps> = ({ onRequestBuyCredits, onNaviga
 
     return (
         <>
-            {isVisible && libsLoaded.vanta && <VantaBackground />}
+            <div className="fixed inset-0 -z-10 bg-gradient-to-br from-slate-100 via-white to-slate-200" />
             {isVisible && <MouseLight />}
             {isVisible && showInsufficientCredits && (
                 <div className="fixed inset-0 z-40 flex items-center justify-center bg-black/60 px-4">
@@ -859,12 +815,13 @@ const MainCalculator: FC<MainCalculatorProps> = ({ onRequestBuyCredits, onNaviga
             {/* Embedded Global Styles */}
             <style>{`
                 @import url('https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css');
-                .main-container { display: flex; flex-direction: column; align-items: center; justify-content: center; min-height: 100vh; padding: clamp(1rem, 2vw, 2rem); position: relative; z-index: 1; }
-                #calculate-container { width: min(100%, 1180px); height: min(88vh, 860px); position: relative; perspective: 1000px; background-color: rgba(255, 255, 255, 0.75); backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px); border-radius: 1.5rem; overflow: hidden; box-shadow: 0 25px 50px -12px rgba(15, 23, 42, 0.2); border: 1px solid rgba(255, 255, 255, 0.2); }
-                .calculator-step { width: 100%; height: 100%; display: flex; flex-direction: column; align-items: center; justify-content: center; position: absolute; top: 0; left: 0; padding: 1rem; opacity: 0; visibility: hidden; transform: scale(0.98); transition: opacity 0.4s ease-out, transform 0.4s ease-out; }
+                .main-container { display: flex; flex-direction: column; align-items: center; justify-content: center; min-height: 100vh; padding: clamp(1.5rem, 4vw, 3rem) clamp(1.5rem, 4vw, 3rem) clamp(5rem, 10vw, 8rem); position: relative; z-index: 1; }
+                #calculate-container { width: min(100%, 1180px); min-height: min(88vh, 860px); height: auto; position: relative; display: flex; align-items: center; justify-content: center; padding: clamp(1.5rem, 4vw, 3rem); perspective: 1000px; background-color: rgba(255, 255, 255, 0.75); backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px); border-radius: 1.5rem; overflow: hidden; box-shadow: 0 25px 50px -12px rgba(15, 23, 42, 0.2); border: 1px solid rgba(255, 255, 255, 0.2); }
+                .calculator-step { width: 100%; height: 100%; display: flex; flex-direction: column; align-items: center; justify-content: center; position: absolute; top: 0; left: 0; padding: clamp(1.5rem, 4vw, 3rem); gap: 1.75rem; opacity: 0; visibility: hidden; transform: scale(0.98); transition: opacity 0.4s ease-out, transform 0.4s ease-out; }
                 .calculator-step.active { opacity: 1; visibility: visible; z-index: 5; transform: scale(1); }
 
                 .mouse-light { position: fixed; top: 0; left: 0; width: 400px; height: 400px; background: radial-gradient(circle, rgba(45, 212, 191, 0.2) 0%, rgba(45, 212, 191, 0) 60%); border-radius: 50%; pointer-events: none; z-index: 999; transform-origin: center center; margin: -200px 0 0 -200px; transition: transform 0.1s ease-out; }
+                @media (max-width: 768px) { .mouse-light { display: none; } }
 
                 .start-btn { position: relative; overflow: hidden; background-color: #0d9488; color: white; padding: 0.75rem 2rem; border-radius: 999px; font-weight: 600; box-shadow: 0 5px 20px rgba(13, 148, 136, 0.3); transition: all 0.3s ease; animation: pulse-glow 2.5s infinite; }
                 .start-btn:hover { transform: translateY(-3px); box-shadow: 0 8px 25px rgba(13, 148, 136, 0.4); animation-play-state: paused; }
