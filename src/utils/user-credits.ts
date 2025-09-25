@@ -125,5 +125,7 @@ export function extractCreditsFromBalanceResponse(
   if (normalizedBalance && typeof normalizedBalance === "object") {
     return extractCreditsFromRecord(normalizedBalance as Record<string, unknown>);
 
+ }
+
   return 0;
 }
