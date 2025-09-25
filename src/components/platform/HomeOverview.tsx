@@ -12,6 +12,17 @@ import {
   type ReferralStatsResponse,
 } from "@/lib/api";
 
+import { parseHistoryMetadata } from "@/utils/history-metadata";
+
+const currencyFormatter = new Intl.NumberFormat("pt-BR", {
+  style: "currency",
+  currency: "BRL",
+});
+
+function formatCurrency(value: number) {
+  return currencyFormatter.format(value);
+}
+
 type CalculatorSection = "Home" | "calculate" | "history" | "credits";
 
 interface HomeOverviewProps {
@@ -19,12 +30,13 @@ interface HomeOverviewProps {
   historyLimit?: number;
 }
 
-function formatCurrency(value: number) {
-  return new Intl.NumberFormat("pt-BR", {
-    style: "currency",
-    currency: "BRL",
-    minimumFractionDigits: 2,
+function formatCredits(value: number) {
+  const formatted = new Intl.NumberFormat("pt-BR", {
+    minimumFractionDigits: 0,
+    maximumFractionDigits: 2,
   }).format(value);
+  const suffix = Math.abs(value) === 1 ? "crédito" : "créditos";
+  return `${formatted} ${suffix}`;
 }
 
 function formatDate(value: string | undefined) {
@@ -76,13 +88,13 @@ export default function HomeOverview({ onNavigate, historyLimit = 4 }: HomeOverv
   };
 
   return (
-    <div className="flex h-full w-full items-center justify-center bg-gradient-to-br from-slate-100 via-white to-slate-200 px-4 py-12">
+    <div className="flex h-full min-h-[calc(100vh-140px)] w-full items-center justify-center bg-gradient-to-br from-slate-100 via-white to-slate-200 px-4 pb-24 pt-8 md:pb-28 md:pt-12">
       <div className="flex w-full max-w-5xl flex-col gap-8">
         <header className="space-y-2 text-left">
           <p className="text-sm font-medium uppercase tracking-wide text-teal-600">Visão geral</p>
           <h1 className="text-3xl font-bold text-slate-900 md:text-4xl">Bem-vindo de volta à CalculaConfia</h1>
           <p className="max-w-2xl text-sm text-slate-600 md:text-base">
-            Acompanhe seu saldo, suas indicações e as últimas movimentações de créditos em um só lugar. Clique em qualquer card para acessar a visão detalhada.
+            Acompanhe seu saldo, suas indicações e o resultado das últimas simulações em um só lugar. Clique em qualquer card para acessar a visão detalhada.
           </p>
         </header>
 
@@ -105,17 +117,11 @@ export default function HomeOverview({ onNavigate, historyLimit = 4 }: HomeOverv
                   ) : balanceQuery.isError ? (
                     <span className="text-base font-medium text-red-500">Erro ao carregar</span>
                   ) : (
-                    formatCurrency(totalCredits)
+                    formatCredits(totalCredits)
                   )}
                 </h2>
                 <p className="mt-2 text-sm text-slate-500">
-                  {balanceQuery.data ? (
-                    <>
-                      {formatCurrency(balanceQuery.data.valid_credits)} em créditos ativos e {formatCurrency(balanceQuery.data.legacy_credits)} em créditos legados.
-                    </>
-                  ) : (
-                    "Veja detalhes completos em Créditos."
-                  )}
+                  {balanceQuery.data ? "Saldo disponível para novas simulações." : "Veja detalhes completos em Créditos."}
                 </p>
               </div>
               <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-teal-500/10 text-teal-600 transition group-hover:bg-teal-500/20">
@@ -148,10 +154,10 @@ export default function HomeOverview({ onNavigate, historyLimit = 4 }: HomeOverv
                 <p className="mt-2 text-sm text-slate-500">
                   {referralQuery.data ? (
                     <>
-                      Código <span className="font-semibold text-purple-600">{referralQuery.data.referral_code || "--"}</span> · {formatCurrency(referralQuery.data.referral_credits_earned)} ganhos
+                      Código <span className="font-semibold text-purple-600">{referralQuery.data.referral_code || "--"}</span> · {formatCredits(referralQuery.data.referral_credits_earned)} ganhos
                     </>
                   ) : (
-                    "Convide amigos e acompanhe seus resultados."
+                    "Compartilhe seu código para desbloquear bônus."
                   )}
                 </p>
               </div>
@@ -174,9 +180,9 @@ export default function HomeOverview({ onNavigate, historyLimit = 4 }: HomeOverv
                 <div>
                   <span className="inline-flex items-center gap-2 rounded-full bg-indigo-100 px-3 py-1 text-xs font-semibold text-indigo-700">
                     <LucideIcon name="History" className="h-4 w-4" />
-                    Histórico recente
+                    Últimos cálculos
                   </span>
-                  <h2 className="mt-4 text-2xl font-semibold text-slate-900 md:text-3xl">Movimentações de créditos</h2>
+                  <h2 className="mt-4 text-2xl font-semibold text-slate-900 md:text-3xl">Histórico rápido de simulações</h2>
                 </div>
                 <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-indigo-500/10 text-indigo-600 transition group-hover:bg-indigo-500/20">
                   <LucideIcon name="Activity" className="h-6 w-6" />
@@ -185,11 +191,11 @@ export default function HomeOverview({ onNavigate, historyLimit = 4 }: HomeOverv
 
               <div className="relative mt-2 space-y-3">
                 {historyQuery.isLoading ? (
-                  <p className="text-sm text-slate-500">Carregando movimentações...</p>
+                  <p className="text-sm text-slate-500">Carregando histórico...</p> 
                 ) : historyQuery.isError ? (
                   <p className="text-sm font-medium text-red-500">Não foi possível carregar o histórico.</p>
                 ) : recentHistory.length === 0 ? (
-                  <p className="text-sm text-slate-500">Nenhuma movimentação registrada recentemente.</p>
+                  <p className="text-sm text-slate-500">Nenhuma simulação registrada recentemente.</p>
                 ) : (
                   recentHistory.map((item) => (
                     <div
@@ -201,11 +207,20 @@ export default function HomeOverview({ onNavigate, historyLimit = 4 }: HomeOverv
                         <p className="text-xs text-slate-500">{formatDate(item.created_at)}</p>
                       </div>
                       <div className="text-right">
-                        <p className={`font-semibold ${item.amount >= 0 ? "text-emerald-600" : "text-rose-600"}`}>
-                          {item.amount >= 0 ? "+" : ""}
-                          {formatCurrency(Math.abs(item.amount))}
-                        </p>
-                        <p className="text-xs text-slate-500">Saldo: {formatCurrency(item.balance_after)}</p>
+                        {(() => {
+                          const metadata = parseHistoryMetadata(item);
+                          const calculationValue = metadata.calculationValue ?? item.amount;
+                          return (
+                            <>
+                              <p className="font-semibold text-teal-600">
+                                {formatCurrency(Math.max(0, calculationValue))}
+                              </p>
+                              <p className="text-xs text-slate-500">
+                                Saldo atual: {formatCredits(item.balance_after)}
+                              </p>
+                            </>
+                          );
+                        })()}
                       </div>
                     </div>
                   ))

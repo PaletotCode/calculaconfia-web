@@ -174,6 +174,9 @@ export interface CreditHistoryItem {
   description: string;
   created_at: string;
   expires_at?: string | null;
+  metadata?: Record<string, unknown> | string | null;
+  details?: Record<string, unknown> | string | null;
+  payload?: Record<string, unknown> | string | null;
 }
 
 export interface CreditHistoryCollectionResponse {
