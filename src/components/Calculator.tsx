@@ -10,6 +10,9 @@ import "flatpickr/dist/flatpickr.min.css";
 import { Portuguese } from "flatpickr/dist/l10n/pt.js";
 import IMask, { type InputMask } from "imask";
 import { LucideIcon, type IconName } from "@/components/LucideIcon";
+import HomeOverview from "@/components/platform/HomeOverview";
+import CreditsHistory from "@/components/platform/CreditsHistory";
+import CreditsOverview from "@/components/platform/CreditsOverview";
 import useAuth from "@/hooks/useAuth";
 import {
   calcular,
@@ -23,12 +26,18 @@ interface BillInput {
   icms: string;
 }
 
+interface CalculatorProps {
+  onRequestBuyCredits?: () => void;
+}
+
 const navLinks: Array<{ id: string; label: string; icon: IconName; color: string }> = [
   { id: "Home", label: "Início", icon: "House", color: "#0d9488" },
   { id: "calculate", label: "Calcular", icon: "Calculator", color: "#3b82f6" },
   { id: "history", label: "Histórico", icon: "History", color: "#8b5cf6" },
   { id: "credits", label: "Créditos", icon: "Wallet", color: "#ca8a04" },
 ];
+
+type CalculatorSection = (typeof navLinks)[number]["id"];
 
 const timelineItems: Array<{ text: string; icon: IconName }> = [
   { text: "Analisando padrões de tributação...", icon: "FileSearch2" },
@@ -65,7 +74,7 @@ function toIssueDate(date: Date | null) {
   return `${year}-${month.toString().padStart(2, "0")}`;
 }
 
-export function Calculator() {
+export function Calculator({ onRequestBuyCredits }: CalculatorProps) {
   const router = useRouter();
   const { logout } = useAuth();
   const [activeNavIndex, setActiveNavIndex] = useState(0);
@@ -126,6 +135,16 @@ export function Calculator() {
   });
 
   const totalSteps = useMemo(() => resultStepIndex + 1, [resultStepIndex]);
+
+  const navigateToSection = useCallback(
+    (section: CalculatorSection) => {
+      const index = navLinks.findIndex((link) => link.id === section);
+      if (index !== -1) {
+        setActiveNavIndex(index);
+      }
+    },
+    [setActiveNavIndex]
+  );
 
   useEffect(() => {
     const container = pageContainerRef.current;
@@ -442,8 +461,8 @@ export function Calculator() {
     <div className="calculator-root flex min-h-screen flex-col bg-slate-100">
       <main className="flex-grow w-full overflow-hidden">
         <div id="page-container" ref={pageContainerRef} className="flex h-full w-[400%] transition-transform duration-500 ease-out">
-          <section id="Home" className="page text-center">
-            <p className="text-2xl text-slate-600">Página Inicial</p>
+          <section id="Home" className="page !items-stretch !justify-center !p-0 overflow-hidden">
+            <HomeOverview onNavigate={navigateToSection} />
           </section>
           <section id="calculate" className="page !p-0 overflow-hidden">
             <div id="calculate-container" className="h-full w-full">
@@ -632,11 +651,11 @@ export function Calculator() {
               </div>
             </div>
           </section>
-          <section id="history" className="page text-center">
-            <p className="text-2xl text-slate-600">Histórico de Cálculos</p>
+          <section id="history" className="page !items-stretch !justify-center !p-0 overflow-hidden">
+            <CreditsHistory />
           </section>
-          <section id="credits" className="page text-center">
-            <p className="text-2xl text-slate-600">Gestão de Créditos</p>
+          <section id="credits" className="page !items-stretch !justify-center !p-0 overflow-hidden">
+            <CreditsOverview onBuyCredits={onRequestBuyCredits} />
           </section>
         </div>
       </main>
