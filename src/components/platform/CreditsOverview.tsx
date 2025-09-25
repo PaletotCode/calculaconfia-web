@@ -10,6 +10,15 @@ import {
   type ReferralStatsResponse,
 } from "@/lib/api";
 
+const currencyFormatter = new Intl.NumberFormat("pt-BR", {
+  style: "currency",
+  currency: "BRL",
+});
+
+function formatCurrency(value: number) {
+  return currencyFormatter.format(value);
+}
+
 interface CreditsOverviewProps {
   onBuyCredits?: () => void;
 }

@@ -95,12 +95,21 @@ function parseBills(source: Record<string, unknown>): ParsedBillMetadata[] {
           "icms",
           "icms_value",
         ]);
-        return {
-          label,
-          value: valueNumber,
-        } satisfies ParsedBillMetadata;
+        if (label === undefined && valueNumber === undefined) {
+          return null;
+        }
+
+        const bill: ParsedBillMetadata = {};
+        if (label !== undefined) {
+          bill.label = label;
+        }
+        if (valueNumber !== undefined) {
+          bill.value = valueNumber;
+        }
+
+        return bill;
       })
-      .filter((bill): bill is ParsedBillMetadata => Boolean(bill));
+      .filter((bill): bill is ParsedBillMetadata => bill !== null);
   }
   return [];
 }
