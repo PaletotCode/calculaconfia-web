@@ -32,6 +32,8 @@ interface MainCalculatorProps {
 
   onNavigateToHistory?: () => void;
 
+  isVisible?: boolean;
+
 }
 
 
@@ -246,7 +248,7 @@ const Confetti: FC = () => {
 
 
 // Main App Component
-const MainCalculator: FC<MainCalculatorProps> = ({ onRequestBuyCredits, onNavigateToHistory }) => {
+const MainCalculator: FC<MainCalculatorProps> = ({ onRequestBuyCredits, onNavigateToHistory, isVisible = true }) => {
     // --- STATE MANAGEMENT ---
     const [calculatorStep, setCalculatorStep] = useState<number>(0);
     const [selectedBillCount, setSelectedBillCount] = useState<number>(0);
@@ -348,7 +350,8 @@ const MainCalculator: FC<MainCalculatorProps> = ({ onRequestBuyCredits, onNaviga
 
     useEffect(() => {
         let timer: ReturnType<typeof setTimeout> | null = null;
-        if (isCalculating) {
+
+        if (isVisible && isCalculating) {
             setCalculatorStep(loadingStepIndex);
             setLoadingStep(-1);
             setTimelineFinished(false);
@@ -369,12 +372,13 @@ const MainCalculator: FC<MainCalculatorProps> = ({ onRequestBuyCredits, onNaviga
             };
             processNextItem();
         }
+
         return () => {
             if (timer) {
                 clearTimeout(timer);
             }
         };
-    }, [isCalculating, loadingStepIndex]);
+    }, [isCalculating, isVisible, loadingStepIndex]);
 
     useEffect(() => {
         if (creditsAvailable > 0) {
@@ -812,9 +816,9 @@ const MainCalculator: FC<MainCalculatorProps> = ({ onRequestBuyCredits, onNaviga
 
     return (
         <>
-            {libsLoaded.vanta && <VantaBackground />}
-            <MouseLight />
-            {showInsufficientCredits && (
+            {isVisible && libsLoaded.vanta && <VantaBackground />}
+            {isVisible && <MouseLight />}
+            {isVisible && showInsufficientCredits && (
                 <div className="fixed inset-0 z-40 flex items-center justify-center bg-black/60 px-4">
                     <div className="w-full max-w-lg rounded-2xl bg-white p-6 text-center shadow-2xl">
                         <div className="mb-4 flex justify-center">
@@ -855,13 +859,11 @@ const MainCalculator: FC<MainCalculatorProps> = ({ onRequestBuyCredits, onNaviga
             {/* Embedded Global Styles */}
             <style>{`
                 @import url('https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css');
-                :root { --progress-width: ${progress}%; }
-                body { font-family: 'Inter', sans-serif; background-color: #f1f5f9; color: #0f172a; overflow: hidden; }
-                .main-container { display: flex; flex-direction: column; align-items: center; justify-content: center; min-height: 100vh; padding: 1rem; position: relative; z-index: 1;}
-                #calculate-container { width: 100%; height: 90vh; max-width: 1200px; max-height: 800px; position: relative; perspective: 1000px; background-color: rgba(255, 255, 255, 0.7); backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px); border-radius: 1.5rem; overflow: hidden; box-shadow: 0 25px 50px -12px rgba(0,0,0,0.1); border: 1px solid rgba(255, 255, 255, 0.2); }
-                .calculator-step { width: 100%; height: 100%; display: flex; flex-direction: column; align-items: center; justify-content: center; position: absolute; top: 0; left: 0; padding: 1rem sm:2rem; opacity: 0; visibility: hidden; transform: scale(0.98); transition: opacity 0.4s ease-out, transform 0.4s ease-out; }
+                .main-container { display: flex; flex-direction: column; align-items: center; justify-content: center; min-height: 100vh; padding: clamp(1rem, 2vw, 2rem); position: relative; z-index: 1; }
+                #calculate-container { width: min(100%, 1180px); height: min(88vh, 860px); position: relative; perspective: 1000px; background-color: rgba(255, 255, 255, 0.75); backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px); border-radius: 1.5rem; overflow: hidden; box-shadow: 0 25px 50px -12px rgba(15, 23, 42, 0.2); border: 1px solid rgba(255, 255, 255, 0.2); }
+                .calculator-step { width: 100%; height: 100%; display: flex; flex-direction: column; align-items: center; justify-content: center; position: absolute; top: 0; left: 0; padding: 1rem; opacity: 0; visibility: hidden; transform: scale(0.98); transition: opacity 0.4s ease-out, transform 0.4s ease-out; }
                 .calculator-step.active { opacity: 1; visibility: visible; z-index: 5; transform: scale(1); }
-                
+
                 .mouse-light { position: fixed; top: 0; left: 0; width: 400px; height: 400px; background: radial-gradient(circle, rgba(45, 212, 191, 0.2) 0%, rgba(45, 212, 191, 0) 60%); border-radius: 50%; pointer-events: none; z-index: 999; transform-origin: center center; margin: -200px 0 0 -200px; transition: transform 0.1s ease-out; }
 
                 .start-btn { position: relative; overflow: hidden; background-color: #0d9488; color: white; padding: 0.75rem 2rem; border-radius: 999px; font-weight: 600; box-shadow: 0 5px 20px rgba(13, 148, 136, 0.3); transition: all 0.3s ease; animation: pulse-glow 2.5s infinite; }
@@ -909,7 +911,7 @@ const MainCalculator: FC<MainCalculatorProps> = ({ onRequestBuyCredits, onNaviga
                 .progress-bar-container { width: 100%; max-width: 600px; margin-bottom: 1rem; opacity: 0; transition: opacity 0.5s; }
                 .progress-bar-container.visible { opacity: 1; }
                 .progress-bar { width: 100%; height: 8px; background-color: #e2e8f0; border-radius: 99px; overflow: hidden; }
-                .progress-bar-inner { width: var(--progress-width); height: 100%; background-color: #0d9488; transition: width 0.5s cubic-bezier(0.25, 0.46, 0.45, 0.94); }
+                .progress-bar-inner { height: 100%; background-color: #0d9488; transition: width 0.5s cubic-bezier(0.25, 0.46, 0.45, 0.94); }
                 .progress-labels { display: flex; justify-content: space-between; margin-top: 0.5rem; font-size: 0.75rem; color: #64748b; }
                 .progress-labels span { transition: color 0.5s; }
                 .progress-labels span.active { color: #0d9488; font-weight: 600; }
@@ -921,7 +923,7 @@ const MainCalculator: FC<MainCalculatorProps> = ({ onRequestBuyCredits, onNaviga
             <div className="main-container font-sans">
                 <div className={`progress-bar-container ${calculatorStep > 0 && selectedBillCount > 0 ? 'visible' : ''}`}>
                     <div className="progress-bar">
-                        <div className="progress-bar-inner"></div>
+                        <div className="progress-bar-inner" style={{ width: `${progress}%` }}></div>
                     </div>
                     <div className="progress-labels">
                         {progressLabels.map((label, index) => {

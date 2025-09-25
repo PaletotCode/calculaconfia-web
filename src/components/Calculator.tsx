@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { LucideIcon, type IconName } from "@/components/LucideIcon";
 import HomeOverview from "@/components/platform/HomeOverview";
 import CreditsHistory from "@/components/platform/CreditsHistory";
@@ -12,11 +12,13 @@ interface CalculatorProps {
 }
 
 const navLinks: Array<{ id: string; label: string; icon: IconName; color: string }> = [
-  { id: "Home", label: "Início", icon: "House", color: "#0d9488" },
+  { id: "Home", label: "In\u00edcio", icon: "House", color: "#0d9488" },
   { id: "calculate", label: "Calcular", icon: "Calculator", color: "#3b82f6" },
-  { id: "history", label: "Histórico", icon: "History", color: "#8b5cf6" },
-  { id: "credits", label: "Créditos", icon: "Wallet", color: "#ca8a04" },
+  { id: "history", label: "Hist\u00f3rico", icon: "History", color: "#8b5cf6" },
+  { id: "credits", label: "Cr\u00e9ditos", icon: "Wallet", color: "#ca8a04" },
 ];
+
+const CALCULATE_INDEX = navLinks.findIndex((link) => link.id === "calculate");
 
 type CalculatorSection = (typeof navLinks)[number]["id"];
 
@@ -35,21 +37,28 @@ export function Calculator({ onRequestBuyCredits }: CalculatorProps) {
 
   useEffect(() => {
     const container = pageContainerRef.current;
-    if (!container) return;
+    if (!container) {
+      return;
+    }
     container.style.transform = `translateX(${activeNavIndex * -25}%)`;
   }, [activeNavIndex]);
 
-  const updateIndicator = useCallback((index: number) => {
-    const indicator = navIndicatorRef.current;
-    const link = navLinkRefs.current[index];
-    if (!indicator || !link) return;
+  const updateIndicator = useCallback(
+    (index: number) => {
+      const indicator = navIndicatorRef.current;
+      const link = navLinkRefs.current[index];
+      if (!indicator || !link) {
+        return;
+      }
 
-    indicator.style.width = `${link.offsetWidth - 16}px`;
-    indicator.style.left = `${link.offsetLeft + 8}px`;
+      indicator.style.width = `${link.offsetWidth - 16}px`;
+      indicator.style.left = `${link.offsetLeft + 8}px`;
 
-    const color = navLinks[index]?.color ?? "#0d9488";
-    document.documentElement.style.setProperty("--active-indicator-color", color);
-  }, []);
+      const color = navLinks[index]?.color ?? "#0d9488";
+      document.documentElement.style.setProperty("--active-indicator-color", color);
+    },
+    [],
+  );
 
   useEffect(() => {
     updateIndicator(activeNavIndex);
@@ -65,7 +74,7 @@ export function Calculator({ onRequestBuyCredits }: CalculatorProps) {
     navigateToSection("history");
   }, [navigateToSection]);
 
-  const navItems = useMemo(() => navLinks, []);
+  const isCalculateVisible = activeNavIndex === CALCULATE_INDEX;
 
   return (
     <div className="calculator-root flex min-h-screen flex-col bg-slate-100">
@@ -82,6 +91,7 @@ export function Calculator({ onRequestBuyCredits }: CalculatorProps) {
             <MainCalculator
               onRequestBuyCredits={onRequestBuyCredits}
               onNavigateToHistory={handleNavigateToHistory}
+              isVisible={isCalculateVisible}
             />
           </section>
           <section id="history" className="page !items-stretch !justify-center !p-0 overflow-hidden">
@@ -97,8 +107,12 @@ export function Calculator({ onRequestBuyCredits }: CalculatorProps) {
         <nav className="nav-enter max-w-[95vw] rounded-3xl bg-[rgba(30,41,59,0.9)] px-3 py-1 text-white shadow-2xl">
           <div className="flex items-center justify-center gap-2 sm:gap-3" id="nav-links">
             <div id="nav-indicator" ref={navIndicatorRef}></div>
-            {navItems.map((link, index) => {
+            {navLinks.map((link, index) => {
               const isActive = index === activeNavIndex;
+              const itemClasses = `flex flex-col items-center gap-1 transition-colors ${
+                isActive ? "" : "text-slate-300"
+              }`;
+
               return (
                 <a
                   key={link.id}
@@ -113,10 +127,7 @@ export function Calculator({ onRequestBuyCredits }: CalculatorProps) {
                     setActiveNavIndex(index);
                   }}
                 >
-                  <div
-                    className="flex flex-col items-center gap-1 text-slate-300 transition-colors"
-                    style={isActive ? { color: link.color } : undefined}
-                  >
+                  <div className={itemClasses} style={isActive ? { color: link.color } : undefined}>
                     <LucideIcon name={link.icon} className="h-6 w-6" />
                     <span className="text-xs font-medium">{link.label}</span>
                   </div>
