@@ -2,6 +2,7 @@ import React, { useState, useEffect, useRef, useMemo, FC, ReactNode } from 'reac
 import { ArrowLeft, FileText, AlertTriangle, Info, FileSearch2, Scale, CalendarClock, TrendingUp, CheckCircle, Loader2 } from 'lucide-react';
 
 import { useMutation } from '@tanstack/react-query';
+import './MainCalculator.css';
 import useAuth from '@/hooks/useAuth';
 import { calcular, type BillPayload, type CalcularResponse, extractErrorMessage } from '@/lib/api';
 import { extractCreditsFromUser } from '@/utils/user-credits';
@@ -585,9 +586,9 @@ const MainCalculator: FC<MainCalculatorProps> = ({ onRequestBuyCredits, onNaviga
             <>
                 {/* Step 0: Welcome */}
                 <div id="welcome-step" className={`calculator-step ${calculatorStep === 0 ? 'active' : ''}`}>
-                    <div className="welcome-content text-center z-10 p-4">
+                    <div className="welcome-content text-center z-10 px-8 py-6 max-w-5xl mx-auto">
                         <Title3D>É um prazer tê-lo aqui.</Title3D>
-                        <p className="text-slate-600 mt-4 max-w-md mx-auto">Vamos descobrir juntos o valor estimado que você pode ter a receber.</p>
+                        <p className="text-slate-600 mt-4 text-lg leading-relaxed max-w-3xl mx-auto">Vamos descobrir juntos o valor estimado que você pode ter a receber.</p>
                         <button onClick={() => goToStep(1)} className="start-btn mt-8">Vamos começar</button>
                     </div>
                 </div>
@@ -595,9 +596,9 @@ const MainCalculator: FC<MainCalculatorProps> = ({ onRequestBuyCredits, onNaviga
                 {/* Step 1: Bill Count Selection */}
                 <div id="selection-step" className={`calculator-step ${calculatorStep === 1 ? 'active' : ''}`}>
                     <button onClick={() => goToStep(0)} className="back-btn"><ArrowLeft className="w-6 h-6 text-slate-600" /></button>
-                    <div className="text-center w-full max-w-4xl">
+                    <div className="selection-shell w-full max-w-6xl mx-auto">
                        <h2 className="text-3xl font-bold text-slate-800">Você tem quantas contas em mãos?</h2>
-                       <p className="text-slate-500 mt-2">Selecione o número de faturas que você usará para a simulação.</p>
+                       <p className="text-slate-500 mt-2 text-lg">Selecione o número de faturas que você usará para a simulação.</p>
                        <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-6 gap-3 sm:gap-4 mt-8">
                            {Array.from({ length: 12 }, (_, i) => i + 1).map(count => (
                                <button key={count} onClick={() => handleBillCountSelection(count)} className="bill-option-card flex flex-col items-center justify-center gap-2 p-3 sm:p-4 rounded-xl cursor-pointer">
@@ -628,7 +629,7 @@ const MainCalculator: FC<MainCalculatorProps> = ({ onRequestBuyCredits, onNaviga
                 {billData.map((_, formIndex) => (
                     <div id={`form-step-${formIndex}`} key={formIndex} className={`calculator-step form-step ${calculatorStep === formIndex + 2 ? 'active' : ''}`}>
                         <button className="back-btn" onClick={() => handleFormNavigation('prev')}><ArrowLeft className="w-6 h-6 text-slate-600" /></button>
-                        <div className="w-full max-w-4xl flex flex-col md:flex-row gap-8 md:gap-12 items-center justify-center">
+                        <div className="w-full max-w-6xl flex flex-col md:flex-row gap-8 lg:gap-16 items-center justify-center">
                             {/* FORM CONTAINER */}
                             <div className="w-full md:w-1/2 order-2 md:order-1 text-center md:text-left flex flex-col justify-center">
                                 <h2 className="text-2xl sm:text-3xl font-bold text-slate-800">Fatura {formIndex + 1} de {selectedBillCount}</h2>
@@ -677,10 +678,10 @@ const MainCalculator: FC<MainCalculatorProps> = ({ onRequestBuyCredits, onNaviga
                     <button className="back-btn" onClick={() => setCalculatorStep(calculatorStep - 1)}>
                         <ArrowLeft className="w-6 h-6 text-slate-600" />
                     </button>
-                    <div className="text-center w-full max-w-lg">
+                    <div className="text-center w-full max-w-4xl mx-auto">
                         <h2 className="text-2xl font-bold text-slate-800">Resumo da Simulação</h2>
                         <p className="text-slate-500 mt-2 mb-6">Confira os dados para prosseguir.</p>
-                        <div className="summary-cards-container max-h-60 overflow-y-auto space-y-4 text-left p-4 bg-slate-100 rounded-lg border border-slate-200">
+                        <div className="summary-cards-container max-h-60 overflow-y-auto space-y-4 text-left p-4 bg-slate-100 rounded-xl border border-slate-200">
                             {billData.map((data, index) => (
                                 <div key={index} className="summary-item border-b border-slate-200 pb-3 mb-3 last:border-b-0 last:pb-0 last:mb-0">
                                     <p className="font-bold text-md text-slate-700">Fatura {index + 1}</p>
@@ -707,7 +708,7 @@ const MainCalculator: FC<MainCalculatorProps> = ({ onRequestBuyCredits, onNaviga
 
                 {/* Loading Step */}
                 <div id="loading-step" className={`calculator-step ${calculatorStep === (2 + selectedBillCount + 1) && selectedBillCount > 0 ? 'active' : ''}`}>
-                    <div className="flex flex-col items-center justify-center text-center w-full max-w-md p-4 mx-auto">
+                    <div className="flex flex-col items-center justify-center text-center w-full max-w-4xl p-6 mx-auto">
                        <h2 className="text-3xl font-bold text-slate-800 mb-8">Processando sua simulação...</h2>
                        <div className="timeline w-full">
                            {TIMELINE_ITEMS.map((item, index) => {
@@ -738,7 +739,7 @@ const MainCalculator: FC<MainCalculatorProps> = ({ onRequestBuyCredits, onNaviga
                 {/* Result Step */}
                 <div id="result-step" className={`calculator-step ${calculatorStep === (2 + selectedBillCount + 2) && selectedBillCount > 0 ? 'active' : ''}`}>
                     <Confetti />
-                    <div className="result-content text-center">
+                    <div className="result-content text-center mx-auto max-w-5xl">
                         <p className="text-2xl text-slate-600 mb-2">Seu valor estimado de restitui��o �</p>
                         <h2 className="result-value text-6xl md:text-7xl font-bold">{resultData ? currencyFormatter.format(resultData.valor_calculado) : currencyFormatter.format(0)}</h2>
                         {resultData && (
@@ -813,69 +814,7 @@ const MainCalculator: FC<MainCalculatorProps> = ({ onRequestBuyCredits, onNaviga
                 </div>
             )}
             {/* Embedded Global Styles */}
-            <style>{`
-                @import url('https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css');
-                .main-container { display: flex; flex-direction: column; align-items: center; justify-content: center; min-height: 100vh; padding: clamp(1.5rem, 4vw, 3rem) clamp(1.5rem, 4vw, 3rem) clamp(5rem, 10vw, 8rem); position: relative; z-index: 1; }
-                #calculate-container { width: min(100%, 1180px); min-height: min(88vh, 860px); height: auto; position: relative; display: flex; align-items: center; justify-content: center; padding: clamp(1.5rem, 4vw, 3rem); perspective: 1000px; background-color: rgba(255, 255, 255, 0.75); backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px); border-radius: 1.5rem; overflow: hidden; box-shadow: 0 25px 50px -12px rgba(15, 23, 42, 0.2); border: 1px solid rgba(255, 255, 255, 0.2); }
-                .calculator-step { width: 100%; height: 100%; display: flex; flex-direction: column; align-items: center; justify-content: center; position: absolute; top: 0; left: 0; padding: clamp(1.5rem, 4vw, 3rem); gap: 1.75rem; opacity: 0; visibility: hidden; transform: scale(0.98); transition: opacity 0.4s ease-out, transform 0.4s ease-out; }
-                .calculator-step.active { opacity: 1; visibility: visible; z-index: 5; transform: scale(1); }
-
-                .mouse-light { position: fixed; top: 0; left: 0; width: 400px; height: 400px; background: radial-gradient(circle, rgba(45, 212, 191, 0.2) 0%, rgba(45, 212, 191, 0) 60%); border-radius: 50%; pointer-events: none; z-index: 999; transform-origin: center center; margin: -200px 0 0 -200px; transition: transform 0.1s ease-out; }
-                @media (max-width: 768px) { .mouse-light { display: none; } }
-
-                .start-btn { position: relative; overflow: hidden; background-color: #0d9488; color: white; padding: 0.75rem 2rem; border-radius: 999px; font-weight: 600; box-shadow: 0 5px 20px rgba(13, 148, 136, 0.3); transition: all 0.3s ease; animation: pulse-glow 2.5s infinite; }
-                .start-btn:hover { transform: translateY(-3px); box-shadow: 0 8px 25px rgba(13, 148, 136, 0.4); animation-play-state: paused; }
-                .start-btn::after { content: ''; position: absolute; top: 50%; left: 50%; width: 5px; height: 5px; background: rgba(255,255,255,0.7); border-radius: 50%; transform: translate(-50%, -50%) scale(0); transition: transform 0.8s, opacity 0.8s; }
-                .start-btn:hover::after { transform: translate(-50%, -50%) scale(100); opacity: 0; }
-                @keyframes pulse-glow { 0% { box-shadow: 0 5px 20px rgba(13, 148, 136, 0.3); } 50% { box-shadow: 0 5px 30px rgba(13, 148, 136, 0.4); } 100% { box-shadow: 0 5px 20px rgba(13, 148, 136, 0.3); } }
-                .back-btn { position: absolute; top: 1.5rem; left: 1.5rem; background-color: #f1f5f9; border-radius: 50%; padding: 0.5rem; transition: background-color 0.2s; z-index: 10; border: none; cursor: pointer;}
-                .back-btn:hover { background-color: #e2e8f0; }
-                .bill-option-card { border: 2px solid #e2e8f0; transition: all 0.2s cubic-bezier(0.25, 0.46, 0.45, 0.94); background-color: #f8fafc; }
-                .bill-option-card:hover { transform: translateY(-4px); border-color: #0d9488; box-shadow: 0 10px 20px -5px rgba(13, 148, 136, 0.2); }
-                .shake { animation: shake-anim 0.5s cubic-bezier(.36,.07,.19,.97) both; }
-                @keyframes shake-anim { 10%, 90% { transform: translate3d(-1px, 0, 0); } 20%, 80% { transform: translate3d(2px, 0, 0); } 30%, 50%, 70% { transform: translate3d(-4px, 0, 0); } 40%, 60% { transform: translate3d(4px, 0, 0); } }
-                .input-field { font-size: 1rem; padding: 0.75rem 1rem 0.75rem 3rem; border-radius: 0.5rem; border: 1px solid #cbd5e1; width: 100%; transition: border-color 0.3s, box-shadow 0.3s; background-color: #ffffff; color: #0f172a; }
-                .input-group { position: relative; }
-                .input-icon { position: absolute; left: 1rem; top: 50%; transform: translateY(-50%); color: #94a3b8; }
-                .input-field:focus { border-color: #3b82f6; outline: none; box-shadow: 0 0 0 4px rgba(59, 130, 246, 0.1); }
-                .flatpickr-calendar { z-index: 10000 !important; }
-                .carousel-container { position: relative; overflow: hidden; border-radius: 1rem; background-color: #f1f5f9; box-shadow: inset 0 2px 4px rgba(0,0,0,0.05); border: 1px solid #e2e8f0;}
-                .carousel-track { display: flex; transition: transform 0.5s ease-in-out; }
-                .carousel-slide { flex-shrink: 0; width: 100%; padding: 1rem; text-align: center; }
-                .carousel-slide img { max-width: 100%; height: auto; max-height: 150px; margin: 0 auto 0.5rem; object-fit: contain; }
-                .carousel-dots { position: absolute; bottom: 0.75rem; left: 50%; transform: translateX(-50%); display: flex; gap: 0.5rem; }
-                .carousel-dot { width: 0.5rem; height: 0.5rem; border-radius: 50%; background-color: rgba(0,0,0,0.2); transition: background-color 0.3s; cursor: pointer; border: none; padding: 0;}
-                .carousel-dot.active { background-color: #3b82f6; }
-                .summary-cards-container { scrollbar-width: thin; scrollbar-color: #3b82f6 #e2e8f0; }
-                .calculate-btn-premium { position: relative; overflow: hidden; background: linear-gradient(45deg, #0d9488, #3b82f6); color: white; transition: all 0.3s ease; border: none;}
-                .calculate-btn-premium:hover { transform: translateY(-2px); box-shadow: 0 7px 20px -5px rgba(13, 148, 136, 0.5); }
-                .calculate-btn-premium::after { content: ''; position: absolute; top: 50%; left: 50%; width: 5px; height: 5px; background: rgba(255,255,255,0.7); border-radius: 50%; transform: translate(-50%, -50%) scale(0); transition: transform 0.8s, opacity 0.8s; }
-                .calculate-btn-premium:hover::after { transform: translate(-50%, -50%) scale(100); opacity: 0; }
-                .timeline { position: relative; padding-left: 2.5rem; text-align: left; }
-                .timeline-item { position: relative; padding-bottom: 2rem; }
-                .timeline-item::before { content: ''; position: absolute; left: -2.05rem; top: 0.25rem; width: 1.5rem; height: 1.5rem; border-radius: 50%; background-color: #e2e8f0; border: 3px solid #cbd5e1; transition: all 0.5s ease; }
-                .timeline-item.completed::before { background-color: #0d9488; border-color: #0d9488; box-shadow: 0 0 10px #0d9488; }
-                .timeline-item:not(:last-child)::after { content: ''; position: absolute; left: -1.4rem; top: 1.75rem; bottom: -0.5rem; width: 3px; background-color: #cbd5e1; }
-                .timeline-content { opacity: 0.5; transition: opacity 0.5s ease; color: #475569; }
-                .timeline-item.active .timeline-content { opacity: 1; }
-                .timeline-item.completed .timeline-content { opacity: 1; }
-                .loader-icon.animate-spin { animation: spin 1s linear infinite; }
-                @keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
-                .result-content { opacity: 0; transform: scale(0.8); animation: result-reveal 1s cubic-bezier(0.165, 0.84, 0.44, 1) forwards; z-index: 5; position: relative;}
-                .result-value { color: #0d9488; text-shadow: 0 0 25px rgba(13, 148, 136, 0.3), 0 0 10px rgba(13, 148, 136, 0.2); animation: result-glow-light 3s infinite alternate; }
-                @keyframes result-reveal { to { opacity: 1; transform: scale(1); } }
-                @keyframes result-glow-light { from { text-shadow: 0 0 25px rgba(13, 148, 136, 0.3); } to { text-shadow: 0 0 40px rgba(13, 148, 136, 0.5); } }
-                .progress-bar-container { width: 100%; max-width: 600px; margin-bottom: 1rem; opacity: 0; transition: opacity 0.5s; }
-                .progress-bar-container.visible { opacity: 1; }
-                .progress-bar { width: 100%; height: 8px; background-color: #e2e8f0; border-radius: 99px; overflow: hidden; }
-                .progress-bar-inner { height: 100%; background-color: #0d9488; transition: width 0.5s cubic-bezier(0.25, 0.46, 0.45, 0.94); }
-                .progress-labels { display: flex; justify-content: space-between; margin-top: 0.5rem; font-size: 0.75rem; color: #64748b; }
-                .progress-labels span { transition: color 0.5s; }
-                .progress-labels span.active { color: #0d9488; font-weight: 600; }
-                .confetti-container { position: absolute; top: 0; left: 0; width: 100%; height: 100%; pointer-events: none; z-index: 10; }
-                .confetti-piece { position: absolute; width: 8px; height: 16px; background: var(--color); top: -20px; opacity: 0; animation: drop var(--speed)s linear var(--delay)s forwards; }
-                @keyframes drop { from { transform: translateY(0) rotate(0); opacity: 1; } to { transform: translateY(90vh) rotate(var(--angle)deg); opacity: 0; } }
-            `}</style>
+            
 
             <div className="main-container font-sans">
                 <div className={`progress-bar-container ${calculatorStep > 0 && selectedBillCount > 0 ? 'visible' : ''}`}>

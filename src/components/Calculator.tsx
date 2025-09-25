@@ -1,11 +1,13 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
+import { useRouter } from "next/navigation";
 import { LucideIcon, type IconName } from "@/components/LucideIcon";
 import HomeOverview from "@/components/platform/HomeOverview";
 import CreditsHistory from "@/components/platform/CreditsHistory";
 import CreditsOverview from "@/components/platform/CreditsOverview";
 import MainCalculator from "@/components/platform/MainCalculator";
+import useAuth from "@/hooks/useAuth";
 
 interface CalculatorProps {
   onRequestBuyCredits?: () => void;
@@ -23,7 +25,11 @@ const CALCULATE_INDEX = navLinks.findIndex((link) => link.id === "calculate");
 type CalculatorSection = (typeof navLinks)[number]["id"];
 
 export function Calculator({ onRequestBuyCredits }: CalculatorProps) {
+  const router = useRouter();
+  const { logout } = useAuth();
+
   const [activeNavIndex, setActiveNavIndex] = useState(0);
+  const [isLeaving, setIsLeaving] = useState(false);
   const pageContainerRef = useRef<HTMLDivElement>(null);
   const navIndicatorRef = useRef<HTMLDivElement>(null);
   const navLinkRefs = useRef<Array<HTMLAnchorElement | null>>([]);
@@ -69,6 +75,19 @@ export function Calculator({ onRequestBuyCredits }: CalculatorProps) {
     window.addEventListener("resize", handleResize);
     return () => window.removeEventListener("resize", handleResize);
   }, [activeNavIndex, updateIndicator]);
+
+  const handleLogout = useCallback(async () => {
+    if (isLeaving) {
+      return;
+    }
+    setIsLeaving(true);
+    try {
+      await logout();
+      router.replace('/');
+    } finally {
+      setIsLeaving(false);
+    }
+  }, [isLeaving, logout, router]);
 
   const handleNavigateToHistory = useCallback(() => {
     navigateToSection("history");
@@ -134,6 +153,22 @@ export function Calculator({ onRequestBuyCredits }: CalculatorProps) {
                 </a>
               );
             })}
+            <div className="hidden h-8 w-px bg-slate-700/60 sm:block" />
+            <button
+              type="button"
+              className="nav-link rounded-lg p-2"
+              onClick={handleLogout}
+              disabled={isLeaving}
+            >
+              <div
+                className={`flex flex-col items-center gap-1 ${
+                  isLeaving ? "text-slate-400" : "text-slate-300"
+                }`}
+              >
+                <LucideIcon name="LogOut" className="h-6 w-6" />
+                <span className="text-xs font-medium">{isLeaving ? "Saindo..." : "Sair"}</span>
+              </div>
+            </button>
           </div>
         </nav>
       </div>
