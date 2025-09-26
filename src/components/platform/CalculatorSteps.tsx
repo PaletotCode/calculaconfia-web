@@ -1,487 +1,515 @@
-﻿import { FC, ReactNode } from "react";
+"use client";
+/* eslint-disable @next/next/no-img-element */
+
+import { useEffect, useMemo, useState, type FC, type ReactNode } from "react";
+import clsx from "clsx";
+import Flatpickr from "react-flatpickr";
+import "flatpickr/dist/flatpickr.css";
+import { Portuguese } from "flatpickr/dist/l10n/pt";
 import {
   AlertTriangle,
+  ArrowLeft,
+  Calendar,
   CheckCircle2,
+  Info,
   Loader2,
-  ShieldCheck,
-  Sparkles,
-  TrendingUp,
+  Receipt,
 } from "lucide-react";
-import clsx from "clsx";
 
-export interface BillOption {
+export interface BillOptionCard {
   id: number;
   label: string;
   selected: boolean;
-  description?: string;
 }
 
-export interface CalculatorFormState {
-  referenceMonth: string;
-  dueDate: string;
-  icmsPercentage: string;
-  additionalNotes: string;
+export interface BillFormViewModel {
+  issueDateValue: string;
+  issueDateLabel: string;
+  icmsValue: string;
 }
 
-type StepLayoutProps = {
-  children: ReactNode;
-  footer?: ReactNode;
-  highlight?: ReactNode;
-  className?: string;
-};
-
-const bottomPadding = "calc(24px + env(safe-area-inset-bottom))";
-
-const StepLayout: FC<StepLayoutProps> = ({ children, footer, highlight, className }) => (
-  <div
-    className={clsx(
-      "relative flex h-full w-full flex-col items-center overflow-hidden px-4",
-      className,
-    )}
-    style={{ minHeight: "100%" }}
-  >
-    {highlight}
-    <div className="flex flex-1 w-full flex-col items-center justify-center gap-6 text-center">
-      {children}
-    </div>
-    {footer ? (
-      <div className="mt-auto w-full" style={{ paddingBottom: bottomPadding }}>
-        {footer}
-      </div>
-    ) : null}
-  </div>
-);
+export interface TimelineItem {
+  title: string;
+  description: string;
+}
 
 export interface WelcomeStepProps {
+  isActive: boolean;
   onStart: () => void;
 }
 
-export const WelcomeStep: FC<WelcomeStepProps> = ({ onStart }) => (
-  <StepLayout
-    highlight={
-      <div className="absolute inset-x-0 top-0 flex justify-center pt-12">
-        <div className="rounded-full bg-emerald-100/60 px-4 py-1 text-xs font-medium text-emerald-700 shadow-sm">
-          <span className="inline-flex items-center gap-2">
-            <Sparkles className="h-4 w-4" aria-hidden />
-            Nova experiência de cálculo
-          </span>
-        </div>
+export const WelcomeStep: FC<WelcomeStepProps> = ({ isActive, onStart }) => {
+  const particles = useMemo(
+    () =>
+      Array.from({ length: 16 }, (_, index) => ({
+        id: index,
+        left: `${Math.random() * 100}%`,
+        delay: `${Math.random() * 5}s`,
+        duration: `${8 + Math.random() * 6}s`,
+        size: `${6 + Math.random() * 10}px`,
+      })),
+    [],
+  );
+
+  return (
+    <div id="welcome-step" className={clsx("calculator-step", isActive && "active")}>
+      <div id="welcome-bg" className="absolute inset-0">
+        {particles.map((particle) => (
+          <span
+            key={particle.id}
+            className="particle"
+            style={{
+              left: particle.left,
+              animationDelay: particle.delay,
+              animationDuration: particle.duration,
+              width: particle.size,
+              height: particle.size,
+            }}
+          />
+        ))}
       </div>
-    }
-    footer={
-      <button
-        type="button"
-        aria-label="Iniciar fluxo de cálculo"
-        className="h-12 w-full rounded-2xl bg-emerald-500 text-base font-semibold text-white shadow-lg shadow-emerald-500/40 transition hover:bg-emerald-600 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-emerald-600"
-        onClick={onStart}
-      >
-        Vamos começar
-      </button>
-    }
-  >
-    <div className="flex max-w-sm flex-col items-center gap-4">
-      <h1 className="text-3xl font-semibold text-slate-900">Vamos simular os seus créditos</h1>
-      <p className="text-base text-slate-600">
-        Organize faturas, faça ajustes e confira o potencial de recuperação em um fluxo simples e guiado.
-      </p>
+
+      <div className="welcome-content relative z-10 flex flex-col items-center text-center">
+        <h1 className="text-4xl md:text-5xl font-bold text-white drop-shadow-[0_0_15px_rgba(13,148,136,0.7)]">
+          É um prazer tê-lo aqui.
+        </h1>
+        <p className="mt-4 max-w-md text-base text-slate-300">
+          Vamos descobrir juntos o valor estimado que você pode ter a receber.
+        </p>
+        <button type="button" className="start-btn mt-8" onClick={onStart}>
+          Vamos começar
+        </button>
+      </div>
     </div>
-  </StepLayout>
-);
+  );
+};
 
-interface ControlButtonProps {
-  label: string;
-  variant: "primary" | "secondary" | "outline";
-  onClick: () => void;
+export interface SelectionStepProps {
+  isActive: boolean;
+  bills: BillOptionCard[];
+  onToggleBill: (id: number) => void;
+  onBack: () => void;
+  onContinue: () => void;
+  showRecommendation: boolean;
+  onAcceptRecommendation: () => void;
+  onDismissRecommendation: () => void;
+  disableContinue: boolean;
 }
 
-const ControlButton: FC<ControlButtonProps> = ({ label, variant, onClick }) => (
-  <button
-    type="button"
-    aria-label={label}
-    onClick={onClick}
-    className={clsx(
-      "h-12 w-full rounded-2xl text-base font-semibold transition focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2",
-      {
-        primary:
-          "bg-emerald-500 text-white shadow-lg shadow-emerald-500/30 hover:bg-emerald-600 focus-visible:outline-emerald-600",
-        secondary:
-          "border border-slate-200 bg-white text-slate-600 hover:border-emerald-400 hover:text-emerald-600 focus-visible:outline-emerald-400",
-        outline:
-          "border border-emerald-400 bg-emerald-50 text-emerald-600 hover:bg-emerald-100 focus-visible:outline-emerald-400",
-      }[variant],
-    )}
-  >
-    {label}
-  </button>
-);
-
-export interface BillSelectionStepProps {
-  bills: BillOption[];
-  onToggleBill: (billId: number) => void;
-  onNext: () => void;
-  onPrev: () => void;
-  showAlert: boolean;
-}
-
-export const BillSelectionStep: FC<BillSelectionStepProps> = ({
+export const SelectionStep: FC<SelectionStepProps> = ({
+  isActive,
   bills,
   onToggleBill,
-  onNext,
-  onPrev,
-  showAlert,
+  onBack,
+  onContinue,
+  showRecommendation,
+  onAcceptRecommendation,
+  onDismissRecommendation,
+  disableContinue,
 }) => (
-  <StepLayout
-    highlight={
-      <div
-        className={clsx(
-          "pointer-events-none absolute left-1/2 top-6 z-10 flex w-[90%] max-w-sm -translate-x-1/2 transform justify-center transition-all duration-300",
-          showAlert ? "translate-y-0 opacity-100" : "-translate-y-6 opacity-0",
-        )}
-      >
-        <div className="flex w-full items-center gap-3 rounded-2xl bg-amber-50 px-4 py-3 text-amber-700 shadow-lg">
-          <AlertTriangle className="h-5 w-5" aria-hidden />
-          <p className="text-sm font-medium">Selecione ao menos três faturas para uma simulação mais precisa.</p>
-        </div>
-      </div>
-    }
-    footer={
-      <div className="flex flex-col gap-3">
-        <div className="flex gap-3">
-          <ControlButton label="Voltar" variant="secondary" onClick={onPrev} />
-          <ControlButton label="Continuar" variant="primary" onClick={onNext} />
-        </div>
-      </div>
-    }
-  >
-    <div className="flex w-full max-w-lg flex-col items-center gap-8">
-      <header className="flex flex-col gap-2 text-center">
-        <h2 className="text-2xl font-semibold text-slate-900">Quais faturas você quer incluir?</h2>
-        <p className="text-sm text-slate-500">Escolha entre 1 e 12 faturas recentes. Você pode ajustar depois.</p>
-      </header>
+  <div id="selection-step" className={clsx("calculator-step bg-white", isActive && "active")}>
+    <button type="button" className="back-btn" onClick={onBack} aria-label="Voltar">
+      <ArrowLeft className="h-6 w-6 text-slate-600" />
+    </button>
 
-      <div className="grid w-full grid-cols-2 gap-4 sm:grid-cols-3">
+    <div className="flex h-full w-full max-w-3xl flex-col justify-center overflow-y-auto px-4 pb-24 text-center">
+      <h2 className="text-3xl font-bold text-slate-900">Você tem quantas contas em mãos?</h2>
+      <p className="mt-2 text-slate-500">
+        Selecione o número de faturas que você usará para a simulação.
+      </p>
+
+      <div className="mt-8 grid grid-cols-3 gap-3 sm:grid-cols-4 sm:gap-4 md:grid-cols-6">
         {bills.map((bill) => (
           <button
             key={bill.id}
             type="button"
-            aria-label={`Selecionar fatura ${bill.label}`}
-            aria-pressed={bill.selected}
-            onClick={() => onToggleBill(bill.id)}
             className={clsx(
-              "relative flex h-28 flex-col items-center justify-center gap-2 rounded-2xl border-2 text-center transition",
+              "bill-option relative flex aspect-square flex-col items-center justify-center rounded-2xl border text-center font-semibold transition-all duration-200",
               bill.selected
-                ? "border-emerald-500 bg-emerald-50 text-emerald-700 shadow-lg shadow-emerald-500/10"
+                ? "selected border-emerald-500 bg-emerald-50 text-emerald-600 shadow-lg shadow-emerald-500/20"
                 : "border-slate-200 bg-white text-slate-600 hover:border-emerald-400 hover:text-emerald-600",
             )}
+            onClick={() => onToggleBill(bill.id)}
+            aria-pressed={bill.selected}
           >
-            <span className="text-sm font-semibold">Fatura {bill.id.toString().padStart(2, "0")}</span>
-            <span className="text-xs text-slate-400">
-              {bill.description ?? "Últimos 30 dias"}
-            </span>
+            <span className="text-2xl">{bill.id.toString().padStart(2, "0")}</span>
+            <span className="mt-1 text-xs text-slate-400">Fatura</span>
           </button>
         ))}
       </div>
+
+      {showRecommendation ? (
+        <div
+          className="alert-banner mt-6 max-w-lg self-center rounded-lg border-l-4 border-red-500 bg-red-100 p-4 text-left text-red-800"
+          role="alert"
+        >
+          <div className="flex items-start gap-3">
+            <AlertTriangle className="mt-1 h-6 w-6 flex-shrink-0 text-red-600" />
+            <div>
+              <p className="font-bold">Recomendação</p>
+              <p className="text-sm">
+                Para uma melhor estimativa, recomendamos iniciar com pelo menos três contas.
+              </p>
+              <div className="mt-3 flex flex-col items-stretch gap-3 sm:flex-row sm:justify-start">
+                <button
+                  type="button"
+                  className="rounded-lg bg-red-500 px-4 py-2 text-sm font-semibold text-white transition hover:bg-red-600"
+                  onClick={onAcceptRecommendation}
+                >
+                  Usar 3 faturas
+                </button>
+                <button
+                  type="button"
+                  className="rounded-lg bg-slate-200 px-4 py-2 text-sm font-semibold text-slate-700 transition hover:bg-slate-300"
+                  onClick={onDismissRecommendation}
+                >
+                  Continuar mesmo assim
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      ) : null}
+
+      <div className="mt-10 flex flex-col gap-4 sm:flex-row sm:justify-center">
+        <button
+          type="button"
+          className="rounded-full border border-slate-300 px-6 py-3 text-sm font-semibold text-slate-600 transition hover:border-slate-400 hover:text-slate-700"
+          onClick={onBack}
+        >
+          Voltar
+        </button>
+        <button
+          type="button"
+          className={clsx(
+            "rounded-full px-6 py-3 text-sm font-semibold text-white shadow-lg transition",
+            disableContinue
+              ? "bg-slate-400 cursor-not-allowed shadow-none"
+              : "start-btn",
+          )}
+          onClick={onContinue}
+          disabled={disableContinue}
+        >
+          Continuar
+        </button>
+      </div>
     </div>
-  </StepLayout>
+  </div>
 );
 
 export interface FormStepProps {
-  billCount: number;
-  formState: CalculatorFormState;
-  onChange: (field: keyof CalculatorFormState, value: string) => void;
-  onPrev: () => void;
+  isActive: boolean;
+  index: number;
+  total: number;
+  form: BillFormViewModel;
+  onDateChange: (value: Date[]) => void;
+  onIcmsChange: (value: string) => void;
   onNext: () => void;
+  onBack: () => void;
+  errorMessage?: string | null;
+  isLast: boolean;
 }
 
-export const FormStep: FC<FormStepProps> = ({ billCount, formState, onChange, onPrev, onNext }) => (
-  <StepLayout
-    footer={
-      <div className="flex flex-col gap-3">
-        <div className="flex gap-3">
-          <ControlButton label="Voltar" variant="secondary" onClick={onPrev} />
-          <ControlButton label="Próxima" variant="outline" onClick={onNext} />
-        </div>
-        <button
-          type="button"
-          aria-label="Finalizar ajustes e avançar"
-          className="h-12 w-full rounded-2xl bg-emerald-500 text-base font-semibold text-white shadow-lg shadow-emerald-500/30 transition hover:bg-emerald-600 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-emerald-600"
-          onClick={onNext}
-        >
-          Finalizar etapa
-        </button>
-      </div>
+const carouselSlides = [
+  {
+    title: "Onde encontrar o ICMS?",
+    description:
+      "Procure na seção 'Detalhes de Faturamento' ou 'Tributos' da sua conta de energia.",
+    image: "https://placehold.co/400x300/e2e8f0/64748b?text=Onde+encontrar+o+ICMS%3F",
+  },
+  {
+    title: "Preencha o valor exato",
+    description: "Use vírgula para centavos, por exemplo: 45,78.",
+    image: "https://placehold.co/400x300/e2e8f0/64748b?text=Preencha+o+valor+exato",
+  },
+  {
+    title: "Use a data da fatura",
+    description: "A data de vencimento ou de emissão pode ser usada como referência.",
+    image: "https://placehold.co/400x300/e2e8f0/64748b?text=Data+da+fatura",
+  },
+];
+
+export const FormStep: FC<FormStepProps> = ({
+  isActive,
+  index,
+  total,
+  form,
+  onDateChange,
+  onIcmsChange,
+  onNext,
+  onBack,
+  errorMessage,
+  isLast,
+}) => {
+  const [activeSlide, setActiveSlide] = useState(0);
+
+  useEffect(() => {
+    if (!isActive) {
+      return;
     }
-  >
-    <div className="flex w-full max-w-md flex-col items-center gap-6">
-      <header className="flex flex-col gap-2 text-center">
-        <h2 className="text-2xl font-semibold text-slate-900">Ajuste os detalhes fiscais</h2>
-        <p className="text-sm text-slate-500">
-          Informe os campos para {billCount} {billCount === 1 ? "fatura" : "faturas"} selecionadas e confira as dicas.
-        </p>
-      </header>
+    const interval = window.setInterval(() => {
+      setActiveSlide((prev) => (prev + 1) % carouselSlides.length);
+    }, 5000);
+    return () => window.clearInterval(interval);
+  }, [isActive]);
 
-      <form
-        className="flex w-full flex-col gap-4 text-left"
-        aria-label="Formulário de configuração das faturas"
-        onSubmit={(event) => {
-          event.preventDefault();
-          onNext();
-        }}
-      >
-        <label className="flex flex-col gap-1">
-          <span className="text-sm font-medium text-slate-600">Mês de referência</span>
-          <input
-            aria-label="Selecionar mês de referência"
-            type="month"
-            value={formState.referenceMonth}
-            onChange={(event) => onChange("referenceMonth", event.target.value)}
-            className="h-12 rounded-2xl border border-slate-200 bg-white px-4 text-sm text-slate-700 shadow-sm focus:border-emerald-400 focus:outline-none focus:ring-2 focus:ring-emerald-100"
-          />
-        </label>
-
-        <label className="flex flex-col gap-1">
-          <span className="text-sm font-medium text-slate-600">Data limite para envio</span>
-          <input
-            aria-label="Selecionar data limite"
-            type="date"
-            value={formState.dueDate}
-            onChange={(event) => onChange("dueDate", event.target.value)}
-            className="h-12 rounded-2xl border border-slate-200 bg-white px-4 text-sm text-slate-700 shadow-sm focus:border-emerald-400 focus:outline-none focus:ring-2 focus:ring-emerald-100"
-          />
-        </label>
-
-        <label className="flex flex-col gap-1">
-          <span className="text-sm font-medium text-slate-600">Percentual de ICMS estimado</span>
-          <input
-            aria-label="Informar percentual de ICMS"
-            type="number"
-            min={0}
-            max={100}
-            step={0.01}
-            value={formState.icmsPercentage}
-            onChange={(event) => onChange("icmsPercentage", event.target.value)}
-            className="h-12 rounded-2xl border border-slate-200 bg-white px-4 text-sm text-slate-700 shadow-sm focus:border-emerald-400 focus:outline-none focus:ring-2 focus:ring-emerald-100"
-          />
-        </label>
-
-        <label className="flex flex-col gap-1">
-          <span className="text-sm font-medium text-slate-600">Anotações adicionais</span>
-          <textarea
-            aria-label="Adicionar observações"
-            value={formState.additionalNotes}
-            onChange={(event) => onChange("additionalNotes", event.target.value)}
-            className="h-24 resize-none rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm text-slate-700 shadow-sm focus:border-emerald-400 focus:outline-none focus:ring-2 focus:ring-emerald-100"
-          />
-        </label>
-      </form>
-
-      <TipsCarousel />
-    </div>
-  </StepLayout>
-);
-
-const TipsCarousel: FC = () => {
-  const tips = [
-    {
-      title: "Organize por segmento",
-      description: "Separe as faturas por unidade consumidora para acelerar a conferência.",
-    },
-    {
-      title: "Revise o ICMS",
-      description: "Confirme as alíquotas antes de enviar a simulação para evitar retrabalho.",
-    },
-    {
-      title: "Compartilhe com o time",
-      description: "Envie o resumo para os responsáveis financeiros antes da confirmação.",
-    },
-  ];
+  useEffect(() => {
+    if (!isActive) {
+      setActiveSlide(0);
+    }
+  }, [isActive]);
 
   return (
-    <div className="w-full max-w-md">
-      <h3 className="mb-3 text-left text-xs font-semibold uppercase tracking-wider text-slate-400">
-        Dicas rápidas
-      </h3>
-      <div
-        className="flex gap-4 overflow-x-auto pb-2"
-        role="list"
-        aria-label="Carrossel de dicas"
-      >
-        {tips.map((tip, index) => (
-          <article
-            key={tip.title}
-            className="min-w-[220px] rounded-2xl border border-slate-200 bg-white p-4 text-left shadow-sm"
-            role="listitem"
-          >
-            <div className="mb-3 flex items-center gap-2 text-emerald-600">
-              <ShieldCheck className="h-4 w-4" aria-hidden />
-              <span className="text-xs font-semibold uppercase tracking-wider">#{index + 1}</span>
+    <div className={clsx("calculator-step form-step bg-white", isActive && "active")}>
+      <button type="button" className="back-btn" onClick={onBack} aria-label="Voltar">
+        <ArrowLeft className="h-6 w-6 text-slate-600" />
+      </button>
+
+      <div className="flex h-full w-full flex-col items-center justify-center overflow-y-auto px-4 pb-24">
+        <div className="flex w-full max-w-4xl flex-col items-center justify-center gap-12 md:flex-row">
+          <div className="order-2 w-full text-center md:order-1 md:w-1/2 md:text-left">
+            <h2 className="text-2xl font-bold text-slate-900 sm:text-3xl">
+              Fatura {index + 1} de {total}
+            </h2>
+            <p className="mt-2 mb-6 text-sm text-slate-500 sm:text-base">
+              Preencha os dados desta fatura. As informações são salvas automaticamente.
+            </p>
+
+            <div className="input-group">
+              <Calendar className="input-icon" />
+              <Flatpickr
+                value={form.issueDateValue}
+                options={{
+                  altInput: true,
+                  altFormat: "d 'de' F, Y",
+                  dateFormat: "Y-m-d",
+                  locale: Portuguese,
+                }}
+                className="input-field"
+                onChange={onDateChange}
+                placeholder="Data da fatura"
+              />
             </div>
-            <h4 className="text-base font-semibold text-slate-800">{tip.title}</h4>
-            <p className="mt-2 text-sm text-slate-500">{tip.description}</p>
-          </article>
-        ))}
+
+            <div className="input-group mt-4">
+              <Receipt className="input-icon" />
+              <input
+                type="text"
+                value={form.icmsValue}
+                onChange={(event) => onIcmsChange(event.target.value)}
+                className="input-field"
+                placeholder="Valor do ICMS (R$)"
+                inputMode="decimal"
+                aria-label="Valor do ICMS"
+              />
+            </div>
+
+            <button
+              type="button"
+              className="calculate-btn-premium mt-6 w-full rounded-lg py-3 text-lg font-semibold"
+              onClick={onNext}
+            >
+              {isLast ? "Finalizar e Confirmar" : "Próxima Fatura"}
+            </button>
+
+            <div className="form-error-message mt-4 h-5 text-sm text-red-600">
+              {errorMessage ?? ""}
+            </div>
+          </div>
+
+          <div className="order-1 w-full md:order-2 md:w-1/2">
+            <p className="mb-2 text-center text-sm font-semibold text-slate-600 md:hidden">
+              Dicas rápidas:
+            </p>
+            <div className="carousel-container aspect-video md:aspect-square">
+              <div
+                className="carousel-track"
+                style={{ transform: `translateX(-${activeSlide * 100}%)` }}
+              >
+                {carouselSlides.map((slide) => (
+                  <div key={slide.title} className="carousel-slide">
+                    <img src={slide.image} alt={slide.title} className="mx-auto mb-3 max-h-40 w-full object-cover" />
+                    <p className="text-sm font-semibold text-slate-700 sm:text-base">{slide.title}</p>
+                    <p className="mt-1 text-xs text-slate-500 sm:text-sm">{slide.description}</p>
+                  </div>
+                ))}
+              </div>
+              <div className="carousel-dots">
+                {carouselSlides.map((slide, slideIndex) => (
+                  <button
+                    key={slide.title}
+                    type="button"
+                    className={clsx("carousel-dot", activeSlide === slideIndex && "active")}
+                    onClick={() => setActiveSlide(slideIndex)}
+                    aria-label={`Ir para dica ${slideIndex + 1}`}
+                  />
+                ))}
+              </div>
+            </div>
+          </div>
+        </div>
       </div>
     </div>
   );
 };
 
 export interface ConfirmationStepProps {
-  selectedBills: BillOption[];
-  onPrev: () => void;
+  isActive: boolean;
+  forms: BillFormViewModel[];
+  onBack: () => void;
   onConfirm: () => void;
 }
 
-export const ConfirmationStep: FC<ConfirmationStepProps> = ({ selectedBills, onPrev, onConfirm }) => (
-  <StepLayout
-    footer={
-      <div className="flex flex-col gap-3">
-        <div className="flex gap-3">
-          <ControlButton label="Voltar" variant="secondary" onClick={onPrev} />
-          <ControlButton label="Confirmar e Calcular" variant="primary" onClick={onConfirm} />
-        </div>
-      </div>
-    }
-  >
-    <div className="flex w-full max-w-md flex-col items-center gap-6">
-      <header className="flex flex-col gap-2 text-center">
-        <h2 className="text-2xl font-semibold text-slate-900">Tudo pronto para calcular</h2>
-        <p className="text-sm text-slate-500">Confira o resumo antes de consumir seus créditos.</p>
-      </header>
+export const ConfirmationStep: FC<ConfirmationStepProps> = ({
+  isActive,
+  forms,
+  onBack,
+  onConfirm,
+}) => (
+  <div id="confirmation-step" className={clsx("calculator-step bg-slate-100 !pb-24", isActive && "active")}>
+    <button type="button" className="back-btn" onClick={onBack} aria-label="Voltar">
+      <ArrowLeft className="h-6 w-6 text-slate-600" />
+    </button>
 
-      <div className="w-full rounded-2xl border border-slate-200 bg-white p-4 text-left shadow-sm">
-        <h3 className="text-sm font-semibold text-slate-500">Faturas selecionadas</h3>
-        <ul className="mt-3 flex flex-col gap-3">
-          {selectedBills.map((bill) => (
-            <li key={bill.id} className="flex items-center justify-between rounded-xl bg-slate-50 px-3 py-2">
-              <span className="text-sm font-medium text-slate-700">Fatura {bill.id.toString().padStart(2, "0")}</span>
-              <CheckCircle2 className="h-5 w-5 text-emerald-500" aria-hidden />
-            </li>
-          ))}
-        </ul>
+    <div className="w-full max-w-lg rounded-2xl bg-white p-6 text-center shadow-lg md:p-8">
+      <h2 className="text-2xl font-bold text-slate-900">Resumo da Simulação</h2>
+      <p className="mt-2 mb-6 text-slate-500">
+        Confira os dados das faturas que você inseriu. Se tudo estiver correto, podemos prosseguir.
+      </p>
+
+      <div className="summary-cards-container max-h-60 space-y-4 overflow-y-auto rounded-lg border bg-slate-50 p-4 text-left">
+        {forms.map((form, index) => (
+          <div key={`summary-${index}`} className="flex items-center justify-between rounded-xl bg-white p-4 shadow-sm">
+            <div>
+              <p className="text-sm font-semibold text-slate-700">Fatura {index + 1}</p>
+              <p className="text-xs text-slate-500">Data: {form.issueDateLabel || "—"}</p>
+            </div>
+            <div className="text-right">
+              <p className="text-sm font-semibold text-emerald-600">ICMS</p>
+              <p className="text-xs text-slate-500">R$ {form.icmsValue || "0,00"}</p>
+            </div>
+          </div>
+        ))}
       </div>
 
-      <div className="w-full rounded-2xl bg-emerald-50 p-4 text-left text-sm text-emerald-700">
-        Cada cálculo consome 1 crédito. Certifique-se de ter saldo disponível antes de confirmar.
+      <div className="mt-6 flex items-center gap-3 rounded-lg bg-blue-100 p-4 text-sm text-blue-800">
+        <Info className="h-5 w-5 flex-shrink-0" />
+        <span>Esta simulação consumirá <strong>1 crédito</strong> do seu saldo.</span>
       </div>
+
+      <button
+        type="button"
+        className="calculate-btn-premium mt-6 w-full rounded-lg py-3 text-lg font-semibold"
+        onClick={onConfirm}
+      >
+        Confirmar e Calcular
+      </button>
     </div>
-  </StepLayout>
+  </div>
 );
 
 export interface LoadingStepProps {
+  isActive: boolean;
   activeIndex: number;
+  items: TimelineItem[];
 }
 
-export const LoadingStep: FC<LoadingStepProps> = ({ activeIndex }) => {
-  const steps = [
-    "Validando parâmetros",
-    "Conferindo legislações",
-    "Calculando créditos",
-    "Gerando resumo",
-    "Finalizando simulação",
-  ];
-
-  return (
-    <StepLayout className="pt-10">
-      <div className="flex w-full max-w-sm flex-col items-center gap-4">
-        <Loader2 className="h-12 w-12 animate-spin text-emerald-500" aria-hidden />
-        <h2 className="text-2xl font-semibold text-slate-900">Processando sua simulação</h2>
-        <p className="text-sm text-slate-500">Fique por aqui, isso leva poucos segundos.</p>
-      </div>
-
-      <ol className="flex w-full max-w-sm flex-col gap-4" aria-label="Linha do tempo do cálculo">
-        {steps.map((label, index) => (
-          <li key={label} className="relative flex items-start gap-3">
-            <span
-              className={clsx(
-                "mt-1 flex h-6 w-6 items-center justify-center rounded-full border text-xs font-semibold",
-                index < activeIndex
-                  ? "border-emerald-500 bg-emerald-500 text-white"
-                  : index === activeIndex
-                    ? "border-emerald-500 bg-white text-emerald-600"
-                    : "border-slate-200 bg-white text-slate-300",
-              )}
-            >
-              {index < activeIndex ? "" : index + 1}
-            </span>
-            <div className="flex flex-1 flex-col">
-              <span
-                className={clsx(
-                  "text-sm font-medium",
-                  index <= activeIndex ? "text-slate-800" : "text-slate-400",
-                )}
-              >
-                {label}
-              </span>
-              <div className="mt-2 h-1 rounded-full bg-slate-100">
-                <div
-                  className={clsx(
-                    "h-1 rounded-full bg-emerald-500 transition-all duration-500 ease-out",
-                    index < activeIndex
-                      ? "w-full"
-                      : index === activeIndex
-                        ? "w-3/4"
-                        : "w-0",
-                  )}
-                />
-              </div>
+export const LoadingStep: FC<LoadingStepProps> = ({ isActive, activeIndex, items }) => (
+  <div id="loading-step" className={clsx("calculator-step", isActive && "active")}>
+    <div className="mx-auto flex w full max-w-md flex-col items-start justify-center gap-8 p-6 text-left">
+      <h2 className="text-3xl font-bold text-white">Processando sua simulação...</h2>
+      <div className="timeline w-full">
+        {items.map((item, index) => (
+          <div
+            key={item.title}
+            className={clsx(
+              "timeline-item",
+              index < activeIndex && "completed",
+              index === activeIndex && "active",
+            )}
+          >
+            <div className="timeline-content">
+              <h3 className="text-base font-semibold text-slate-100">{item.title}</h3>
+              <p className="mt-1 text-sm text-slate-400">{item.description}</p>
             </div>
-          </li>
+            <div className="loader-icon absolute left-[-2.05rem] top-[0.25rem] flex h-6 w-6 items-center justify-center text-emerald-500">
+              {index < activeIndex ? (
+                <CheckCircle2 className="h-4 w-4" />
+              ) : index === activeIndex ? (
+                <Loader2 className="h-4 w-4 animate-spin" />
+              ) : null}
+            </div>
+          </div>
         ))}
-      </ol>
-    </StepLayout>
-  );
-};
+      </div>
+    </div>
+  </div>
+);
 
 export interface ResultStepProps {
-  billCount: number;
-  simulatedAmount: number;
+  isActive: boolean;
+  amount: string;
   onRestart: () => void;
   onViewSummary: () => void;
 }
 
-export const ResultStep: FC<ResultStepProps> = ({
-  billCount,
-  simulatedAmount,
-  onRestart,
-  onViewSummary,
-}) => (
-  <StepLayout
-    footer={
-      <div className="flex flex-col gap-3">
-        <ControlButton label="Começar de novo" variant="secondary" onClick={onRestart} />
+export const ResultStep: FC<ResultStepProps> = ({ isActive, amount, onRestart, onViewSummary }) => (
+  <div id="result-step" className={clsx("calculator-step", isActive && "active")}>
+    <div className="result-content text-center pb-24">
+      <p className="mb-2 text-2xl text-slate-300">Seu valor estimado de restituição é de</p>
+      <h2 className="result-value text-6xl font-bold md:text-7xl">{amount}</h2>
+      <div className="mt-12 flex flex-col gap-4 sm:flex-row sm:justify-center">
         <button
           type="button"
-          aria-label="Ver resumo da simulação"
-          className="h-12 w-full rounded-2xl bg-emerald-500 text-base font-semibold text-white shadow-lg shadow-emerald-500/30 transition hover:bg-emerald-600 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-emerald-600"
-          onClick={onViewSummary}
+          className="rounded-full bg-slate-200 px-6 py-3 font-semibold text-slate-800 transition hover:bg-slate-300"
+          onClick={onRestart}
         >
-          Ver resumo
+          Começar de novo
+        </button>
+        <button type="button" className="start-btn" onClick={onViewSummary}>
+          Ver o resumo
         </button>
       </div>
-    }
-  >
-    <div className="flex w-full max-w-md flex-col items-center gap-6">
-      <header className="flex flex-col items-center gap-3 text-center">
-        <TrendingUp className="h-12 w-12 text-emerald-500" aria-hidden />
-        <h2 className="text-3xl font-semibold text-slate-900">Simulação concluída</h2>
-        <p className="text-sm text-slate-500">
-          Estimativa com {billCount} {billCount === 1 ? "fatura" : "faturas"} selecionadas.
-        </p>
-      </header>
-
-      <div className="w-full rounded-3xl border border-slate-200 bg-white p-6 text-center shadow-sm">
-        <span className="text-sm uppercase tracking-[0.2em] text-emerald-500">Crédito potencial</span>
-        <p className="mt-3 text-4xl font-bold text-slate-900">
-          {simulatedAmount.toLocaleString("pt-BR", {
-            style: "currency",
-            currency: "BRL",
-            minimumFractionDigits: 2,
-          })}
-        </p>
-        <p className="mt-3 text-sm text-slate-500">
-          Esse valor é apenas uma estimativa inicial. Gere o resumo completo e compartilhe com o time fiscal.
-        </p>
-      </div>
     </div>
-  </StepLayout>
+  </div>
+);
+
+export interface ErrorOverlayProps {
+  title: string;
+  messages: string[];
+  primaryActionLabel: string;
+  onPrimaryAction: () => void;
+}
+
+export const ErrorOverlay: FC<ErrorOverlayProps> = ({
+  title,
+  messages,
+  primaryActionLabel,
+  onPrimaryAction,
+}) => (
+  <div className="error-overlay">
+    <div className="error-modal">
+      <h3 className="text-lg font-semibold text-slate-900">{title}</h3>
+      <div className="mt-4 space-y-2 text-sm text-slate-600">
+        {messages.map((message, index) => (
+          <p key={`${message}-${index}`}>{message}</p>
+        ))}
+      </div>
+      <button type="button" className="start-btn mt-6 w-full" onClick={onPrimaryAction}>
+        {primaryActionLabel}
+      </button>
+    </div>
+  </div>
+);
+
+export interface BottomHintProps {
+  children: ReactNode;
+}
+
+export const BottomHint: FC<BottomHintProps> = ({ children }) => (
+  <div className="pointer-events-none absolute inset-x-0 bottom-10 flex justify-center px-4">
+    <div className="pointer-events-auto rounded-2xl bg-white/80 px-4 py-2 text-xs font-medium text-emerald-600 shadow-lg backdrop-blur">
+      {children}
+    </div>
+  </div>
 );
