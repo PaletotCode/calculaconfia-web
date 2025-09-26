@@ -96,7 +96,7 @@ export function Calculator({ onRequestBuyCredits }: CalculatorProps) {
   const isCalculateVisible = activeNavIndex === CALCULATE_INDEX;
 
   return (
-    <div className="calculator-root flex min-h-screen w-full flex-col bg-gradient-to-br from-slate-50 via-white to-slate-200">
+    <div className="calculator-root flex min-h-screen w-full flex-col">
       <main className="flex-grow w-full overflow-hidden pb-24 lg:pb-32">
         <div
           id="page-container"
@@ -176,12 +176,16 @@ export function Calculator({ onRequestBuyCredits }: CalculatorProps) {
       <style jsx global>{`
         .calculator-root {
           overflow: hidden;
+          background: linear-gradient(180deg, #f8fafc 0%, #f1f5f9 35%, #e2e8f0 100%);
         }
         .calculator-root #page-container {
           display: flex;
           width: 400%;
           height: 100%;
           transition: transform 0.5s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+        }
+        .calculator-root #page-container > .page {
+          min-height: 100vh;
         }
         .calculator-root .page {
           width: 25%;
