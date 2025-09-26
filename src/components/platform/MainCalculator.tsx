@@ -2,7 +2,6 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import clsx from "clsx";
-import IMask from "imask";
 import {
   BottomHint,
   BillFormViewModel,
@@ -68,17 +67,19 @@ const DEFAULT_FORM_STATE: FormState = {
   icmsValue: "",
 };
 
-const buildCurrencyMask = () =>
-  IMask.createMask({
-    mask: Number,
-    scale: 2,
-    signed: false,
-    thousandsSeparator: ".",
-    padFractionalZeros: true,
-    normalizeZeros: true,
-    radix: ",",
-    mapToRadix: ["."],
-  });
+const formatCurrencyInput = (rawValue: string) => {
+  const cleaned = rawValue.replace(/[^0-9,]/g, '').replace(/,+/g, ',');
+  if (!cleaned) {
+    return '';
+  }
+
+  const parts = cleaned.split(',');
+  const integerPart = parts[0]?.replace(/^0+(?!$)/, '') || '0';
+  const decimalPart = (parts[1] ?? '').slice(0, 2);
+  const integerWithThousands = integerPart.replace(/\B(?=(\d{3})+(?!\d))/g, '.');
+
+  return decimalPart ? `${integerWithThousands},${decimalPart}` : integerWithThousands;
+};
 
 const formatBRL = (value: number) =>
   value.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
@@ -276,7 +277,7 @@ const MainCalculator = ({
       if (!currentFormId) {
         return;
       }
-      const formatted = buildCurrencyMask().resolve(rawValue);
+      const formatted = formatCurrencyInput(rawValue);
       setFormStateByBill((prev) => ({
         ...prev,
         [currentFormId]: {
@@ -995,3 +996,4 @@ const MainCalculator = ({
 };
 
 export default MainCalculator;
+
