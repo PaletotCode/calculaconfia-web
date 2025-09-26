@@ -120,25 +120,6 @@ const formatDateForDisplay = (value?: string): string => {
   return value;
 };
 
-const sanitizeMonthInput = (raw: string): string => {
-  const digits = raw.replace(/\D/g, '');
-
-  if (digits.length === 0) {
-    return '';
-  }
-
-  if (digits.length <= 2) {
-    return digits;
-  }
-
-  const monthDigits = digits.slice(0, 2);
-  const monthNumber = Math.min(Math.max(Number(monthDigits) || 1, 1), 12);
-  const month = monthNumber.toString().padStart(2, '0');
-  const year = digits.slice(2, 6);
-
-  return year ? `${month}/${year}` : month;
-};
-
 const sanitizeCurrencyInput = (raw: string): string => {
   const cleaned = raw.replace(/[^\d.,]/g, '');
   if (!cleaned) {
@@ -299,6 +280,13 @@ const MainCalculator: FC<MainCalculatorProps> = ({ onRequestBuyCredits, onNaviga
     []
   );
 
+  const currentMonthValue = useMemo(() => {
+    const now = new Date();
+    const month = String(now.getMonth() + 1).padStart(2, '0');
+    return `${now.getFullYear()}-${month}`;
+  }, []);
+
+
   const confirmationStepIndex = 2 + selectedBillCount;
   const loadingStepIndex = confirmationStepIndex + 1;
   const resultStepIndex = loadingStepIndex + 1;
@@ -439,7 +427,7 @@ const MainCalculator: FC<MainCalculatorProps> = ({ onRequestBuyCredits, onNaviga
   };
 
   const handleBillDateChange = (index: number, value: string) => {
-    updateBillData(index, 'date', sanitizeMonthInput(value));
+    updateBillData(index, 'date', value);
     clearFieldError(index, 'date');
   };
 
@@ -735,14 +723,13 @@ const MainCalculator: FC<MainCalculatorProps> = ({ onRequestBuyCredits, onNaviga
                   <div className="input-group">
                     <CalendarClock className="input-icon" />
                     <input
-                      type="text"
-                      inputMode="numeric"
-                      maxLength={7}
-                      placeholder="Data da fatura (MM/AAAA)"
+                      type="month"
                       className={classNames('input-field', formErrors.includes(`date-${formIndex}`) && 'input-error')}
                       value={bill.date}
+                      max={currentMonthValue}
                       onChange={(event) => handleBillDateChange(formIndex, event.target.value)}
                       aria-invalid={formErrors.includes(`date-${formIndex}`)}
+                      aria-label="Selecione o mês da fatura"
                     />
                   </div>
 

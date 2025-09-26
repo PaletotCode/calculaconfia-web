@@ -3,13 +3,13 @@
   z-index: 1;
   width: min(100%, 1280px);
   margin: 0 auto;
-  padding: clamp(1.5rem, 4vw, 3rem);
+  padding: clamp(1.25rem, 3vw, 2.5rem);
   min-height: 100dvh;
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  gap: clamp(1.25rem, 3vw, 2rem);
+  gap: clamp(1rem, 2.5vw, 1.75rem);
   overflow: hidden;
 }
 
@@ -28,7 +28,7 @@
 #calculate-container {
   position: relative;
   width: min(100%, 1120px);
-  height: clamp(560px, 88dvh, 820px);
+  height: clamp(480px, 72dvh, 760px);
   padding: clamp(1.5rem, 4vw, 3rem);
   background: rgba(255, 255, 255, 0.82);
   backdrop-filter: blur(14px);
@@ -754,9 +754,15 @@
   }
 }
 
+@media (min-width: 1280px) {
+  #calculate-container {
+    height: clamp(520px, 66dvh, 700px);
+  }
+}
+
 @media (max-width: 1100px) {
   #calculate-container {
-    height: clamp(520px, 90dvh, 760px);
+    height: clamp(500px, 82dvh, 720px);
   }
 
   .form-content {
@@ -773,9 +779,6 @@
 }
 
 @media (max-width: 768px) {
-  .main-container {
-    padding: 1.5rem;
-  }
 
   #calculate-container {
     padding: 1.75rem;
