@@ -3,10 +3,10 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { LucideIcon, type IconName } from "@/components/LucideIcon";
-import HomeOverview from "@/components/platform/HomeOverview";
-import CreditsHistory from "@/components/platform/CreditsHistory";
-import CreditsOverview from "@/components/platform/CreditsOverview";
 import MainCalculator from "@/components/platform/MainCalculator";
+import HomePage from "@/components/platform/pages/HomePage";
+import HistoryPage from "@/components/platform/pages/HistoryPage";
+import CreditsPage from "@/components/platform/pages/CreditsPage";
 import useAuth from "@/hooks/useAuth";
 
 interface CalculatorProps {
@@ -14,7 +14,7 @@ interface CalculatorProps {
 }
 
 const navLinks: Array<{ id: string; label: string; icon: IconName; color: string }> = [
-  { id: "Home", label: "InÃ­cio", icon: "House", color: "#0d9488" },
+  { id: "home", label: "Iní­cio", icon: "House", color: "#0d9488" },
   { id: "calculate", label: "Calcular", icon: "Calculator", color: "#3b82f6" },
   { id: "history", label: "HistÃ³rico", icon: "History", color: "#8b5cf6" },
   { id: "credits", label: "CrÃ©ditos", icon: "Wallet", color: "#ca8a04" },
@@ -93,18 +93,25 @@ export function Calculator({ onRequestBuyCredits }: CalculatorProps) {
     navigateToSection("history");
   }, [navigateToSection]);
 
+  const handleNavigateToCredits = useCallback(() => {
+    navigateToSection("credits");
+  }, [navigateToSection]);
+
   const isCalculateVisible = activeNavIndex === CALCULATE_INDEX;
 
   return (
-    <div className="calculator-root flex min-h-screen w-full flex-col">
+    <div className="calculator-root flex h-full min-h-screen w-full flex-col">
       <main className="flex-grow w-full overflow-hidden pb-24 lg:pb-32">
         <div
           id="page-container"
           ref={pageContainerRef}
-          className="flex h-full w-[400%] transition-transform duration-500 ease-out"
+          className="flex h-full transition-transform duration-500 ease-out"
         >
-          <section id="Home" className="page !items-stretch !justify-center !p-0 overflow-hidden">
-            <HomeOverview onNavigate={navigateToSection} />
+          <section id="home" className="page">
+            <HomePage
+              onNavigateToHistory={handleNavigateToHistory}
+              onNavigateToCredits={handleNavigateToCredits}
+            />
           </section>
           <section id="calculate" className="page calculate-page overflow-hidden">
             <MainCalculator
@@ -113,11 +120,11 @@ export function Calculator({ onRequestBuyCredits }: CalculatorProps) {
               isVisible={isCalculateVisible}
             />
           </section>
-          <section id="history" className="page !items-stretch !justify-center !p-0 overflow-hidden">
-            <CreditsHistory />
+          <section id="history" className="page">
+            <HistoryPage />
           </section>
-          <section id="credits" className="page !items-stretch !justify-center !p-0 overflow-hidden">
-            <CreditsOverview onBuyCredits={onRequestBuyCredits} />
+          <section id="credits" className="page">
+            <CreditsPage onRequestBuyCredits={onRequestBuyCredits} />
           </section>
         </div>
       </main>
@@ -174,27 +181,32 @@ export function Calculator({ onRequestBuyCredits }: CalculatorProps) {
       </div>
 
       <style jsx global>{`
-        .calculator-root {
+        html,
+        body,
+        #__next {
+          height: 100%;
+        }
+        body {
+          margin: 0;
           overflow: hidden;
-          background: linear-gradient(180deg, #f8fafc 0%, #f1f5f9 35%, #e2e8f0 100%);
+          background: linear-gradient(180deg, #f8fafc 0%, #eef2f7 60%, #e2e8f0 100%);
+          font-family: "Inter", system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+          color: #0f172a;
         }
-        .calculator-root #page-container {
-          display: flex;
+        #page-container {
           width: 400%;
-          height: 100%;
-          transition: transform 0.5s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+          height: 100vh;
+          display: flex;
         }
-        .calculator-root #page-container > .page {
-          min-height: 100vh;
-        }
-        .calculator-root .page {
+        #page-container > .page {
           width: 25%;
-          height: 100%;
+          min-height: 100vh;
           display: flex;
           align-items: center;
           justify-content: center;
-          padding: 1.5rem;
+          padding: 0;
           flex-shrink: 0;
+          overflow: hidden;
         }
         .calculator-root .nav-container {
           perspective: 800px;
