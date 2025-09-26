@@ -6,6 +6,7 @@ import { LucideIcon, type IconName } from "@/components/LucideIcon";
 import HomeOverview from "@/components/platform/HomeOverview";
 import CreditsHistory from "@/components/platform/CreditsHistory";
 import CreditsOverview from "@/components/platform/CreditsOverview";
+import MainCalculator from "@/components/platform/MainCalculator";
 import useAuth from "@/hooks/useAuth";
 
 interface CalculatorProps {
@@ -13,11 +14,13 @@ interface CalculatorProps {
 }
 
 const navLinks: Array<{ id: string; label: string; icon: IconName; color: string }> = [
-  { id: "Home", label: "In\u00edcio", icon: "House", color: "#0d9488" },
+  { id: "Home", label: "Início", icon: "House", color: "#0d9488" },
   { id: "calculate", label: "Calcular", icon: "Calculator", color: "#3b82f6" },
-  { id: "history", label: "Hist\u00f3rico", icon: "History", color: "#8b5cf6" },
-  { id: "credits", label: "Cr\u00e9ditos", icon: "Wallet", color: "#ca8a04" },
+  { id: "history", label: "Histórico", icon: "History", color: "#8b5cf6" },
+  { id: "credits", label: "Créditos", icon: "Wallet", color: "#ca8a04" },
 ];
+
+const CALCULATE_INDEX = navLinks.findIndex((link) => link.id === "calculate");
 
 type CalculatorSection = (typeof navLinks)[number]["id"];
 
@@ -86,6 +89,12 @@ export function Calculator({ onRequestBuyCredits }: CalculatorProps) {
     }
   }, [isLeaving, logout, router]);
 
+  const handleNavigateToHistory = useCallback(() => {
+    navigateToSection("history");
+  }, [navigateToSection]);
+
+  const isCalculateVisible = activeNavIndex === CALCULATE_INDEX;
+
   return (
     <div className="calculator-root flex min-h-screen w-full flex-col bg-gradient-to-br from-slate-50 via-white to-slate-200">
       <main className="flex-grow w-full overflow-hidden pb-24 lg:pb-32">
@@ -97,7 +106,13 @@ export function Calculator({ onRequestBuyCredits }: CalculatorProps) {
           <section id="Home" className="page !items-stretch !justify-center !p-0 overflow-hidden">
             <HomeOverview onNavigate={navigateToSection} />
           </section>
-          <section id="calculate" className="page !items-stretch !justify-center !p-0 overflow-hidden" />
+          <section id="calculate" className="page !items-stretch !justify-center !p-0 overflow-hidden">
+            <MainCalculator
+              onRequestBuyCredits={onRequestBuyCredits}
+              onNavigateToHistory={handleNavigateToHistory}
+              isVisible={isCalculateVisible}
+            />
+          </section>
           <section id="history" className="page !items-stretch !justify-center !p-0 overflow-hidden">
             <CreditsHistory />
           </section>
