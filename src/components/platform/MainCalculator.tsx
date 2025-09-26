@@ -546,7 +546,7 @@ const MainCalculator = ({
         "relative flex h-full w-full items-center justify-center overflow-hidden",
         !isVisible && "pointer-events-none opacity-90",
       )}
-      style={{ minHeight: "100svh", width: "100%" }}
+      style={{ minHeight: "100vh", height: "100%", width: "100%" }}
       aria-hidden={!isVisible}
     >
       <div id="calculate-container" className="relative h-full w-full">
@@ -640,6 +640,7 @@ const MainCalculator = ({
         #calculate-container {
           width: 100%;
           height: 100%;
+          min-height: 100vh;
           position: relative;
         }
 

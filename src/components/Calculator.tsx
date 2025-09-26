@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
@@ -14,10 +14,10 @@ interface CalculatorProps {
 }
 
 const navLinks: Array<{ id: string; label: string; icon: IconName; color: string }> = [
-  { id: "Home", label: "Início", icon: "House", color: "#0d9488" },
+  { id: "Home", label: "InÃ­cio", icon: "House", color: "#0d9488" },
   { id: "calculate", label: "Calcular", icon: "Calculator", color: "#3b82f6" },
-  { id: "history", label: "Histórico", icon: "History", color: "#8b5cf6" },
-  { id: "credits", label: "Créditos", icon: "Wallet", color: "#ca8a04" },
+  { id: "history", label: "HistÃ³rico", icon: "History", color: "#8b5cf6" },
+  { id: "credits", label: "CrÃ©ditos", icon: "Wallet", color: "#ca8a04" },
 ];
 
 const CALCULATE_INDEX = navLinks.findIndex((link) => link.id === "calculate");
@@ -106,7 +106,7 @@ export function Calculator({ onRequestBuyCredits }: CalculatorProps) {
           <section id="Home" className="page !items-stretch !justify-center !p-0 overflow-hidden">
             <HomeOverview onNavigate={navigateToSection} />
           </section>
-          <section id="calculate" className="page !items-stretch !justify-center !p-0 overflow-hidden">
+          <section id="calculate" className="page calculate-page overflow-hidden">
             <MainCalculator
               onRequestBuyCredits={onRequestBuyCredits}
               onNavigateToHistory={handleNavigateToHistory}
@@ -236,9 +236,18 @@ export function Calculator({ onRequestBuyCredits }: CalculatorProps) {
           from { opacity: 0; transform: translateY(50px); }
           to { opacity: 1; transform: translateY(0); }
         }
+        .calculator-root #calculate.calculate-page {
+          display: block;
+          padding: 0;
+        }
+        .calculator-root #calculate.calculate-page > * {
+          height: 100%;
+          width: 100%;
+        }
       `}</style>
     </div>
   );
 }
 
 export default Calculator;
+
