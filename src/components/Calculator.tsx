@@ -16,10 +16,10 @@ interface CalculatorProps {
 }
 
 const navLinks: Array<{ id: string; label: string; icon: IconName; color: string }> = [
-  { id: "home", label: "Iní­cio", icon: "House", color: "#0d9488" },
+  { id: "home", label: "Início", icon: "House", color: "#0d9488" },
   { id: "calculate", label: "Calcular", icon: "Calculator", color: "#3b82f6" },
-  { id: "history", label: "HistÃ³rico", icon: "History", color: "#8b5cf6" },
-  { id: "credits", label: "CrÃ©ditos", icon: "Wallet", color: "#ca8a04" },
+  { id: "history", label: "Histórico", icon: "History", color: "#8b5cf6" },
+  { id: "credits", label: "Créditos", icon: "Wallet", color: "#ca8a04" },
 ];
 
 const CALCULATE_INDEX = navLinks.findIndex((link) => link.id === "calculate");
