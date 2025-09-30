@@ -167,14 +167,10 @@ const MainCalculator = ({
     setFlowStep("selection");
   }, []);
 
+  // Interpreta o clique como "quantidade de faturas"
+  // Ex.: clicar em 5 seleciona [1,2,3,4,5]
   const handleToggleBill = useCallback((id: number) => {
-    setSelectedIds((previous) => {
-      const isSelected = previous.includes(id);
-      if (isSelected) {
-        return [];
-      }
-      return [id];
-    });
+    setSelectedIds(() => Array.from({ length: id }, (_, i) => i + 1));
   }, []);
 
   const handleBackToWelcome = useCallback(() => {
