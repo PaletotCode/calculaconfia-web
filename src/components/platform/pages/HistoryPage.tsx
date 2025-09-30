@@ -148,7 +148,7 @@ export default function HistoryPage({ onSlideStateChange }: HistoryPageProps) {
                     Total de cálculos
                   </p>
                   <span className="flex h-12 w-12 items-center justify-center rounded-2xl bg-indigo-500/10 text-indigo-600">
-                    <LucideIcon name="BarChart3" className="h-6 w-6" />
+                    <LucideIcon name="ChartBar" className="h-6 w-6" />
                   </span>
                 </div>
                 <p className="text-4xl font-semibold text-slate-900">
