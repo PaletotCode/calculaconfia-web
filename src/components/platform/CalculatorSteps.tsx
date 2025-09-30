@@ -233,10 +233,11 @@ export const FormStep: FC<FormStepProps> = ({
 
             <div className="input-group">
               <Calendar className="input-icon" />
+              {/* Mantém o calendário bonito sem duplicar o input */}
               <Flatpickr
                 value={form.issueDateValue}
                 options={{
-                  altInput: true,
+                  altInput: false,
                   altFormat: "d 'de' F, Y",
                   dateFormat: "Y-m-d",
                   locale: Portuguese,
