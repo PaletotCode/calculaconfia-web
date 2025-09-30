@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useMemo, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import clsx from "clsx";
 import { LucideIcon } from "@/components/LucideIcon";
@@ -13,24 +13,13 @@ import {
   type ReferralStatsResponse,
 } from "@/lib/api";
 import { parseHistoryMetadata } from "@/utils/history-metadata";
-import FullscreenSlides, {
-  type FullscreenSlidesHandle,
-  type Slide,
-} from "./FullscreenSlides";
-
-export interface HomeSlidesNavigationState {
-  goToNext(): void;
-  goToPrevious(): void;
-  canGoNext: boolean;
-  canGoPrevious: boolean;
-  activeIndex: number;
-  totalSlides: number;
-}
+import FullscreenSlides, { type Slide } from "./FullscreenSlides";
+import type { SlidesNavigationStateChange } from "./slides-navigation";
 
 interface HomePageProps {
   onNavigateToHistory?: () => void;
   onNavigateToCredits?: () => void;
-  onSlideStateChange?: (state: HomeSlidesNavigationState | null) => void;
+  onSlideStateChange?: SlidesNavigationStateChange;
 }
 
 const currencyFormatter = new Intl.NumberFormat("pt-BR", {
@@ -94,8 +83,6 @@ export default function HomePage({
   }, [historyQuery.data]);
 
   const [openFaq, setOpenFaq] = useState<string | null>("workflow");
-  const slidesRef = useRef<FullscreenSlidesHandle>(null);
-  const [activeSlideIndex, setActiveSlideIndex] = useState(0);
 
   const lastSimulation = recentHistory[0];
   const lastMetadata = lastSimulation ? parseHistoryMetadata(lastSimulation) : null;
@@ -263,52 +250,10 @@ export default function HomePage({
       },
     ];
 
-  const goToNextSlide = useCallback(() => {
-    slidesRef.current?.goToNext();
-  }, []);
-
-  const goToPreviousSlide = useCallback(() => {
-    slidesRef.current?.goToPrevious();
-  }, []);
-
-  const totalSlides = slides.length;
-
-  useEffect(() => {
-    if (!onSlideStateChange) {
-      return;
-    }
-    if (totalSlides === 0) {
-      onSlideStateChange(null);
-      return;
-    }
-
-    onSlideStateChange({
-      goToNext: goToNextSlide,
-      goToPrevious: goToPreviousSlide,
-      canGoNext: activeSlideIndex < totalSlides - 1,
-      canGoPrevious: activeSlideIndex > 0,
-      activeIndex: activeSlideIndex,
-      totalSlides,
-    });
-  }, [
-    activeSlideIndex,
-    goToNextSlide,
-    goToPreviousSlide,
-    onSlideStateChange,
-    totalSlides,
-  ]);
-
-  useEffect(() => {
-    return () => {
-      onSlideStateChange?.(null);
-    };
-  }, [onSlideStateChange]);
-
   return (
     <FullscreenSlides
-      ref={slidesRef}
       slides={slides}
-      onChange={setActiveSlideIndex}
+      onSlideStateChange={onSlideStateChange}
     />
   );
 }

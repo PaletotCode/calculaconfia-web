@@ -8,6 +8,11 @@ import { getCreditsHistory, type CreditHistoryItem } from "@/lib/api";
 import { parseHistoryMetadata } from "@/utils/history-metadata";
 import FullscreenSlides from "./FullscreenSlides";
 import FullscreenModal from "./FullscreenModal";
+import type { SlidesNavigationStateChange } from "./slides-navigation";
+
+interface HistoryPageProps {
+  onSlideStateChange?: SlidesNavigationStateChange;
+}
 
 const currencyFormatter = new Intl.NumberFormat("pt-BR", {
   style: "currency",
@@ -38,7 +43,7 @@ function formatDateTime(value: string | undefined) {
 
 type FilterKey = "all" | "credit" | "debit";
 
-export default function HistoryPage() {
+export default function HistoryPage({ onSlideStateChange }: HistoryPageProps) {
   const [activeFilter, setActiveFilter] = useState<FilterKey>("all");
   const [showModal, setShowModal] = useState(false);
 
@@ -239,7 +244,7 @@ export default function HistoryPage() {
 
   return (
     <>
-      <FullscreenSlides slides={slides} />
+      <FullscreenSlides slides={slides} onSlideStateChange={onSlideStateChange} />
       <FullscreenModal open={showModal} onClose={() => setShowModal(false)} title="Todos os cálculos">
         <div className="space-y-3">
           {sortedHistory.length === 0 ? (

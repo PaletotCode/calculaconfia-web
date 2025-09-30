@@ -11,6 +11,7 @@ import {
   useState,
 } from "react";
 import clsx from "clsx";
+import type { SlidesNavigationState, SlidesNavigationStateChange } from "./slides-navigation";
 
 export type Slide = {
   id: string;
@@ -22,6 +23,7 @@ export interface FullscreenSlidesProps {
   slides: Slide[];
   initial?: number;
   onChange?(index: number): void;
+  onSlideStateChange?: SlidesNavigationStateChange;
 }
 
 const SWIPE_THRESHOLD = 48;
@@ -37,7 +39,7 @@ export interface FullscreenSlidesHandle {
 }
 
 const FullscreenSlides = forwardRef<FullscreenSlidesHandle, FullscreenSlidesProps>(
-  ({ slides, initial = 0, onChange }, ref) => {
+  ({ slides, initial = 0, onChange, onSlideStateChange }, ref) => {
     const sanitizedSlides = useMemo(() => slides.filter(Boolean), [slides]);
     const [activeIndex, setActiveIndex] = useState(() => {
       if (sanitizedSlides.length === 0) return 0;
@@ -73,6 +75,7 @@ const FullscreenSlides = forwardRef<FullscreenSlidesHandle, FullscreenSlidesProp
 
     useEffect(() => {
       if (sanitizedSlides.length === 0) {
+        onSlideStateChange?.(null);
         return;
       }
       const clamped = Math.min(Math.max(activeIndex, 0), sanitizedSlides.length - 1);
@@ -83,7 +86,25 @@ const FullscreenSlides = forwardRef<FullscreenSlidesHandle, FullscreenSlidesProp
       const activeSlide = slideRefs.current[clamped];
       activeSlide?.focus({ preventScroll: true });
       onChange?.(clamped);
-    }, [activeIndex, sanitizedSlides.length, onChange]);
+    
+      const navigationState: SlidesNavigationState = {
+        goToNext,
+        goToPrevious,
+        canGoNext: clamped < sanitizedSlides.length - 1,
+        canGoPrevious: clamped > 0,
+        activeIndex: clamped,
+        totalSlides: sanitizedSlides.length,
+      };
+
+      onSlideStateChange?.(navigationState);
+    }, [
+      activeIndex,
+      goToNext,
+      goToPrevious,
+      onChange,
+      onSlideStateChange,
+      sanitizedSlides.length,
+    ]);
 
     useEffect(() => {
       if (sanitizedSlides.length === 0) {
@@ -207,8 +228,9 @@ const FullscreenSlides = forwardRef<FullscreenSlidesHandle, FullscreenSlidesProp
         if (wheelUnlockTimeout.current) {
           clearTimeout(wheelUnlockTimeout.current);
         }
+        onSlideStateChange?.(null);
       };
-    }, []);
+    }, [onSlideStateChange]);
 
     useImperativeHandle(
       ref,

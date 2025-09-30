@@ -12,9 +12,11 @@ import {
 import { parseHistoryMetadata } from "@/utils/history-metadata";
 import FullscreenSlides from "./FullscreenSlides";
 import FullscreenModal from "./FullscreenModal";
+import type { SlidesNavigationStateChange } from "./slides-navigation";
 
 interface CreditsPageProps {
   onRequestBuyCredits?: () => void;
+  onSlideStateChange?: SlidesNavigationStateChange;
 }
 
 const creditsFormatter = new Intl.NumberFormat("pt-BR", {
@@ -39,7 +41,7 @@ function formatDate(value: string | undefined | null) {
   }).format(date);
 }
 
-export default function CreditsPage({ onRequestBuyCredits }: CreditsPageProps) {
+export default function CreditsPage({ onRequestBuyCredits, onSlideStateChange }: CreditsPageProps) {
   const [showModal, setShowModal] = useState(false);
 
   const balanceQuery = useQuery<CreditsBalanceResponse>({
@@ -159,7 +161,7 @@ export default function CreditsPage({ onRequestBuyCredits }: CreditsPageProps) {
 
   return (
     <>
-      <FullscreenSlides slides={slides} />
+      <FullscreenSlides slides={slides} onSlideStateChange={onSlideStateChange} />
       <FullscreenModal open={showModal} onClose={() => setShowModal(false)} title="Todos os créditos">
         <div className="space-y-3">
           {creditTransactions.length === 0 ? (
