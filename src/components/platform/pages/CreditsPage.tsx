@@ -61,6 +61,8 @@ const WalletIcon = (props: React.SVGProps<SVGSVGElement>) => (
 
 
 export default function CreditsPage({ onRequestBuyCredits, onSlideStateChange }: CreditsPageProps) {
+  const baseSlideContainer =
+    "w-full max-w-4xl space-y-8 rounded-[32px] bg-white/70 p-10 text-center shadow-[0_24px_60px_-25px_rgba(15,23,42,0.35)] ring-1 ring-indigo-100/70 backdrop-blur";
   const [showModal, setShowModal] = useState(false);
 
   const balanceQuery = useQuery<CreditsBalanceResponse>({
@@ -94,45 +96,39 @@ export default function CreditsPage({ onRequestBuyCredits, onSlideStateChange }:
       id: "credits-overview",
       ariaLabel: "Visão geral dos créditos",
       content: (
-        // Layout: Centralizado e com limites de largura adequados
-        // min-h-full garante que o conteúdo dentro do slide se centralize
-        <div className="mx-auto flex w-full max-w-xl md:max-w-3xl lg:max-w-4xl flex-col items-center justify-center gap-8 px-4 sm:px-8 text-center min-h-full">
-          
-          <header className="space-y-2">
-            <h2 className="text-3xl font-semibold text-slate-900">Créditos</h2>
+        <div className={baseSlideContainer}>
+          <header className="space-y-3">
+            <h2 className="text-3xl font-bold text-slate-900 md:text-4xl">Créditos</h2>
             <p className="text-sm text-slate-600 md:text-base">
               Acompanhe seu saldo, visualize o histórico e compre novos créditos com facilidade.
             </p>
           </header>
 
-          {/* CARTÃO DE SALDO CENTRAL (ESTÉTICA PREMIUM) */}
-          <div className="w-full max-w-md space-y-4 rounded-3xl bg-gradient-to-br from-white to-amber-50 p-6 sm:p-8 shadow-2xl ring-2 ring-amber-200">
-            <div className="space-y-1">
-              <p className="text-xs font-semibold uppercase tracking-wide text-teal-600">Saldo disponível</p>
-              <p className="text-4xl sm:text-5xl font-extrabold text-slate-900">
-                {/* Placeholder de carregamento simples. Idealmente seria um Skeleton Loader */}
+          <div className="mx-auto w-full max-w-md space-y-4 rounded-3xl bg-gradient-to-br from-white to-amber-50 p-6 sm:p-8 shadow-xl ring-2 ring-amber-200">
+            <div className="space-y-2 text-left">
+              <p className="text-xs font-semibold uppercase tracking-[0.3em] text-teal-600">Saldo disponível</p>
+              <p className="text-4xl font-semibold text-slate-900 sm:text-5xl">
                 {balanceQuery.isLoading ? "--" : formatCredits(totalCredits)}
               </p>
+              <p className="text-xs text-slate-500">
+                Atualizado automaticamente com base nas últimas movimentações.
+              </p>
             </div>
-            <p className="text-xs text-slate-500">
-              Atualizado automaticamente com base nas últimas movimentações.
-            </p>
-            
+
             <button
               type="button"
               onClick={onRequestBuyCredits}
-              className="w-full rounded-full bg-amber-500 px-6 py-3 text-base font-bold text-white shadow-lg transition hover:bg-amber-600 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-200"
+              className="w-full rounded-full bg-amber-500 px-6 py-3 text-sm font-semibold text-white shadow-lg transition hover:bg-amber-600 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-200"
             >
               Comprar mais créditos
             </button>
           </div>
-          
-          {/* BOTÃO SECUNDÁRIO PARA ABRIR O MODAL DE HISTÓRICO */}
-          <section className="w-full max-w-md">
+
+          <section className="mx-auto w-full max-w-md">
             <button
               type="button"
               onClick={() => setShowModal(true)}
-              className="w-full rounded-full bg-slate-200 px-6 py-3 text-sm font-semibold text-slate-700 hover:bg-slate-300 transition"
+              className="w-full rounded-full bg-slate-200 px-6 py-3 text-sm font-semibold text-slate-700 transition hover:bg-slate-300"
             >
               Ver Histórico de Movimentações
             </button>
