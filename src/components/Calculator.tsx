@@ -104,6 +104,10 @@ export function Calculator({ onRequestBuyCredits }: CalculatorProps) {
     navigateToSection("credits");
   }, [navigateToSection]);
 
+  const handleNavigateToCalculator = useCallback(() => {
+    navigateToSection("calculate");
+  }, [navigateToSection]);
+
   const handleSlideStateChange = useCallback(
     (section: CalculatorSection, state: SlidesNavigationState | null) => {
       setSlidesStateBySection((previous) => {
@@ -187,6 +191,7 @@ export function Calculator({ onRequestBuyCredits }: CalculatorProps) {
             <HomePage
               onNavigateToHistory={handleNavigateToHistory}
               onNavigateToCredits={handleNavigateToCredits}
+              onNavigateToCalculator={handleNavigateToCalculator}
               onSlideStateChange={handleHomeSlideStateChange}
             />
           </section>

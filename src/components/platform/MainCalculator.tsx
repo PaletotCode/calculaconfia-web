@@ -115,8 +115,6 @@ const MainCalculator = ({
   const [formStateByBill, setFormStateByBill] = useState<Record<number, FormState>>({});
   const [currentFormIndex, setCurrentFormIndex] = useState(0);
   const [formError, setFormError] = useState<string | null>(null);
-  const [showRecommendation, setShowRecommendation] = useState(false);
-  const [allowLowSelection, setAllowLowSelection] = useState(false);
   const [loadingIndex, setLoadingIndex] = useState(0);
   const [isRequesting, setIsRequesting] = useState(false);
   const [resultAmount, setResultAmount] = useState<string>(formatBRL(0));
@@ -166,29 +164,21 @@ const MainCalculator = ({
 
   const handleStart = useCallback(() => {
     setOverlay(null);
-    setShowRecommendation(false);
-    setAllowLowSelection(false);
     setFlowStep("selection");
   }, []);
 
   const handleToggleBill = useCallback((id: number) => {
-    setSelectedIds((prev) => {
-      const isSelected = prev.includes(id);
+    setSelectedIds((previous) => {
+      const isSelected = previous.includes(id);
       if (isSelected) {
-        return prev.filter((value) => value !== id);
+        return [];
       }
-      return [...prev, id].sort((a, b) => a - b);
+      return [id];
     });
   }, []);
 
   const handleBackToWelcome = useCallback(() => {
     setFlowStep("welcome");
-  }, []);
-
-  const handleAcceptRecommendation = useCallback(() => {
-    setSelectedIds([1, 2, 3]);
-    setShowRecommendation(false);
-    setAllowLowSelection(true);
   }, []);
 
   const prepareFormStates = useCallback((ids: number[]) => {
@@ -221,12 +211,6 @@ const MainCalculator = ({
     [prepareFormStates],
   );
 
-  const handleDismissRecommendation = useCallback(() => {
-    setAllowLowSelection(true);
-    setShowRecommendation(false);
-    proceedToForms(selectedIds);
-  }, [proceedToForms, selectedIds]);
-
   const handleContinueSelection = useCallback(() => {
     if (selectedIds.length === 0) {
       setOverlay({
@@ -237,14 +221,8 @@ const MainCalculator = ({
       return;
     }
 
-    if (selectedIds.length < 3 && !allowLowSelection) {
-      setShowRecommendation(true);
-      return;
-    }
-
-    setShowRecommendation(false);
     proceedToForms(selectedIds);
-  }, [allowLowSelection, proceedToForms, selectedIds]);
+  }, [proceedToForms, selectedIds]);
 
   const handleDateChange = useCallback(
     (dates: Date[]) => {
@@ -504,8 +482,6 @@ const MainCalculator = ({
     setCurrentFormIndex(0);
     setFormError(null);
     setOverlay(null);
-    setShowRecommendation(false);
-    setAllowLowSelection(false);
     setLoadingIndex(0);
     setIsRequesting(false);
     setResultAmount(formatBRL(0));
@@ -558,9 +534,6 @@ const MainCalculator = ({
           onToggleBill={handleToggleBill}
           onBack={handleBackToWelcome}
           onContinue={handleContinueSelection}
-          showRecommendation={showRecommendation}
-          onAcceptRecommendation={handleAcceptRecommendation}
-          onDismissRecommendation={handleDismissRecommendation}
           disableContinue={selectedIds.length === 0}
         />
 

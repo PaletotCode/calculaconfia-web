@@ -19,6 +19,7 @@ import type { SlidesNavigationStateChange } from "./slides-navigation";
 interface HomePageProps {
   onNavigateToHistory?: () => void;
   onNavigateToCredits?: () => void;
+  onNavigateToCalculator?: () => void;
   onSlideStateChange?: SlidesNavigationStateChange;
 }
 
@@ -52,6 +53,7 @@ function formatDate(value: string | undefined) {
 export default function HomePage({
   onNavigateToHistory,
   onNavigateToCredits,
+  onNavigateToCalculator,
   onSlideStateChange,
 }: HomePageProps) {
   const balanceQuery = useQuery<CreditsBalanceResponse>({
@@ -105,10 +107,10 @@ export default function HomePage({
                 Simule, acompanhe e compre créditos em um só fluxo
               </h1>
               <p className="text-sm text-slate-600 md:text-base">
-                Navegue pelos conteúdos deslizando para cima e para baixo. Quando estiver pronto, avance para a aba de cálculo para iniciar uma nova simulação.
+                Explore os destaques abaixo ou pule direto para a área de cálculo quando quiser começar uma nova simulação.
               </p>
             </div>
-            <div className="mx-auto flex w-full max-w-sm flex-col items-center gap-3">
+            <div className="mx-auto flex w-full max-w-sm flex-col items-center gap-3 sm:flex-row sm:items-center">
               <button
                 type="button"
                 onClick={onNavigateToHistory}
@@ -116,8 +118,18 @@ export default function HomePage({
               >
                 Explorar histórico
               </button>
-              <p className="text-xs text-slate-500">Arraste para cima ou use os botões para conhecer os destaques.</p>
+              <button
+                type="button"
+                onClick={onNavigateToCalculator}
+                disabled={!onNavigateToCalculator}
+                className="w-full rounded-full bg-white/80 px-6 py-3 text-sm font-semibold text-teal-700 shadow-lg ring-1 ring-teal-200 transition hover:bg-teal-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-teal-200 disabled:cursor-not-allowed disabled:opacity-60"
+              >
+                Ir para a calculadora
+              </button>
             </div>
+            <p className="text-center text-xs text-slate-500">
+              Arraste para cima ou use os atalhos para navegar rapidamente pela plataforma.
+            </p>
           </div>
         ),
       },

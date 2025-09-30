@@ -72,49 +72,42 @@ export default function CreditsPage({ onRequestBuyCredits, onSlideStateChange }:
   const slides = [
     {
       id: "credits-overview",
-      ariaLabel: "Saldo de créditos",
+      ariaLabel: "Visão geral dos créditos",
       content: (
-        <div className="w-full max-w-2xl space-y-6">
-          <header className="space-y-3">
-            <h2 className="text-3xl font-semibold text-slate-900">Saldo disponível</h2>
-            <p className="text-sm text-slate-600">Acompanhe seu saldo em tempo real e compre créditos sem sair da plataforma.</p>
-          </header>
-          <div className="rounded-3xl bg-white/80 p-8 text-center shadow-lg ring-1 ring-slate-200">
-            <p className="text-xs font-semibold uppercase tracking-wide text-teal-600">Créditos totais</p>
-            <p className="mt-4 text-4xl font-bold text-slate-900">
-              {balanceQuery.isLoading ? "--" : formatCredits(totalCredits)}
+        <div className="mx-auto flex w-full max-w-5xl flex-col items-center gap-8 px-4 text-center">
+          <header className="space-y-2">
+            <h2 className="text-3xl font-semibold text-slate-900">Créditos</h2>
+            <p className="text-sm text-slate-600 md:text-base">
+              Acompanhe seu saldo, visualize o histórico recente e compre novos créditos sem sair desta tela.
             </p>
-            <div className="mt-4 grid grid-cols-1 gap-3 text-sm text-slate-600 sm:grid-cols-2">
-              <div className="rounded-2xl bg-slate-50/80 px-4 py-3">
-                <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">Créditos válidos</p>
-                <p className="text-base font-semibold text-slate-900">{formatCredits(balanceQuery.data?.valid_credits)}</p>
-              </div>
-              <div className="rounded-2xl bg-slate-50/80 px-4 py-3">
-                <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">Créditos legados</p>
-                <p className="text-base font-semibold text-slate-900">{formatCredits(balanceQuery.data?.legacy_credits)}</p>
-              </div>
+          </header>
+
+          <div className="w-full max-w-md space-y-4 rounded-3xl bg-white/80 p-8 shadow-lg ring-1 ring-slate-200">
+            <div className="space-y-1">
+              <p className="text-xs font-semibold uppercase tracking-wide text-teal-600">Saldo disponível</p>
+              <p className="text-4xl font-bold text-slate-900">
+                {balanceQuery.isLoading ? "--" : formatCredits(totalCredits)}
+              </p>
             </div>
+            <p className="text-xs text-slate-500">
+              Atualizado automaticamente com base nas últimas movimentações.
+            </p>
             <button
               type="button"
               onClick={onRequestBuyCredits}
-              className="mt-6 w-full rounded-full bg-amber-500 px-6 py-3 text-sm font-semibold text-white shadow-lg transition hover:bg-amber-600 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-200"
+              className="w-full rounded-full bg-amber-500 px-6 py-3 text-sm font-semibold text-white shadow-lg transition hover:bg-amber-600 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-200"
             >
               Comprar créditos
             </button>
           </div>
-        </div>
-      ),
-    },
-    {
-      id: "credits-history",
-      ariaLabel: "Histórico de créditos",
-      content: (
-        <div className="w-full max-w-3xl space-y-6">
-          <header className="space-y-2">
-            <h2 className="text-2xl font-semibold text-slate-900">Histórico rápido</h2>
-            <p className="text-sm text-slate-600">Confira as últimas entradas de créditos e planeje sua próxima recarga.</p>
-          </header>
-          <div className="grid gap-3">
+        
+          <section className="w-full max-w-xl space-y-4">
+            <div className="space-y-1 text-center">
+              <h3 className="text-lg font-semibold text-slate-900">Histórico recente</h3>
+              <p className="text-sm text-slate-600">
+                Confira as últimas entradas de créditos na sua conta.
+              </p>
+            </div>
             {historyQuery.isLoading ? (
               <p className="text-sm text-slate-500">Carregando histórico...</p>
             ) : historyQuery.isError ? (
@@ -125,35 +118,37 @@ export default function CreditsPage({ onRequestBuyCredits, onSlideStateChange }:
                 <p className="text-sm text-slate-500">Nenhum crédito adicionado recentemente.</p>
               </div>
             ) : (
-              recentCredits.map((item) => {
-                const metadata = parseHistoryMetadata(item);
-                const creditsAdded = Math.max(item.amount, 0);
-                const note = item.description || metadata.notes;
-                return (
-                  <div key={item.id} className="rounded-2xl bg-white/80 p-4 text-left shadow ring-1 ring-slate-200">
-                    <div className="flex flex-col gap-2 text-sm text-slate-600 md:flex-row md:items-center md:justify-between">
-                      <div>
-                        <p className="text-base font-semibold text-slate-900">{item.transaction_type}</p>
-                        <p>{formatDate(item.created_at)}</p>
+              <div className="grid gap-3 sm:grid-cols-2">
+                {recentCredits.map((item) => {
+                  const metadata = parseHistoryMetadata(item);
+                  const creditsAdded = Math.max(item.amount, 0);
+                  const note = item.description || metadata.notes;
+                  return (
+                    <div key={item.id} className="rounded-2xl bg-white/80 p-4 text-left shadow ring-1 ring-slate-200">
+                      <div className="flex flex-col gap-2 text-sm text-slate-600">
+                        <div>
+                          <p className="text-base font-semibold text-slate-900">{item.transaction_type}</p>
+                          <p>{formatDate(item.created_at)}</p>
+                        </div>
+                        <div className="flex items-end justify-between gap-3">
+                          <p className="text-base font-semibold text-amber-600">{formatCredits(creditsAdded)}</p>
+                          <p className="text-xs text-slate-500">Saldo após: {formatCredits(item.balance_after ?? 0)}</p>
+                        </div>
                       </div>
-                      <div className="text-right">
-                        <p className="text-base font-semibold text-amber-600">{formatCredits(creditsAdded)}</p>
-                        <p className="text-xs text-slate-500">Saldo após: {formatCredits(item.balance_after ?? 0)}</p>
-                      </div>
+                      {note && <p className="mt-2 text-xs text-slate-500">{note}</p>}
                     </div>
-                    {note && <p className="mt-2 text-xs text-slate-500">{note}</p>}
-                  </div>
-                );
-              })
+                  );
+                })}
+              </div>
             )}
-          </div>
-          <button
-            type="button"
-            onClick={() => setShowModal(true)}
-            className="w-full rounded-full bg-amber-500 px-6 py-3 text-sm font-semibold text-white shadow-lg transition hover:bg-amber-600 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-200"
-          >
-            Ver tudo
-          </button>
+            <button
+              type="button"
+              onClick={() => setShowModal(true)}
+              className="w-full rounded-full bg-amber-500 px-6 py-3 text-sm font-semibold text-white shadow-lg transition hover:bg-amber-600 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-200"
+            >
+              Ver tudo
+            </button>
+          </section>
         </div>
       ),
     },

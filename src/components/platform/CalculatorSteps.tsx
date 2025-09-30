@@ -6,15 +6,7 @@ import clsx from "clsx";
 import Flatpickr from "react-flatpickr";
 import "flatpickr/dist/flatpickr.css";
 import { Portuguese } from "flatpickr/dist/l10n/pt";
-import {
-  AlertTriangle,
-  ArrowLeft,
-  Calendar,
-  CheckCircle2,
-  Info,
-  Loader2,
-  Receipt,
-} from "lucide-react";
+import { ArrowLeft, Calendar, CheckCircle2, Info, Loader2, Receipt } from "lucide-react";
 
 export interface BillOptionCard {
   id: number;
@@ -90,9 +82,6 @@ export interface SelectionStepProps {
   onToggleBill: (id: number) => void;
   onBack: () => void;
   onContinue: () => void;
-  showRecommendation: boolean;
-  onAcceptRecommendation: () => void;
-  onDismissRecommendation: () => void;
   disableContinue: boolean;
 }
 
@@ -102,9 +91,6 @@ export const SelectionStep: FC<SelectionStepProps> = ({
   onToggleBill,
   onBack,
   onContinue,
-  showRecommendation,
-  onAcceptRecommendation,
-  onDismissRecommendation,
   disableContinue,
 }) => (
   <div id="selection-step" className={clsx("calculator-step bg-white", isActive && "active")}>
@@ -124,7 +110,7 @@ export const SelectionStep: FC<SelectionStepProps> = ({
             key={bill.id}
             type="button"
             className={clsx(
-              "bill-option relative flex aspect-square flex-col items-center justify-center rounded-2xl border text-center font-semibold transition-all duration-200",
+              "bill-option relative flex aspect-square flex-col items-center justify-center gap-1.5 rounded-2xl border text-center font-semibold transition-all duration-200",
               bill.selected
                 ? "selected border-emerald-500 bg-emerald-50 text-emerald-600 shadow-lg shadow-emerald-500/20"
                 : "border-slate-200 bg-white text-slate-600 hover:border-emerald-400 hover:text-emerald-600",
@@ -132,44 +118,14 @@ export const SelectionStep: FC<SelectionStepProps> = ({
             onClick={() => onToggleBill(bill.id)}
             aria-pressed={bill.selected}
           >
-            <span className="text-2xl">{bill.id.toString().padStart(2, "0")}</span>
+            <Receipt className="h-5 w-5 text-emerald-400" aria-hidden />
+            <span className="mt-2 text-2xl font-semibold">
+              {bill.id.toString().padStart(2, "0")}
+            </span>
             <span className="mt-1 text-xs text-slate-400">Fatura</span>
           </button>
         ))}
       </div>
-
-      {showRecommendation ? (
-        <div
-          className="alert-banner mt-6 max-w-lg self-center rounded-lg border-l-4 border-red-500 bg-red-100 p-4 text-left text-red-800"
-          role="alert"
-        >
-          <div className="flex items-start gap-3">
-            <AlertTriangle className="mt-1 h-6 w-6 flex-shrink-0 text-red-600" />
-            <div>
-              <p className="font-bold">Recomendação</p>
-              <p className="text-sm">
-                Para uma melhor estimativa, recomendamos iniciar com pelo menos três contas.
-              </p>
-              <div className="mt-3 flex flex-col items-stretch gap-3 sm:flex-row sm:justify-start">
-                <button
-                  type="button"
-                  className="rounded-lg bg-red-500 px-4 py-2 text-sm font-semibold text-white transition hover:bg-red-600"
-                  onClick={onAcceptRecommendation}
-                >
-                  Usar 3 faturas
-                </button>
-                <button
-                  type="button"
-                  className="rounded-lg bg-slate-200 px-4 py-2 text-sm font-semibold text-slate-700 transition hover:bg-slate-300"
-                  onClick={onDismissRecommendation}
-                >
-                  Continuar mesmo assim
-                </button>
-              </div>
-            </div>
-          </div>
-        </div>
-      ) : null}
 
       <div className="mt-10 flex flex-col gap-4 sm:flex-row sm:justify-center">
         <button
