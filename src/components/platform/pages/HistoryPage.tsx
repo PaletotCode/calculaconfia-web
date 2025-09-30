@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useMemo, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import clsx from "clsx";
 
@@ -11,6 +11,7 @@ import {
 } from "@/lib/api";
 
 import FullscreenModal from "./FullscreenModal";
+import FullscreenSlides, { type Slide } from "./FullscreenSlides";
 import type { SlidesNavigationStateChange } from "./slides-navigation";
 
 interface HistoryPageProps {
@@ -97,13 +98,6 @@ export default function HistoryPage({ onSlideStateChange }: HistoryPageProps) {
     queryFn: () => getDetailedHistory({ limit: queryLimit, offset: 0 }),
   });
 
-  useEffect(() => {
-    onSlideStateChange?.(null);
-    return () => {
-      onSlideStateChange?.(null);
-    };
-  }, [onSlideStateChange]);
-
   const sortedHistory = useMemo(() => {
     if (!historyQuery.data) return [] as DetailedHistoryItem[];
     return [...historyQuery.data].sort((a, b) => {
@@ -133,55 +127,62 @@ export default function HistoryPage({ onSlideStateChange }: HistoryPageProps) {
     setExpandedId((previous) => (previous === id ? null : id));
   }, []);
 
-  return (
-    <>
-      <div className="flex min-h-[calc(100vh-140px)] w-full justify-center bg-gradient-to-br from-slate-100 via-white to-slate-200 px-4 py-16">
-        <div className="w-full max-w-5xl space-y-12">
-          <section className="space-y-6">
-            <header className="space-y-2 text-center md:text-left">
+  const slides: Slide[] = useMemo(
+    () => [
+      {
+        id: "history-overview",
+        ariaLabel: "Histórico de cálculos consolidado",
+        content: (
+          <div className="w-full max-w-4xl space-y-8 rounded-[32px] bg-white/70 p-10 text-center shadow-[0_24px_60px_-25px_rgba(15,23,42,0.35)] ring-1 ring-indigo-100/70 backdrop-blur">
+            <div className="space-y-3">
               <h1 className="text-3xl font-bold text-slate-900 md:text-4xl">Histórico de Cálculos</h1>
               <p className="text-sm text-slate-600 md:text-base">
                 Visualize métricas consolidadas e explore os detalhes de cada simulação.
               </p>
-            </header>
+            </div>
 
-            <div className="grid gap-4 md:grid-cols-2">
-              <div className="group rounded-3xl bg-white/90 p-6 shadow-sm ring-1 ring-slate-200 transition hover:-translate-y-0.5 hover:shadow-xl">
-                <div className="flex items-center justify-between">
-                  <p className="text-xs font-semibold uppercase tracking-[0.2em] text-indigo-600">
+            <div className="grid gap-6 md:grid-cols-2">
+              <div className="group flex flex-col gap-6 rounded-[24px] border border-indigo-100/70 bg-white/90 p-6 text-left shadow-sm transition hover:-translate-y-0.5 hover:border-indigo-200 hover:shadow-xl">
+                <div className="flex items-center justify-between gap-4">
+                  <p className="text-xs font-semibold uppercase tracking-[0.3em] text-indigo-600">
                     Total de cálculos
                   </p>
                   <span className="flex h-12 w-12 items-center justify-center rounded-2xl bg-indigo-500/10 text-indigo-600">
-                    <LucideIcon name="ChartBar" className="h-6 w-6" />
+                    <LucideIcon name="BarChart3" className="h-6 w-6" />
                   </span>
                 </div>
-                <p className="mt-4 text-3xl font-semibold text-slate-900">
+                <p className="text-4xl font-semibold text-slate-900">
                   {formatInteger(metrics.totalCalculations, historyQuery.isLoading)}
                 </p>
-                <p className="mt-2 text-sm text-slate-500">Total de registros processados.</p>
+                <p className="text-sm text-slate-500">Total de registros processados.</p>
               </div>
 
-              <div className="group rounded-3xl bg-white/90 p-6 shadow-sm ring-1 ring-slate-200 transition hover:-translate-y-0.5 hover:shadow-xl">
-                <div className="flex items-center justify-between">
-                  <p className="text-xs font-semibold uppercase tracking-[0.2em] text-indigo-600">
+              <div className="group flex flex-col gap-6 rounded-[24px] border border-indigo-100/70 bg-white/90 p-6 text-left shadow-sm transition hover:-translate-y-0.5 hover:border-indigo-200 hover:shadow-xl">
+                <div className="flex items-center justify-between gap-4">
+                  <p className="text-xs font-semibold uppercase tracking-[0.3em] text-indigo-600">
                     Créditos utilizados
                   </p>
                   <span className="flex h-12 w-12 items-center justify-center rounded-2xl bg-indigo-500/10 text-indigo-600">
                     <LucideIcon name="Coins" className="h-6 w-6" />
                   </span>
                 </div>
-                <p className="mt-4 text-3xl font-semibold text-slate-900">
+                <p className="text-4xl font-semibold text-slate-900">
                   {formatInteger(Math.round(metrics.totalCreditsUsed), historyQuery.isLoading)}
                 </p>
-                <p className="mt-2 text-sm text-slate-500">Total de créditos consumidos.</p>
+                <p className="text-sm text-slate-500">Total de créditos consumidos.</p>
               </div>
             </div>
-          </section>
-
-          <section className="space-y-6">
+          </div>
+        ),
+      },
+      {
+        id: "history-recent",
+        ariaLabel: "Últimos cálculos realizados",
+        content: (
+          <div className="w-full max-w-5xl space-y-8 rounded-[32px] bg-white/70 p-10 text-left shadow-[0_24px_60px_-25px_rgba(15,23,42,0.35)] ring-1 ring-indigo-100/70 backdrop-blur">
             <div className="flex flex-col gap-4 md:flex-row md:items-end md:justify-between">
               <div className="space-y-2">
-                <p className="text-xs font-semibold uppercase tracking-[0.2em] text-indigo-600">
+                <p className="text-xs font-semibold uppercase tracking-[0.3em] text-indigo-600">
                   Últimos cálculos
                 </p>
                 <h2 className="text-2xl font-semibold text-slate-900 md:text-3xl">Últimos cálculos</h2>
@@ -204,10 +205,10 @@ export default function HistoryPage({ onSlideStateChange }: HistoryPageProps) {
                 ? Array.from({ length: 4 }).map((_, index) => (
                     <div
                       key={`loading-${index}`}
-                      className="rounded-3xl bg-white/70 p-6 shadow-sm ring-1 ring-slate-200"
+                      className="rounded-[24px] border border-indigo-100/70 bg-white/75 p-6 shadow-sm"
                     >
                       <div className="flex animate-pulse flex-col gap-4">
-                        <div className="h-4 w-32 rounded bg-slate-200" />
+                        <div className="h-4 w-28 rounded bg-slate-200" />
                         <div className="h-7 w-40 rounded bg-slate-200" />
                         <div className="h-3 w-24 rounded bg-slate-200" />
                         <div className="h-3 w-20 rounded bg-slate-200" />
@@ -216,7 +217,7 @@ export default function HistoryPage({ onSlideStateChange }: HistoryPageProps) {
                   ))
                 : historyQuery.isError
                 ? (
-                    <div className="col-span-full flex flex-col items-center gap-3 rounded-3xl bg-white/90 p-6 text-center shadow-sm ring-1 ring-red-200">
+                    <div className="col-span-full flex flex-col items-center gap-3 rounded-[24px] border border-red-100 bg-white/90 p-6 text-center shadow-sm">
                       <p className="text-sm font-semibold text-red-500">
                         Não foi possível carregar os cálculos recentes.
                       </p>
@@ -231,7 +232,7 @@ export default function HistoryPage({ onSlideStateChange }: HistoryPageProps) {
                   )
                 : recentHistory.length === 0
                 ? (
-                    <div className="col-span-full flex flex-col items-center justify-center gap-3 rounded-3xl bg-white/90 p-8 text-center shadow-sm ring-1 ring-slate-200">
+                    <div className="col-span-full flex flex-col items-center justify-center gap-3 rounded-[24px] border border-indigo-100/70 bg-white/90 p-8 text-center shadow-sm">
                       <LucideIcon name="Inbox" className="h-10 w-10 text-slate-400" />
                       <p className="text-sm font-medium text-slate-500">
                         Nenhum cálculo encontrado até o momento.
@@ -245,11 +246,11 @@ export default function HistoryPage({ onSlideStateChange }: HistoryPageProps) {
                     return (
                       <div
                         key={item.id ?? `recent-${index}`}
-                        className="group flex h-full flex-col justify-between rounded-3xl bg-white/90 p-6 text-left shadow-sm ring-1 ring-slate-200 transition hover:-translate-y-1 hover:shadow-xl"
+                        className="group flex h-full flex-col justify-between rounded-[24px] border border-indigo-100/70 bg-white/90 p-6 text-left shadow-sm transition hover:-translate-y-1 hover:border-indigo-200 hover:shadow-xl"
                       >
                         <div className="flex items-start justify-between gap-4">
                           <div className="space-y-2">
-                            <p className="text-xs font-semibold uppercase tracking-[0.2em] text-indigo-600">
+                            <p className="text-xs font-semibold uppercase tracking-[0.3em] text-indigo-600">
                               Simulação
                             </p>
                             <p className="text-2xl font-semibold text-slate-900">
@@ -276,9 +277,23 @@ export default function HistoryPage({ onSlideStateChange }: HistoryPageProps) {
                     );
                   })}
             </div>
-          </section>
-        </div>
-      </div>
+          </div>
+        ),
+      },
+    ],
+    [
+      historyQuery.isError,
+      historyQuery.isLoading,
+      historyQuery.refetch,
+      metrics.totalCalculations,
+      metrics.totalCreditsUsed,
+      recentHistory,
+    ],
+  );
+
+  return (
+    <>
+      <FullscreenSlides slides={slides} onSlideStateChange={onSlideStateChange} />
 
       <FullscreenModal open={showModal} onClose={() => setShowModal(false)} title="Todos os cálculos">
         <div className="max-h-[70vh] space-y-4 overflow-y-auto pr-1">
@@ -318,9 +333,7 @@ export default function HistoryPage({ onSlideStateChange }: HistoryPageProps) {
                     className="flex w-full items-center justify-between gap-4 text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-300"
                   >
                     <div className="space-y-1">
-                      <p className="text-sm font-semibold text-slate-900">
-                        Simulação {`#${item.id}`}
-                      </p>
+                      <p className="text-sm font-semibold text-slate-900">Simulação {`#${item.id}`}</p>
                       <p className="text-xs text-slate-500">{formatDateTime(item.created_at)}</p>
                     </div>
                     <div className="text-right">
@@ -340,9 +353,9 @@ export default function HistoryPage({ onSlideStateChange }: HistoryPageProps) {
 
                   {bills.length > 0 ? (
                     <div className="mt-3 flex flex-wrap gap-2">
-                      {bills.map((bill, index) => (
+                      {bills.map((bill, billIndex) => (
                         <span
-                          key={`${item.id}-bill-value-${index}`}
+                          key={`${item.id}-bill-value-${billIndex}`}
                           className="rounded-full bg-indigo-50 px-3 py-1 text-xs font-semibold text-indigo-700"
                         >
                           {formatCurrency(bill.icms_value)}
@@ -361,13 +374,13 @@ export default function HistoryPage({ onSlideStateChange }: HistoryPageProps) {
                   >
                     <div className="overflow-hidden">
                       <div className="space-y-2">
-                        {bills.map((bill, index) => {
+                        {bills.map((bill, billIndex) => {
                           const formattedDate = formatBillDate(bill.issue_date);
-                          const billLabel = formattedDate === "--" ? `Fatura ${index + 1}` : formattedDate;
+                          const billLabel = formattedDate === "--" ? `Fatura ${billIndex + 1}` : formattedDate;
 
                           return (
                             <div
-                              key={`${item.id}-bill-detail-${index}`}
+                              key={`${item.id}-bill-detail-${billIndex}`}
                               className="flex flex-wrap items-center justify-between gap-3 rounded-xl bg-slate-50 px-3 py-2 text-xs text-slate-600"
                             >
                               <div className="space-y-1 text-left">
