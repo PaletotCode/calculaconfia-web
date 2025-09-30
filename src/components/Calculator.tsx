@@ -4,7 +4,9 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { LucideIcon, type IconName } from "@/components/LucideIcon";
 import MainCalculator from "@/components/platform/MainCalculator";
-import HomePage from "@/components/platform/pages/HomePage";
+import HomePage, {
+  type HomeSlidesNavigationState,
+} from "@/components/platform/pages/HomePage";
 import HistoryPage from "@/components/platform/pages/HistoryPage";
 import CreditsPage from "@/components/platform/pages/CreditsPage";
 import useAuth from "@/hooks/useAuth";
@@ -33,6 +35,7 @@ export function Calculator({ onRequestBuyCredits }: CalculatorProps) {
   const pageContainerRef = useRef<HTMLDivElement>(null);
   const navIndicatorRef = useRef<HTMLDivElement>(null);
   const navLinkRefs = useRef<Array<HTMLAnchorElement | null>>([]);
+  const [homeSlidesState, setHomeSlidesState] = useState<HomeSlidesNavigationState | null>(null);
 
   const navigateToSection = useCallback((section: CalculatorSection) => {
     const index = navLinks.findIndex((link) => link.id === section);
@@ -97,7 +100,16 @@ export function Calculator({ onRequestBuyCredits }: CalculatorProps) {
     navigateToSection("credits");
   }, [navigateToSection]);
 
+  const handleHomeSlideStateChange = useCallback((state: HomeSlidesNavigationState | null) => {
+    setHomeSlidesState(state);
+  }, []);
+
   const isCalculateVisible = activeNavIndex === CALCULATE_INDEX;
+
+  const showHomeSlideControls =
+    activeNavIndex === 0 && homeSlidesState != null && homeSlidesState.totalSlides > 1;
+  const canGoToPreviousSlide = Boolean(showHomeSlideControls && homeSlidesState?.canGoPrevious);
+  const canGoToNextSlide = Boolean(showHomeSlideControls && homeSlidesState?.canGoNext);
 
   return (
     <div className="calculator-root flex h-full min-h-screen w-full flex-col">
@@ -111,6 +123,7 @@ export function Calculator({ onRequestBuyCredits }: CalculatorProps) {
             <HomePage
               onNavigateToHistory={handleNavigateToHistory}
               onNavigateToCredits={handleNavigateToCredits}
+              onSlideStateChange={handleHomeSlideStateChange}
             />
           </section>
           <section id="calculate" className="page calculate-page overflow-hidden">
@@ -158,8 +171,30 @@ export function Calculator({ onRequestBuyCredits }: CalculatorProps) {
                     <span className="text-xs font-medium">{link.label}</span>
                   </div>
                 </a>
-              );
+              );             
             })}
+            {showHomeSlideControls && (
+              <div className="flex flex-col gap-1 pl-1">
+                <button
+                  type="button"
+                  className="nav-link flex h-8 w-8 items-center justify-center rounded-lg bg-white/5 text-white transition hover:bg-white/10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/40 disabled:cursor-not-allowed disabled:opacity-40"
+                  onClick={() => homeSlidesState?.goToPrevious()}
+                  aria-label="Slide anterior"
+                  disabled={!canGoToPreviousSlide}
+                >
+                  <LucideIcon name="ChevronUp" className="h-4 w-4" />
+                </button>
+                <button
+                  type="button"
+                  className="nav-link flex h-8 w-8 items-center justify-center rounded-lg bg-white/5 text-white transition hover:bg-white/10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/40 disabled:cursor-not-allowed disabled:opacity-40"
+                  onClick={() => homeSlidesState?.goToNext()}
+                  aria-label="Próximo slide"
+                  disabled={!canGoToNextSlide}
+                >
+                  <LucideIcon name="ChevronDown" className="h-4 w-4" />
+                </button>
+              </div>
+            )}
             <div className="hidden h-8 w-px bg-slate-700/60 sm:block" />
             <button
               type="button"
