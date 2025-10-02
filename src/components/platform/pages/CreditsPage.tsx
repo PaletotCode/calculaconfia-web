@@ -1,11 +1,13 @@
 "use client";
 
 import { useMemo, useState } from "react";
+import clsx from "clsx";
 import { useQuery } from "@tanstack/react-query";
 // Importações de componentes locais (mantendo a referência, mas o compilador pode ter problemas se não estiverem no mesmo diretório)
 import FullscreenSlides from "./FullscreenSlides";
 import FullscreenModal from "./FullscreenModal";
 import type { SlidesNavigationStateChange } from "./slides-navigation";
+import { mobileSlideCardBase, mobileSlideSectionSpacing } from "../mobile";
 
 // Importações de API e utilitários do seu projeto
 import {
@@ -61,8 +63,7 @@ const WalletIcon = (props: React.SVGProps<SVGSVGElement>) => (
 
 
 export default function CreditsPage({ onRequestBuyCredits, onSlideStateChange }: CreditsPageProps) {
-  const baseSlideContainer =
-    "w-full max-w-4xl space-y-8 rounded-[32px] bg-white/70 p-10 text-center shadow-[0_24px_60px_-25px_rgba(15,23,42,0.35)] ring-1 ring-indigo-100/70 backdrop-blur";
+  const baseSlideContainer = clsx(mobileSlideCardBase, "text-center");
   const [showModal, setShowModal] = useState(false);
 
   const balanceQuery = useQuery<CreditsBalanceResponse>({
@@ -97,8 +98,8 @@ export default function CreditsPage({ onRequestBuyCredits, onSlideStateChange }:
       ariaLabel: "Visão geral dos créditos",
       content: (
         <div className={baseSlideContainer}>
-          <header className="space-y-3">
-            <h2 className="text-3xl font-bold text-slate-900 md:text-4xl">Créditos</h2>
+          <header className={clsx(mobileSlideSectionSpacing, "text-center")}>
+            <h2 className="text-2xl font-bold text-slate-900 md:text-4xl">Créditos</h2>
             <p className="text-sm text-slate-600 md:text-base">
               Acompanhe seu saldo, visualize o histórico e compre novos créditos com facilidade.
             </p>
@@ -107,7 +108,7 @@ export default function CreditsPage({ onRequestBuyCredits, onSlideStateChange }:
           <div className="mx-auto w-full max-w-md space-y-4 rounded-3xl bg-gradient-to-br from-white to-amber-50 p-6 sm:p-8 shadow-xl ring-2 ring-amber-200">
             <div className="space-y-2 text-left">
               <p className="text-xs font-semibold uppercase tracking-[0.3em] text-teal-600">Saldo disponível</p>
-              <p className="text-4xl font-semibold text-slate-900 sm:text-5xl">
+              <p className="text-3xl font-semibold text-slate-900 sm:text-5xl">
                 {balanceQuery.isLoading ? "--" : formatCredits(totalCredits)}
               </p>
               <p className="text-xs text-slate-500">

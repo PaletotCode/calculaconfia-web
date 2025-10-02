@@ -12,6 +12,7 @@ import {
 } from "react";
 import clsx from "clsx";
 import type { SlidesNavigationState, SlidesNavigationStateChange } from "./slides-navigation";
+import { useSlidesOrientation } from "../mobile";
 
 export type Slide = {
   id: string;
@@ -46,11 +47,13 @@ const FullscreenSlides = forwardRef<FullscreenSlidesHandle, FullscreenSlidesProp
       return Math.min(Math.max(initial, 0), sanitizedSlides.length - 1);
     });
     const containerRef = useRef<HTMLDivElement>(null);
-    const touchStartY = useRef<number | null>(null);
+    const touchStartAxis = useRef<number | null>(null);
     const slideRefs = useRef<Array<HTMLDivElement | null>>([]);
     const lastWheelAt = useRef(0);
     const isWheelLocked = useRef(false);
     const wheelUnlockTimeout = useRef<NodeJS.Timeout | null>(null);
+    const orientation = useSlidesOrientation();
+    const isHorizontal = orientation === "horizontal";
 
     const goToIndex = useCallback(
       (index: number) => {
@@ -118,13 +121,24 @@ const FullscreenSlides = forwardRef<FullscreenSlidesHandle, FullscreenSlidesProp
         if (sanitizedSlides.length === 0) {
           return;
         }
-        if (event.key === "ArrowDown" || event.key === "PageDown") {
-          event.preventDefault();
-          goToNext();
-        }
-        if (event.key === "ArrowUp" || event.key === "PageUp") {
-          event.preventDefault();
-          goToPrevious();
+        if (isHorizontal) {
+          if (event.key === "ArrowRight" || event.key === "PageDown") {
+            event.preventDefault();
+            goToNext();
+          }
+          if (event.key === "ArrowLeft" || event.key === "PageUp") {
+            event.preventDefault();
+            goToPrevious();
+          }
+        } else {
+          if (event.key === "ArrowDown" || event.key === "PageDown") {
+            event.preventDefault();
+            goToNext();
+          }
+          if (event.key === "ArrowUp" || event.key === "PageUp") {
+            event.preventDefault();
+            goToPrevious();
+          }
         }
         if (event.key === "Home") {
           event.preventDefault();
@@ -135,7 +149,7 @@ const FullscreenSlides = forwardRef<FullscreenSlidesHandle, FullscreenSlidesProp
           goToIndex(sanitizedSlides.length - 1);
         }
       },
-      [goToIndex, goToNext, goToPrevious, sanitizedSlides.length],
+      [goToIndex, goToNext, goToPrevious, isHorizontal, sanitizedSlides.length],
     );
 
     useEffect(() => {
@@ -147,32 +161,39 @@ const FullscreenSlides = forwardRef<FullscreenSlidesHandle, FullscreenSlidesProp
       return () => node.removeEventListener("keydown", listener);
     }, [handleKeyDown]);
 
-    const handleTouchStart = useCallback((event: TouchEvent<HTMLDivElement>) => {
-      const firstTouch = event.touches[0];
-      touchStartY.current = firstTouch?.clientY ?? null;
-    }, []);
+    const handleTouchStart = useCallback(
+      (event: TouchEvent<HTMLDivElement>) => {
+        const firstTouch = event.touches[0];
+        if (!firstTouch) {
+          touchStartAxis.current = null;
+          return;
+        }
+        touchStartAxis.current = isHorizontal ? firstTouch.clientX : firstTouch.clientY;
+      },
+      [isHorizontal],
+    );
 
     const handleTouchEnd = useCallback(
       (event: TouchEvent<HTMLDivElement>) => {
-        if (touchStartY.current == null) {
+        if (touchStartAxis.current == null) {
           return;
         }
         const lastTouch = event.changedTouches[0];
         if (!lastTouch) {
-          touchStartY.current = null;
+          touchStartAxis.current = null;
           return;
         }
-        const deltaY = lastTouch.clientY - touchStartY.current;
-        if (Math.abs(deltaY) > SWIPE_THRESHOLD) {
-          if (deltaY > 0) {
+        const delta = (isHorizontal ? lastTouch.clientX : lastTouch.clientY) - touchStartAxis.current;
+        if (Math.abs(delta) > SWIPE_THRESHOLD) {
+          if (delta > 0) {
             goToPrevious();
           } else {
             goToNext();
           }
         }
-        touchStartY.current = null;
+        touchStartAxis.current = null;
       },
-      [goToNext, goToPrevious],
+      [goToNext, goToPrevious, isHorizontal],
     );
 
     const handleWheel = useCallback(
@@ -185,11 +206,13 @@ const FullscreenSlides = forwardRef<FullscreenSlidesHandle, FullscreenSlidesProp
           event.deltaMode === 1
             ? 16
             : event.deltaMode === 2
-            ? window.innerHeight || 1
+            ? isHorizontal
+              ? window.innerWidth || 1
+              : window.innerHeight || 1
             : 1;
-        const deltaY = event.deltaY * normalizationFactor;
+        const deltaRaw = (isHorizontal ? event.deltaX : event.deltaY) * normalizationFactor;
 
-        if (Math.abs(deltaY) < WHEEL_THRESHOLD) {
+        if (Math.abs(deltaRaw) < WHEEL_THRESHOLD) {
           return;
         }
 
@@ -203,7 +226,7 @@ const FullscreenSlides = forwardRef<FullscreenSlidesHandle, FullscreenSlidesProp
 
         event.preventDefault();
 
-        if (deltaY > 0) {
+        if (deltaRaw > 0) {
           goToNext();
         } else {
           goToPrevious();
@@ -220,7 +243,7 @@ const FullscreenSlides = forwardRef<FullscreenSlidesHandle, FullscreenSlidesProp
           isWheelLocked.current = false;
         }, WHEEL_COOLDOWN_MS);
       },
-      [goToNext, goToPrevious, sanitizedSlides.length],
+      [goToNext, goToPrevious, isHorizontal, sanitizedSlides.length],
     );
 
     useEffect(() => {
@@ -254,6 +277,7 @@ const FullscreenSlides = forwardRef<FullscreenSlidesHandle, FullscreenSlidesProp
         role="group"
         aria-roledescription="carousel"
         aria-live="polite"
+        data-orientation={orientation}
         tabIndex={0}
         onWheel={handleWheel}
         onTouchStart={handleTouchStart}
@@ -269,17 +293,21 @@ const FullscreenSlides = forwardRef<FullscreenSlidesHandle, FullscreenSlidesProp
                   slideRefs.current[index] = element;
                 }}
                 className={clsx(
-                  "absolute inset-0 flex h-full w-full flex-col items-center justify-center p-6 text-center transition-all duration-[350ms] ease-out",
+                  "absolute inset-0 flex h-full w-full flex-col items-center justify-center p-4 text-center transition-all duration-[350ms] ease-out sm:p-6",
                   isActive ? "pointer-events-auto opacity-100" : "pointer-events-none opacity-0",
                 )}
-                style={{ transform: `translateY(${(index - activeIndex) * 100}%)` }}
+                style={{
+                  transform: isHorizontal
+                    ? `translateX(${(index - activeIndex) * 100}%)`
+                    : `translateY(${(index - activeIndex) * 100}%)`,
+                }}
                 role="group"
                 aria-roledescription="slide"
                 aria-label={slide.ariaLabel}
                 id={slide.id}
                 tabIndex={-1}
               >
-                <div className="flex h-full w-full max-w-3xl flex-col items-center justify-center gap-6 text-slate-900">
+                <div className="flex h-full w-full max-w-[min(420px,92vw)] flex-col items-center justify-center gap-5 text-slate-900 sm:max-w-3xl sm:gap-6">
                   {slide.content}
                 </div>
               </div>
@@ -287,7 +315,14 @@ const FullscreenSlides = forwardRef<FullscreenSlidesHandle, FullscreenSlidesProp
           })}
         </div>
 
-        <div className="pointer-events-none absolute right-6 top-1/2 hidden -translate-y-1/2 flex-col items-center gap-3 md:flex">
+        <div
+          className={clsx(
+            "pointer-events-none absolute hidden items-center gap-3 md:flex",
+            isHorizontal
+              ? "bottom-6 left-1/2 -translate-x-1/2"
+              : "right-6 top-1/2 -translate-y-1/2 flex-col",
+          )}
+        >
           {sanitizedSlides.map((slide, index) => {
             const isActive = index === activeIndex;
             return (
@@ -309,6 +344,9 @@ const FullscreenSlides = forwardRef<FullscreenSlidesHandle, FullscreenSlidesProp
         <style jsx>{`
           div[aria-roledescription="carousel"] {
             touch-action: none;
+          }
+            div[aria-roledescription="carousel"][data-orientation="horizontal"] {
+            touch-action: pan-y;
           }
         `}</style>
       </div>

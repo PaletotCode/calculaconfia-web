@@ -52,7 +52,7 @@ export default function FullscreenModal({ open, title, onClose, children, classN
         aria-modal="true"
         aria-labelledby={title ? headingId : undefined}
         className={clsx(
-          "relative z-10 flex h-[96vh] w-[min(640px,90vw)] flex-col overflow-hidden rounded-3xl bg-white text-slate-900 shadow-2xl",
+          "relative z-10 flex h-[calc(100vh-120px)] w-[calc(100vw-32px)] max-w-[420px] flex-col overflow-hidden rounded-[28px] bg-white text-slate-900 shadow-2xl sm:h-[calc(100vh-96px)] sm:max-w-[520px] sm:rounded-[32px] md:h-[96vh] md:w-[min(640px,90vw)] md:max-w-none",
           className,
         )}
       >
@@ -69,7 +69,7 @@ export default function FullscreenModal({ open, title, onClose, children, classN
             Fechar
           </button>
         </div>
-        <div className="flex-1 overflow-auto px-6 py-4">
+        <div className="flex-1 overflow-hidden">
           {children}
         </div>
       </div>

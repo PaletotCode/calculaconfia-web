@@ -13,6 +13,7 @@ import {
 import FullscreenModal from "./FullscreenModal";
 import FullscreenSlides, { type Slide } from "./FullscreenSlides";
 import type { SlidesNavigationStateChange } from "./slides-navigation";
+import { mobileSlideCardBase, mobileSlideCardWide, mobileSlideSectionSpacing } from "../mobile";
 
 interface HistoryPageProps {
   onSlideStateChange?: SlidesNavigationStateChange;
@@ -98,6 +99,12 @@ export default function HistoryPage({ onSlideStateChange }: HistoryPageProps) {
     queryFn: () => getDetailedHistory({ limit: queryLimit, offset: 0 }),
   });
 
+  const {
+    isLoading: isHistoryLoading,
+    isError: isHistoryError,
+    refetch: refetchHistory,
+  } = historyQuery;
+
   const sortedHistory = useMemo(() => {
     if (!historyQuery.data) return [] as DetailedHistoryItem[];
     return [...historyQuery.data].sort((a, b) => {
@@ -133,16 +140,16 @@ export default function HistoryPage({ onSlideStateChange }: HistoryPageProps) {
         id: "history-overview",
         ariaLabel: "Histórico de cálculos consolidado",
         content: (
-          <div className="w-full max-w-4xl space-y-8 rounded-[32px] bg-white/70 p-10 text-center shadow-[0_24px_60px_-25px_rgba(15,23,42,0.35)] ring-1 ring-indigo-100/70 backdrop-blur">
-            <div className="space-y-3">
-              <h1 className="text-3xl font-bold text-slate-900 md:text-4xl">Histórico de Cálculos</h1>
+          <div className={clsx(mobileSlideCardBase, "text-center")}>
+            <div className={mobileSlideSectionSpacing}>
+              <h1 className="text-2xl font-bold text-slate-900 md:text-4xl">Histórico de Cálculos</h1>
               <p className="text-sm text-slate-600 md:text-base">
                 Visualize métricas consolidadas e explore os detalhes de cada simulação.
               </p>
             </div>
 
-            <div className="grid gap-6 md:grid-cols-2">
-              <div className="group flex flex-col gap-6 rounded-[24px] border border-indigo-100/70 bg-white/90 p-6 text-left shadow-sm transition hover:-translate-y-0.5 hover:border-indigo-200 hover:shadow-xl">
+            <div className="grid gap-4 md:grid-cols-2">
+              <div className="group flex flex-col gap-5 rounded-[24px] border border-indigo-100/70 bg-white/90 p-5 text-left shadow-sm transition hover:-translate-y-0.5 hover:border-indigo-200 hover:shadow-xl">
                 <div className="flex items-center justify-between gap-4">
                   <p className="text-xs font-semibold uppercase tracking-[0.3em] text-indigo-600">
                     Total de cálculos
@@ -151,13 +158,13 @@ export default function HistoryPage({ onSlideStateChange }: HistoryPageProps) {
                     <LucideIcon name="ChartBar" className="h-6 w-6" />
                   </span>
                 </div>
-                <p className="text-4xl font-semibold text-slate-900">
-                  {formatInteger(metrics.totalCalculations, historyQuery.isLoading)}
+                <p className="text-3xl font-semibold text-slate-900 md:text-4xl">
+                  {formatInteger(metrics.totalCalculations, isHistoryLoading)}
                 </p>
                 <p className="text-sm text-slate-500">Total de registros processados.</p>
               </div>
 
-              <div className="group flex flex-col gap-6 rounded-[24px] border border-indigo-100/70 bg-white/90 p-6 text-left shadow-sm transition hover:-translate-y-0.5 hover:border-indigo-200 hover:shadow-xl">
+              <div className="group flex flex-col gap-5 rounded-[24px] border border-indigo-100/70 bg-white/90 p-5 text-left shadow-sm transition hover:-translate-y-0.5 hover:border-indigo-200 hover:shadow-xl">
                 <div className="flex items-center justify-between gap-4">
                   <p className="text-xs font-semibold uppercase tracking-[0.3em] text-indigo-600">
                     Créditos utilizados
@@ -166,8 +173,8 @@ export default function HistoryPage({ onSlideStateChange }: HistoryPageProps) {
                     <LucideIcon name="Coins" className="h-6 w-6" />
                   </span>
                 </div>
-                <p className="text-4xl font-semibold text-slate-900">
-                  {formatInteger(Math.round(metrics.totalCreditsUsed), historyQuery.isLoading)}
+                <p className="text-3xl font-semibold text-slate-900 md:text-4xl">
+                  {formatInteger(Math.round(metrics.totalCreditsUsed), isHistoryLoading)}
                 </p>
                 <p className="text-sm text-slate-500">Total de créditos consumidos.</p>
               </div>
@@ -179,9 +186,9 @@ export default function HistoryPage({ onSlideStateChange }: HistoryPageProps) {
         id: "history-recent",
         ariaLabel: "Últimos cálculos realizados",
         content: (
-          <div className="w-full max-w-5xl space-y-8 rounded-[32px] bg-white/70 p-10 text-left shadow-[0_24px_60px_-25px_rgba(15,23,42,0.35)] ring-1 ring-indigo-100/70 backdrop-blur">
+          <div className={clsx(mobileSlideCardWide, "text-left")}>
             <div className="flex flex-col gap-4 md:flex-row md:items-end md:justify-between">
-              <div className="space-y-2">
+              <div className={mobileSlideSectionSpacing}>
                 <p className="text-xs font-semibold uppercase tracking-[0.3em] text-indigo-600">
                   Últimos cálculos
                 </p>
@@ -200,12 +207,12 @@ export default function HistoryPage({ onSlideStateChange }: HistoryPageProps) {
               </button>
             </div>
 
-            <div className="grid gap-4 md:grid-cols-2">
-              {historyQuery.isLoading
+            <div className="grid gap-3 md:gap-4 md:grid-cols-2">
+              {isHistoryLoading
                 ? Array.from({ length: 4 }).map((_, index) => (
                     <div
                       key={`loading-${index}`}
-                      className="rounded-[24px] border border-indigo-100/70 bg-white/75 p-6 shadow-sm"
+                      className="rounded-[24px] border border-indigo-100/70 bg-white/75 p-5 shadow-sm"
                     >
                       <div className="flex animate-pulse flex-col gap-4">
                         <div className="h-4 w-28 rounded bg-slate-200" />
@@ -215,15 +222,15 @@ export default function HistoryPage({ onSlideStateChange }: HistoryPageProps) {
                       </div>
                     </div>
                   ))
-                : historyQuery.isError
+                : isHistoryError
                 ? (
-                    <div className="col-span-full flex flex-col items-center gap-3 rounded-[24px] border border-red-100 bg-white/90 p-6 text-center shadow-sm">
+                    <div className="col-span-full flex flex-col items-center gap-3 rounded-[24px] border border-red-100 bg-white/90 p-5 text-center shadow-sm">
                       <p className="text-sm font-semibold text-red-500">
                         Não foi possível carregar os cálculos recentes.
                       </p>
                       <button
                         type="button"
-                        onClick={() => historyQuery.refetch()}
+                        onClick={() => refetchHistory()}
                         className="rounded-full bg-red-500 px-4 py-2 text-xs font-semibold text-white transition hover:bg-red-600 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-red-300"
                       >
                         Tentar novamente
@@ -232,7 +239,7 @@ export default function HistoryPage({ onSlideStateChange }: HistoryPageProps) {
                   )
                 : recentHistory.length === 0
                 ? (
-                    <div className="col-span-full flex flex-col items-center justify-center gap-3 rounded-[24px] border border-indigo-100/70 bg-white/90 p-8 text-center shadow-sm">
+                    <div className="col-span-full flex flex-col items-center justify-center gap-3 rounded-[24px] border border-indigo-100/70 bg-white/90 p-6 text-center shadow-sm">
                       <LucideIcon name="Inbox" className="h-10 w-10 text-slate-400" />
                       <p className="text-sm font-medium text-slate-500">
                         Nenhum cálculo encontrado até o momento.
@@ -246,7 +253,7 @@ export default function HistoryPage({ onSlideStateChange }: HistoryPageProps) {
                     return (
                       <div
                         key={item.id ?? `recent-${index}`}
-                        className="group flex h-full flex-col justify-between rounded-[24px] border border-indigo-100/70 bg-white/90 p-6 text-left shadow-sm transition hover:-translate-y-1 hover:border-indigo-200 hover:shadow-xl"
+                        className="group flex h-full flex-col justify-between rounded-[24px] border border-indigo-100/70 bg-white/90 p-5 text-left shadow-sm transition hover:-translate-y-1 hover:border-indigo-200 hover:shadow-xl"
                       >
                         <div className="flex items-start justify-between gap-4">
                           <div className="space-y-2">
@@ -282,9 +289,9 @@ export default function HistoryPage({ onSlideStateChange }: HistoryPageProps) {
       },
     ],
     [
-      historyQuery.isError,
-      historyQuery.isLoading,
-      historyQuery.refetch,
+      isHistoryError,
+      isHistoryLoading,
+      refetchHistory,
       metrics.totalCalculations,
       metrics.totalCreditsUsed,
       recentHistory,
@@ -297,16 +304,16 @@ export default function HistoryPage({ onSlideStateChange }: HistoryPageProps) {
 
       <FullscreenModal open={showModal} onClose={() => setShowModal(false)} title="Todos os cálculos">
         <div className="max-h-[70vh] space-y-4 overflow-y-auto pr-1">
-          {historyQuery.isLoading ? (
+          {isHistoryLoading ? (
             <div className="flex h-48 items-center justify-center text-sm text-slate-500">
               Carregando histórico detalhado...
             </div>
-          ) : historyQuery.isError ? (
+          ) : isHistoryError ? (
             <div className="flex flex-col items-center justify-center gap-3 rounded-3xl bg-white/90 p-6 text-center shadow-sm ring-1 ring-red-200">
               <p className="text-sm font-semibold text-red-500">Não foi possível carregar o histórico.</p>
               <button
                 type="button"
-                onClick={() => historyQuery.refetch()}
+                onClick={() => refetchHistory()}
                 className="rounded-full bg-red-500 px-4 py-2 text-xs font-semibold text-white transition hover:bg-red-600 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-red-300"
               >
                 Tentar novamente

@@ -98,13 +98,13 @@ export const SelectionStep: FC<SelectionStepProps> = ({
       <ArrowLeft className="h-6 w-6 text-slate-600" />
     </button>
 
-    <div className="flex h-full w-full max-w-3xl flex-col justify-center overflow-y-auto px-4 pb-24 text-center">
-      <h2 className="text-3xl font-bold text-slate-900">Você tem quantas contas em mãos?</h2>
-      <p className="mt-2 text-slate-500">
+    <div className="flex h-full w-full max-w-3xl flex-col justify-center px-4 pb-16 text-center sm:px-6">
+      <h2 className="text-2xl font-bold text-slate-900 md:text-3xl">Você tem quantas contas em mãos?</h2>
+      <p className="mt-2 text-sm text-slate-500 md:text-base">
         Selecione o número de faturas que você usará para a simulação.
       </p>
 
-      <div className="mt-8 grid grid-cols-3 gap-3 sm:grid-cols-4 sm:gap-4 md:grid-cols-6">
+      <div className="mt-6 grid grid-cols-3 gap-3 sm:mt-8 sm:grid-cols-4 sm:gap-4 md:grid-cols-6">
         {bills.map((bill) => (
           <button
             key={bill.id}
@@ -119,7 +119,7 @@ export const SelectionStep: FC<SelectionStepProps> = ({
             aria-pressed={bill.selected}
           >
             <Receipt className="h-5 w-5 text-emerald-400" aria-hidden />
-            <span className="mt-2 text-2xl font-semibold">
+            <span className="mt-2 text-xl font-semibold md:text-2xl">
               {bill.id.toString().padStart(2, "0")}
             </span>
             <span className="mt-1 text-xs text-slate-400">Fatura</span>
@@ -127,7 +127,7 @@ export const SelectionStep: FC<SelectionStepProps> = ({
         ))}
       </div>
 
-      <div className="mt-10 flex flex-col gap-4 sm:flex-row sm:justify-center">
+      <div className="mt-8 flex flex-col gap-4 sm:flex-row sm:justify-center">
         <button
           type="button"
           className="rounded-full border border-slate-300 px-6 py-3 text-sm font-semibold text-slate-600 transition hover:border-slate-400 hover:text-slate-700"
