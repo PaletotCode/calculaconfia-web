@@ -5,9 +5,9 @@
   - --platform-modal-mobile-padding: define o espaçamento interno do container para manter o modal centralizado.
 */
 :root {
-  --platform-modal-mobile-scale: 0.5;
-  --platform-modal-mobile-max-width: 220px;
-  --platform-modal-mobile-padding: clamp(12px, 3vh, 12px);
+  --platform-modal-mobile-scale: 1;
+  --platform-modal-mobile-max-width: 420px;
+  --platform-modal-mobile-padding: clamp(16px, 4vh, 28px);
 }
 
 .platform-fullscreen-modal {
