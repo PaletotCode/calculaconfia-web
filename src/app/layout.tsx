@@ -3,7 +3,6 @@ import { Inter } from "next/font/google";
 import AppProviders from "@/components/AppProviders";
 import SessionManager from "@/components/SessionManager";
 import "./globals.css";
-import "./platform-modals.css";
 import { type ReactNode } from "react";
 import Script from "next/script";
 
