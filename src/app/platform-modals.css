@@ -1,0 +1,27 @@
+/*
+  Ajuste as variáveis abaixo para controlar o tamanho dos modais/cartões da plataforma no mobile.
+  - --platform-mobile-modal-scale: representa a escala aplicada (1 = 100%, 0.9 = 90% do tamanho original).
+  - --platform-mobile-modal-max-width: define a largura base utilizada antes da escala.
+*/
+:root {
+  --platform-mobile-modal-scale: 0.8;
+  --platform-mobile-modal-max-width: 640px;
+}
+
+@media (max-width: 640px) {
+  .calculator-root #page-container {
+    align-items: flex-start;
+  }
+
+  .calculator-root #page-container > .page {
+    padding-top: clamp(1rem, 4vh, 2.5rem);
+    padding-bottom: clamp(4rem, 12vh, 6rem);
+  }
+
+  .calculator-root #page-container > .page > * {
+    width: min(100%, var(--platform-mobile-modal-max-width));
+    margin-inline: auto;
+    transform-origin: top center;
+    transform: scale(var(--platform-mobile-modal-scale));
+  }
+}
