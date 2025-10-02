@@ -45,14 +45,14 @@ export default function FullscreenModal({ open, title, onClose, children, classN
   }
 
   return createPortal(
-    <div className="fixed inset-0 z-[70] flex items-center justify-center">
+    <div className="platform-fullscreen-modal fixed inset-0 z-[70] flex items-center justify-center">
       <div className="absolute inset-0 bg-slate-900/70" onClick={onClose} aria-hidden="true" />
       <div
         role="dialog"
         aria-modal="true"
         aria-labelledby={title ? headingId : undefined}
         className={clsx(
-          "relative z-10 flex h-[calc(100vh-120px)] w-[calc(100vw-32px)] max-w-[420px] flex-col overflow-hidden rounded-[28px] bg-white text-slate-900 shadow-2xl sm:h-[calc(100vh-96px)] sm:max-w-[520px] sm:rounded-[32px] md:h-[96vh] md:w-[min(640px,90vw)] md:max-w-none",
+          "platform-fullscreen-modal__panel relative z-10 flex h-[calc(100vh-120px)] w-[calc(100vw-32px)] max-w-[420px] flex-col overflow-hidden rounded-[28px] bg-white text-slate-900 shadow-2xl sm:h-[calc(100vh-96px)] sm:max-w-[520px] sm:rounded-[32px] md:h-[96vh] md:w-[min(640px,90vw)] md:max-w-none",
           className,
         )}
       >
