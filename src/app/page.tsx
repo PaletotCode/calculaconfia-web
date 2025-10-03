@@ -885,7 +885,7 @@ export default function LandingPage() {
                 Baseado na Decisão do STF - 2025 (Tema 69)
               </span>
               <h1 className="mb-4 text-4xl font-black leading-tight drop-shadow-xl sm:text-5xl md:text-6xl">
-                R$5 que revelam se você tem centenas a receber.
+                <span className="glow-green">R$5 que revelam</span> se você tem <span className="glow-gradient">centenas a receber</span>.
               </h1>
               <p className="mx-auto mb-8 max-w-3xl text-lg text-slate-200 drop-shadow-lg md:text-xl">
                 Descubra em segundos se tem dinheiro a recuperar, com total clareza e segurança.
