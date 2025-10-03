@@ -5,7 +5,6 @@ import clsx from "clsx";
 import {
   BottomHint,
   BillFormViewModel,
-  BillOptionCard,
   ConfirmationStep,
   ErrorOverlay,
   FormStep,
@@ -128,19 +127,6 @@ const MainCalculator = ({
   const timelineIntervalRef = useRef<number | null>(null);
   const autoTransitionTimeoutRef = useRef<number | null>(null);
 
-  const billOptions: BillOptionCard[] = useMemo(
-    () =>
-      Array.from({ length: BILL_TOTAL }, (_, index) => {
-        const id = index + 1;
-        return {
-          id,
-          label: `Fatura ${String(id).padStart(2, "0")}`,
-          selected: selectedIds.includes(id),
-        };
-      }),
-    [selectedIds],
-  );
-
   const orderedFormStates: FormState[] = useMemo(
     () => selectedIds.map((id) => formStateByBill[id] ?? { ...DEFAULT_FORM_STATE }),
     [formStateByBill, selectedIds],
@@ -167,15 +153,7 @@ const MainCalculator = ({
     setFlowStep("selection");
   }, []);
 
-  // Interpreta o clique como "quantidade de faturas"
-  // Ex.: clicar em 5 seleciona [1,2,3,4,5]
-  const handleToggleBill = useCallback((id: number) => {
-    setSelectedIds(() => Array.from({ length: id }, (_, i) => i + 1));
-  }, []);
 
-  const handleBackToWelcome = useCallback(() => {
-    setFlowStep("welcome");
-  }, []);
 
   const prepareFormStates = useCallback((ids: number[]) => {
     setFormStateByBill((previous) => {
@@ -207,18 +185,25 @@ const MainCalculator = ({
     [prepareFormStates],
   );
 
-  const handleContinueSelection = useCallback(() => {
-    if (selectedIds.length === 0) {
-      setOverlay({
-        title: "Selecione faturas",
-        messages: ["Escolha pelo menos uma fatura para continuar."],
-        retryStep: "selection",
-      });
-      return;
-    }
+  const handleContinueSelection = useCallback(
+    (quantity: number) => {
+      const clampedQuantity = Math.max(0, Math.min(quantity, BILL_TOTAL));
 
-    proceedToForms(selectedIds);
-  }, [proceedToForms, selectedIds]);
+      if (clampedQuantity <= 0) {
+        setOverlay({
+          title: "Selecione faturas",
+          messages: ["Escolha pelo menos uma fatura para continuar."],
+          retryStep: "selection",
+        });
+        return;
+      }
+
+      const ids = Array.from({ length: clampedQuantity }, (_, index) => index + 1);
+      setSelectedIds(ids);
+      proceedToForms(ids);
+    },
+    [proceedToForms],
+  );
 
   const handleDateChange = useCallback(
     (dates: Date[]) => {
@@ -526,11 +511,7 @@ const MainCalculator = ({
 
         <SelectionStep
           isActive={flowStep === "selection"}
-          bills={billOptions}
-          onToggleBill={handleToggleBill}
-          onBack={handleBackToWelcome}
           onContinue={handleContinueSelection}
-          disableContinue={selectedIds.length === 0}
         />
 
         {selectedIds.map((id, index) => (
