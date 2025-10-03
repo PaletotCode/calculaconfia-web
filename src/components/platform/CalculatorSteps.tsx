@@ -57,10 +57,10 @@ export const WelcomeStep: FC<WelcomeStepProps> = ({ isActive, onStart }) => {
 
       <div className="welcome-content relative z-10 flex flex-col items-center text-center">
         <h1 className="text-4xl md:text-5xl font-bold text-white drop-shadow-[0_0_15px_rgba(13,148,136,0.7)]">
-          Ã‰ um prazer tÃª-lo aqui.
+          É um prazer tê-lo aqui.
         </h1>
         <p className="mt-4 max-w-md text-base text-slate-300">
-          Vamos descobrir juntos o valor estimado que vocÃª pode ter a receber.
+          Vamos descobrir juntos o valor estimado que você pode ter a receber.
         </p>
         <button type="button" className="start-btn mt-8" onClick={onStart}>
           Vamos comeÃ§ar
@@ -120,10 +120,10 @@ export const SelectionStep: FC<SelectionStepProps> = ({ isActive, onContinue }) 
       <main className="flex-grow flex flex-col items-center justify-center text-center px-4">
         <div className="w-full max-w-sm" style={{ animation: isActive ? 'fadeIn 0.6s ease-out forwards' : 'none' }}>
           <h2 className="text-2xl font-bold leading-tight text-slate-900 sm:text-3xl">
-            VocÃª tem quantas contas em mÃ£os?
+            Você tem quantas contas em mÃ£os?
           </h2>
           <p className="mt-3 text-sm text-slate-500 md:text-base">
-            Insira o nÃºmero de faturas que vocÃª usarÃ¡ para a simulaÃ§Ã£o.
+            Insira o nÃºmero de faturas que você usará para a simulaÃ§Ã£o.
           </p>
 
           <div className="mt-8 bg-white/70 backdrop-blur-sm p-6 rounded-3xl shadow-lg shadow-slate-200/80 border border-slate-200/80">
