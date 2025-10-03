@@ -98,39 +98,47 @@ export const SelectionStep: FC<SelectionStepProps> = ({
       <ArrowLeft className="h-6 w-6 text-slate-600" />
     </button>
 
-    <div className="flex h-full w-full max-w-3xl flex-col justify-center px-4 pb-16 text-center sm:px-6">
-      <h2 className="text-2xl font-bold text-slate-900 md:text-3xl">Você tem quantas contas em mãos?</h2>
-      <p className="mt-2 text-sm text-slate-500 md:text-base">
-        Selecione o número de faturas que você usará para a simulação.
-      </p>
+    <div className="flex h-full w-full max-w-3xl flex-col overflow-y-auto px-4 pb-24 pt-8 text-center sm:justify-center sm:overflow-visible sm:px-6 sm:pb-16 sm:pt-0">
+      <div className="mx-auto w-full max-w-md rounded-3xl bg-white/80 p-6 shadow-[0_20px_40px_-24px_rgba(15,23,42,0.35)] ring-1 ring-slate-100 backdrop-blur-sm sm:max-w-none sm:bg-transparent sm:p-0 sm:shadow-none sm:ring-0">
+        <span className="inline-flex items-center justify-center rounded-full bg-emerald-100 px-3 py-1 text-xs font-semibold text-emerald-600 shadow-sm sm:hidden">
+          Seleção de faturas
+        </span>
 
-      <div className="mt-6 grid grid-cols-3 gap-3 sm:mt-8 sm:grid-cols-4 sm:gap-4 md:grid-cols-6">
-        {bills.map((bill) => (
-          <button
-            key={bill.id}
-            type="button"
-            className={clsx(
-              "bill-option relative flex aspect-square flex-col items-center justify-center gap-1.5 rounded-2xl border text-center font-semibold transition-all duration-200",
-              bill.selected
-                ? "selected border-emerald-500 bg-emerald-50 text-emerald-600 shadow-lg shadow-emerald-500/20"
-                : "border-slate-200 bg-white text-slate-600 hover:border-emerald-400 hover:text-emerald-600",
-            )}
-            onClick={() => onToggleBill(bill.id)}
-            aria-pressed={bill.selected}
-          >
-            <Receipt className="h-5 w-5 text-emerald-400" aria-hidden />
-            <span className="mt-2 text-xl font-semibold md:text-2xl">
-              {bill.id.toString().padStart(2, "0")}
-            </span>
-            <span className="mt-1 text-xs text-slate-400">Fatura</span>
-          </button>
-        ))}
+        <h2 className="mt-4 text-balance text-xl font-bold leading-tight text-slate-900 sm:mt-0 sm:text-2xl md:text-3xl">
+          Você tem quantas contas em mãos?
+        </h2>
+        <p className="mt-3 text-pretty text-sm text-slate-500 md:text-base">
+          Selecione o número de faturas que você usará para a simulação.
+        </p>
+
+        <div className="mt-6 grid grid-cols-2 gap-3 sm:mt-8 sm:grid-cols-4 sm:gap-4 md:grid-cols-6">
+          {bills.map((bill) => (
+            <button
+              key={bill.id}
+              type="button"
+              className={clsx(
+                "bill-option relative flex aspect-[5/6] flex-col items-center justify-center gap-1 rounded-3xl border bg-white/80 text-center font-semibold transition-all duration-200 backdrop-blur-sm sm:aspect-square sm:rounded-2xl sm:bg-white sm:backdrop-blur-none",
+                bill.selected
+                  ? "selected border-emerald-500 bg-emerald-50 text-emerald-600 shadow-lg shadow-emerald-500/20"
+                  : "border-slate-200 text-slate-600 hover:border-emerald-400 hover:text-emerald-600",
+              )}
+              onClick={() => onToggleBill(bill.id)}
+              aria-pressed={bill.selected}
+            >
+              <Receipt className="h-5 w-5 text-emerald-400" aria-hidden />
+              <span className="mt-1 text-lg font-semibold sm:mt-2 sm:text-xl md:text-2xl">
+                {bill.id.toString().padStart(2, "0")}
+              </span>
+              <span className="mt-1 text-xs text-slate-400">Fatura</span>
+            </button>
+          ))}
+        </div>
       </div>
 
-      <div className="mt-8 flex flex-col gap-4 sm:flex-row sm:justify-center">
+      <div className="mt-10 flex flex-col gap-3 sm:mt-8 sm:flex-row sm:justify-center sm:gap-4">
         <button
           type="button"
-          className="rounded-full border border-slate-300 px-6 py-3 text-sm font-semibold text-slate-600 transition hover:border-slate-400 hover:text-slate-700"
+          className="rounded-full border border-slate-200 px-5 py-3 text-sm font-semibold text-slate-600 shadow-sm transition hover:border-slate-300 hover:text-slate-700 sm:border-slate-300 sm:px-6"
           onClick={onBack}
         >
           Voltar
@@ -138,7 +146,7 @@ export const SelectionStep: FC<SelectionStepProps> = ({
         <button
           type="button"
           className={clsx(
-            "rounded-full px-6 py-3 text-sm font-semibold text-white shadow-lg transition",
+            "rounded-full px-5 py-3 text-sm font-semibold text-white shadow-lg transition sm:px-6",
             disableContinue
               ? "bg-slate-400 cursor-not-allowed shadow-none"
               : "start-btn",
