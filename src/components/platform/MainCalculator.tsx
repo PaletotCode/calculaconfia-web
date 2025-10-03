@@ -67,17 +67,52 @@ const DEFAULT_FORM_STATE: FormState = {
 };
 
 const formatCurrencyInput = (rawValue: string) => {
-  const cleaned = rawValue.replace(/[^0-9,]/g, '').replace(/,+/g, ',');
-  if (!cleaned) {
+  const trimmed = rawValue.replace(/\s/g, '');
+  if (!trimmed) {
     return '';
   }
 
-  const parts = cleaned.split(',');
-  const integerPart = parts[0]?.replace(/^0+(?!$)/, '') || '0';
-  const decimalPart = (parts[1] ?? '').slice(0, 2);
-  const integerWithThousands = integerPart.replace(/\B(?=(\d{3})+(?!\d))/g, '.');
+  const endsWithSeparator = /[.,]$/.test(trimmed);
+  const hasComma = trimmed.includes(',');
+  let decimalIndex = -1;
 
-  return decimalPart ? `${integerWithThousands},${decimalPart}` : integerWithThousands;
+  if (hasComma) {
+    decimalIndex = trimmed.lastIndexOf(',');
+  } else {
+    const lastDotIndex = trimmed.lastIndexOf('.');
+    if (lastDotIndex !== -1) {
+      const digitsAfterDot = trimmed.slice(lastDotIndex + 1).replace(/[^0-9]/g, '');
+      if (digitsAfterDot.length === 0 && endsWithSeparator) {
+        decimalIndex = lastDotIndex;
+      } else if (digitsAfterDot.length > 0 && digitsAfterDot.length <= 2) {
+        decimalIndex = lastDotIndex;
+      }
+    }
+  }
+
+  let integerRaw = decimalIndex === -1 ? trimmed : trimmed.slice(0, decimalIndex);
+  let decimalRaw = decimalIndex === -1 ? '' : trimmed.slice(decimalIndex + 1);
+
+  integerRaw = integerRaw.replace(/[^0-9]/g, '');
+  decimalRaw = decimalRaw.replace(/[^0-9]/g, '');
+
+  if (!integerRaw && !decimalRaw) {
+    return endsWithSeparator ? '0,' : '';
+  }
+
+  const sanitizedInteger = integerRaw.replace(/^0+(?!$)/, '') || '0';
+  const integerWithThousands = sanitizedInteger.replace(/\B(?=(\d{3})+(?!\d))/g, '.');
+
+  if (decimalIndex === -1) {
+    return endsWithSeparator ? `${integerWithThousands},` : integerWithThousands;
+  }
+
+  const trimmedDecimals = decimalRaw.slice(0, 2);
+  if (!trimmedDecimals && endsWithSeparator) {
+    return `${integerWithThousands},`;
+  }
+
+  return trimmedDecimals ? `${integerWithThousands},${trimmedDecimals}` : `${integerWithThousands},`;
 };
 
 const formatBRL = (value: number) =>
@@ -103,6 +138,14 @@ const parseCurrency = (value: string) => {
   const parsed = Number.parseFloat(normalized);
   return Number.isFinite(parsed) ? parsed : 0;
 };
+
+const DATE_LIMITS = (() => {
+  const maxDate = new Date();
+  maxDate.setHours(0, 0, 0, 0);
+  const minDate = new Date(maxDate);
+  minDate.setFullYear(minDate.getFullYear() - 10);
+  return { minDate, maxDate };
+})();
 
 const MainCalculator = ({
   onRequestBuyCredits,
@@ -210,25 +253,53 @@ const MainCalculator = ({
       if (!currentFormId) {
         return;
       }
+
       const date = dates[0];
+      if (!date) {
+        setFormStateByBill((prev) => ({
+          ...prev,
+          [currentFormId]: {
+            ...(prev[currentFormId] ?? { ...DEFAULT_FORM_STATE }),
+            issueDateIso: "",
+            issueDateValue: "",
+            issueDateLabel: "",
+          },
+        }));
+        setFormError(null);
+        return;
+      }
+
+      const normalizedDate = new Date(date);
+      normalizedDate.setHours(0, 0, 0, 0);
+      const { minDate, maxDate } = DATE_LIMITS;
+      if (normalizedDate < minDate || normalizedDate > maxDate) {
+        setFormStateByBill((prev) => ({
+          ...prev,
+          [currentFormId]: {
+            ...(prev[currentFormId] ?? { ...DEFAULT_FORM_STATE }),
+            issueDateIso: "",
+            issueDateValue: "",
+            issueDateLabel: "",
+          },
+        }));
+        const minLabel = minDate.toLocaleDateString('pt-BR');
+        const maxLabel = maxDate.toLocaleDateString('pt-BR');
+        setFormError(`Informe uma data entre ${minLabel} e ${maxLabel}.`);
+        return;
+      }
+
+      setFormError(null);
       setFormStateByBill((prev) => ({
         ...prev,
-        [currentFormId]: date
-          ? {
-              ...(prev[currentFormId] ?? { ...DEFAULT_FORM_STATE }),
-              issueDateIso: toMonthIso(date),
-              issueDateValue: toInputValue(date),
-              issueDateLabel: toFriendlyLabel(date),
-            }
-          : {
-              ...(prev[currentFormId] ?? { ...DEFAULT_FORM_STATE }),
-              issueDateIso: "",
-              issueDateValue: "",
-              issueDateLabel: "",
-            },
+        [currentFormId]: {
+          ...(prev[currentFormId] ?? { ...DEFAULT_FORM_STATE }),
+          issueDateIso: toMonthIso(normalizedDate),
+          issueDateValue: toInputValue(normalizedDate),
+          issueDateLabel: toFriendlyLabel(normalizedDate),
+        },
       }));
     },
-    [currentFormId],
+    [currentFormId, setFormError],
   );
 
   const handleIcmsChange = useCallback(

@@ -215,6 +215,14 @@ export const FormStep: FC<FormStepProps> = ({
 }) => {
   const [activeSlide, setActiveSlide] = useState(0);
 
+  const dateLimits = useMemo(() => {
+    const max = new Date();
+    max.setHours(0, 0, 0, 0);
+    const min = new Date(max);
+    min.setFullYear(min.getFullYear() - 10);
+    return { min, max };
+  }, []);
+
   useEffect(() => {
     if (!isActive) {
       return;
@@ -257,6 +265,8 @@ export const FormStep: FC<FormStepProps> = ({
                   altFormat: "d 'de' F, Y",
                   dateFormat: "Y-m-d",
                   locale: Portuguese,
+                  minDate: dateLimits.min,
+                  maxDate: dateLimits.max,
                 }}
                 className="input-field"
                 onChange={onDateChange}
