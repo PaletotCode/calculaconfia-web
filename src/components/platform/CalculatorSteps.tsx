@@ -63,7 +63,7 @@ export const WelcomeStep: FC<WelcomeStepProps> = ({ isActive, onStart }) => {
           Vamos descobrir juntos o valor estimado que você pode ter a receber.
         </p>
         <button type="button" className="start-btn mt-8" onClick={onStart}>
-          Vamos comeÃ§ar
+          Vamos começar
         </button>
       </div>
     </div>
@@ -436,7 +436,7 @@ export const ResultStep: FC<ResultStepProps> = ({ isActive, amount, onRestart, o
           className="rounded-full bg-slate-200 px-6 py-3 font-semibold text-slate-800 transition hover:bg-slate-300"
           onClick={onRestart}
         >
-          ComeÃ§ar de novo
+          Começar de novo
         </button>
         <button type="button" className="start-btn" onClick={onViewSummary}>
           Ver o resumo
