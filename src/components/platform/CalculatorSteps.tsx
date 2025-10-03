@@ -80,12 +80,12 @@ export const SelectionStep: FC<SelectionStepProps> = ({ isActive, onContinue }) 
   const [isAnimating, setIsAnimating] = useState(false);
   const MAX_BILLS = 12;
 
-  // FunÃ§Ã£o para acionar a animaÃ§Ã£o do nÃºmero ao mudar de valor
+  // Função para acionar a animação do nÃºmero ao mudar de valor
   const triggerAnimation = () => {
     setIsAnimating(false);
     setTimeout(() => {
       setIsAnimating(true);
-      setTimeout(() => setIsAnimating(false), 300); // Deve corresponder Ã  duraÃ§Ã£o da animaÃ§Ã£o em CSS
+      setTimeout(() => setIsAnimating(false), 300); // Deve corresponder Ã  duração da animação em CSS
     }, 10);
   };
 
@@ -103,7 +103,7 @@ export const SelectionStep: FC<SelectionStepProps> = ({ isActive, onContinue }) 
     updateQuantity(Number.isNaN(value) ? 0 : value);
   };
 
-  // LÃ³gica para a transiÃ§Ã£o de cor do nÃºmero com base na quantidade
+  // LÃ³gica para a transição de cor do nÃºmero com base na quantidade
   const getQuantityColor = () => {
     const START_HUE = 158, START_SATURATION = 95, START_LIGHTNESS = 30, END_LIGHTNESS = 45;
     const percentage = quantity / MAX_BILLS;
@@ -123,7 +123,7 @@ export const SelectionStep: FC<SelectionStepProps> = ({ isActive, onContinue }) 
             Você tem quantas contas em mÃ£os?
           </h2>
           <p className="mt-3 text-sm text-slate-500 md:text-base">
-            Insira o nÃºmero de faturas que você usará para a simulaÃ§Ã£o.
+            Insira o nÃºmero de faturas que você usará para a simulação.
           </p>
 
           <div className="mt-8 bg-white/70 backdrop-blur-sm p-6 rounded-3xl shadow-lg shadow-slate-200/80 border border-slate-200/80">
@@ -149,7 +149,7 @@ export const SelectionStep: FC<SelectionStepProps> = ({ isActive, onContinue }) 
               </button>
             </div>
             <p className="mt-4 text-xs text-slate-400 font-medium">
-              MÃ¡ximo de 12 contas.
+              Máximo de 12 contas.
             </p>
             <button
                 type="button"
@@ -399,7 +399,7 @@ export interface LoadingStepProps {
 export const LoadingStep: FC<LoadingStepProps> = ({ isActive, activeIndex, items }) => (
   <div id="loading-step" className={clsx("calculator-step", isActive && "active")}>
     <div className="mx-auto flex w full max-w-md flex-col items-start justify-center gap-8 p-6 text-left">
-      <h2 className="text-3xl font-bold text-white">Processando sua simulaÃ§Ã£o...</h2>
+      <h2 className="text-3xl font-bold text-white">Processando sua simulação...</h2>
       <div className="timeline w-full">
         {items.map((item, index) => (
           <div
@@ -438,7 +438,7 @@ export interface ResultStepProps {
 export const ResultStep: FC<ResultStepProps> = ({ isActive, amount, onRestart, onViewSummary }) => (
   <div id="result-step" className={clsx("calculator-step", isActive && "active")}>
     <div className="result-content text-center pb-24">
-      <p className="mb-2 text-2xl text-slate-300">Seu valor estimado de restituiÃ§Ã£o Ã© de</p>
+      <p className="mb-2 text-2xl text-slate-300">Seu valor estimado de restituição Ã© de</p>
       <h2 className="result-value text-6xl font-bold md:text-7xl">{amount}</h2>
       <div className="mt-12 flex flex-col gap-4 sm:flex-row sm:justify-center">
         <button
