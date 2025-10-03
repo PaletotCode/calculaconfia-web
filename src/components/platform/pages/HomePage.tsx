@@ -173,7 +173,7 @@ export default function HomePage({
                 </p>
                 <p className="text-xs text-slate-500">Créditos ganhos: {formatCredits(referralEarned)}</p>
               </div>
-              <div className="flex h-full flex-col justify-between gap-3 rounded-3xl bg-white/90 p-5 shadow-sm ring-1 ring-slate-200">
+              <div className="hidden h-full flex-col justify-between gap-3 rounded-3xl bg-white/90 p-5 shadow-sm ring-1 ring-slate-200 md:flex">
                 <div className="flex items-center justify-between">
                   <span className="text-xs font-semibold uppercase tracking-[0.3em] text-indigo-600">Última simulação</span>
                   <LucideIcon name="Activity" className="h-6 w-6 text-indigo-500" />

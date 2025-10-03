@@ -212,7 +212,10 @@ export default function HistoryPage({ onSlideStateChange }: HistoryPageProps) {
                 ? Array.from({ length: 4 }).map((_, index) => (
                     <div
                       key={`loading-${index}`}
-                      className="rounded-[24px] border border-indigo-100/70 bg-white/75 p-5 shadow-sm"
+                      className={clsx(
+                        "rounded-[24px] border border-indigo-100/70 bg-white/75 p-5 shadow-sm",
+                        index > 0 ? "hidden md:block" : "block",
+                      )}
                     >
                       <div className="flex animate-pulse flex-col gap-4">
                         <div className="h-4 w-28 rounded bg-slate-200" />
@@ -253,7 +256,10 @@ export default function HistoryPage({ onSlideStateChange }: HistoryPageProps) {
                     return (
                       <div
                         key={item.id ?? `recent-${index}`}
-                        className="group flex h-full flex-col justify-between rounded-[24px] border border-indigo-100/70 bg-white/90 p-5 text-left shadow-sm transition hover:-translate-y-1 hover:border-indigo-200 hover:shadow-xl"
+                        className={clsx(
+                          "group h-full rounded-[24px] border border-indigo-100/70 bg-white/90 p-5 text-left shadow-sm transition hover:-translate-y-1 hover:border-indigo-200 hover:shadow-xl",
+                          index > 0 ? "hidden md:flex md:flex-col md:justify-between" : "flex flex-col justify-between",
+                        )}
                       >
                         <div className="flex items-start justify-between gap-4">
                           <div className="space-y-2">

@@ -53,7 +53,9 @@ const FullscreenSlides = forwardRef<FullscreenSlidesHandle, FullscreenSlidesProp
     const isWheelLocked = useRef(false);
     const wheelUnlockTimeout = useRef<NodeJS.Timeout | null>(null);
     const orientation = useSlidesOrientation();
-    const isHorizontal = orientation === "horizontal";
+    const isHorizontal = orientation === "horizontal";  
+    const progress = sanitizedSlides.length > 0 ? (activeIndex + 1) / sanitizedSlides.length : 0;
+    const progressPercentage = Math.max(0, Math.min(1, progress)) * 100;
 
     const goToIndex = useCallback(
       (index: number) => {
@@ -283,6 +285,17 @@ const FullscreenSlides = forwardRef<FullscreenSlidesHandle, FullscreenSlidesProp
         onTouchStart={handleTouchStart}
         onTouchEnd={handleTouchEnd}
       >
+
+        <div className="pointer-events-none absolute left-1/2 top-4 w-full max-w-[min(420px,92vw)] -translate-x-1/2 px-6 sm:max-w-3xl">
+          <div className="h-1.5 w-full rounded-full bg-slate-200/70">
+            <div
+              className="h-full rounded-full bg-slate-900 transition-all duration-300 ease-out"
+              style={{ width: `${progressPercentage}%` }}
+            >
+              <span className="sr-only">{`Slide ${activeIndex + 1} de ${sanitizedSlides.length}`}</span>
+            </div>
+          </div>
+        </div>
         <div className="relative h-full w-full overflow-hidden" aria-atomic="true">
           {sanitizedSlides.map((slide, index) => {
             const isActive = index === activeIndex;
