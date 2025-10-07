@@ -129,17 +129,24 @@ export function AuthModal({ isOpen, onClose, defaultView = "login" }: AuthModalP
   }, [isOpen]);
 
   useEffect(() => {
-    if (!isOpen) {
+    if (!isOpen || typeof document === "undefined" || typeof window === "undefined") {
       return;
     }
 
-    if (typeof document !== "undefined") {
-      const previousOverflow = document.body.style.overflow;
-      document.body.style.overflow = "hidden";
-      return () => {
-        document.body.style.overflow = previousOverflow;
-      };
+    const { body } = document;
+    const previousOverflow = body.style.overflow;
+    const previousPaddingRight = body.style.paddingRight;
+    body.style.overflow = "hidden";
+
+    const scrollbarWidth = window.innerWidth - document.documentElement.clientWidth;
+    if (scrollbarWidth > 0) {
+      body.style.paddingRight = `${scrollbarWidth}px`;
     }
+
+    return () => {
+      body.style.overflow = previousOverflow;
+      body.style.paddingRight = previousPaddingRight;
+    };
   }, [isOpen]);
 
   useEffect(() => {
