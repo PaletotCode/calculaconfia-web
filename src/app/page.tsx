@@ -31,8 +31,8 @@ type AuthView = "login" | "register" | "verify";
 
 const heroSlides = [
   { src: "https://i.imgur.com/QpHVTbh.mp4", autoPlay: true },
-  { src: "https://i.imgur.com/HlVQjpL.mp4", autoPlay: false },
-  { src: "https://imgur.com/a/s3-jjsDMRB", autoPlay: false },
+  { src: "https://i.imgur.com/HlVQjpL.mp4", autoPlay: true },
+  { src: "https://i.imgur.com/pxqUzbo.mp4", autoPlay: true },
 ];
 
 const steps = [
