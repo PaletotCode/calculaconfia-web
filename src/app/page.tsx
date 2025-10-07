@@ -854,7 +854,7 @@ export default function LandingPage() {
       </header>
 
       <main className="pt-16">
-        <section className="relative h-screen">
+        <section className="relative min-h-screen h-[100dvh]"> {/* modificado aqui */}
           <Swiper
             modules={[EffectFade, Autoplay, Pagination]}
             effect="fade"
