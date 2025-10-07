@@ -1,11 +1,12 @@
 "use client";
 
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import Image from "next/image";
 import type { MouseEvent as ReactMouseEvent } from "react";
 import clsx from "clsx";
 import { Swiper, SwiperSlide } from "swiper/react";
 import { Autoplay, EffectFade, Pagination } from "swiper/modules";
+import type { Swiper as SwiperClass } from "swiper";
 import "swiper/css";
 import "swiper/css/pagination";
 import "swiper/css/effect-fade";
@@ -30,9 +31,9 @@ declare global {
 type AuthView = "login" | "register" | "verify";
 
 const heroSlides = [
-  { src: "https://i.imgur.com/QpHVTbh.mp4", autoPlay: true },
-  { src: "https://i.imgur.com/HlVQjpL.mp4", autoPlay: true },
-  { src: "https://i.imgur.com/pxqUzbo.mp4", autoPlay: true },
+  { src: "https://i.imgur.com/QpHVTbh.mp4" },
+  { src: "https://i.imgur.com/HlVQjpL.mp4" },
+  { src: "https://i.imgur.com/pxqUzbo.mp4" },
 ];
 
 const steps = [
@@ -197,6 +198,65 @@ export default function LandingPage() {
   const testimonialCardRefs = useRef<Array<HTMLDivElement | null>>([]);
   const tiltCardRef = useRef<HTMLDivElement | null>(null);
   const spotlightSectionRefs = useRef<Array<HTMLElement | null>>([]);
+
+  const swiperRef = useRef<SwiperClass | null>(null);
+  const videoRefs = useRef<Array<HTMLVideoElement | null>>([]);
+  const activeSlideIndexRef = useRef(0);
+
+  const handleSlideActivation = useCallback((targetIndex: number) => {
+    activeSlideIndexRef.current = targetIndex;
+
+    videoRefs.current.forEach((video, index) => {
+      if (!video) {
+        return;
+      }
+
+      const rewind = () => {
+        try {
+          video.currentTime = 0;
+        } catch {
+          // Some browsers require metadata before seeking
+        }
+      };
+
+      if (index === targetIndex) {
+        video.pause();
+        if (video.readyState >= 2) {
+          rewind();
+          void video.play();
+        } else {
+          const handleCanPlay = () => {
+            if (activeSlideIndexRef.current !== index) {
+              return;
+            }
+            rewind();
+            void video.play();
+          };
+          video.addEventListener("canplay", handleCanPlay, { once: true });
+          if (video.readyState === 0) {
+            video.load();
+          }
+        }
+      } else {
+        video.pause();
+        if (video.readyState >= 1) {
+          rewind();
+        } else {
+          const handleLoadedMetadata = () => {
+            rewind();
+          };
+          video.addEventListener("loadedmetadata", handleLoadedMetadata, { once: true });
+          if (video.readyState === 0) {
+            video.load();
+          }
+        }
+      }
+    });
+  }, []);
+
+  const handleSlideEnded = useCallback(() => {
+    swiperRef.current?.slideNext();
+  }, []);
 
   useEffect(() => {
     const handleResize = () => {
@@ -860,18 +920,33 @@ export default function LandingPage() {
             effect="fade"
             loop
             pagination={{ clickable: true }}
-            autoplay={{ delay: 7000, disableOnInteraction: false }}
+            autoplay={false}
+            onSwiper={(swiperInstance) => {
+              swiperRef.current = swiperInstance;
+              if (typeof window !== "undefined") {
+                window.requestAnimationFrame(() => {
+                  handleSlideActivation(swiperInstance.realIndex);
+                });
+              } else {
+                handleSlideActivation(swiperInstance.realIndex);
+              }
+            }}
+            onSlideChange={(swiperInstance) => {
+              handleSlideActivation(swiperInstance.realIndex);
+            }}
             className="hero-carousel h-full"
           >
-            {heroSlides.map((slide) => (
+            {heroSlides.map((slide, index) => (
               <SwiperSlide key={slide.src}>
                 <video
                   className="absolute inset-0 h-full w-full object-cover"
-                  autoPlay={slide.autoPlay}
-                  loop
                   muted
                   playsInline
-                  preload={slide.autoPlay ? "auto" : "metadata"}
+                  preload={index === 0 ? "auto" : "metadata"}
+                  ref={(element) => {
+                    videoRefs.current[index] = element;
+                  }}
+                  onEnded={handleSlideEnded}
                 >
                   <source src={slide.src} type="video/mp4" />
                 </video>
