@@ -830,7 +830,7 @@ export default function LandingPage() {
         <div className="container mx-auto flex items-center justify-between px-4 py-3 md:px-6">
           <div className="flex items-center space-x-2">
             <Image src="https://i.imgur.com/64Tovft.png" alt="Logotipo CalculaConfia" width={120} height={32} className="h-8 w-auto" />
-            <span className="hidden text-2xl font-bold text-slate-800 sm:block">
+            <span className="text-2xl font-bold text-slate-800">
               Calcula<span className="text-[var(--primary-accent)]">Confia</span>
             </span>
           </div>
