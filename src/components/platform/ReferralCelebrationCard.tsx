@@ -48,11 +48,11 @@ export default function ReferralCelebrationCard({ onDismiss, className }: Referr
         </div>
         <div className="flex flex-wrap items-center gap-2 text-xs text-white/70">
           <span className="inline-flex items-center gap-1 rounded-full bg-white/10 px-3 py-1">
-            <LucideIcon name="CheckCircle2" className="h-4 w-4" />
+            <LucideIcon name="CircleCheck" className="h-4 w-4" />
             Crédito aplicado automaticamente
           </span>
           <span className="inline-flex items-center gap-1 rounded-full bg-white/10 px-3 py-1">
-            <LucideIcon name="Wand2" className="h-4 w-4" />
+            <LucideIcon name="Wand" className="h-4 w-4" />
             Use em qualquer simulação
           </span>
         </div>
