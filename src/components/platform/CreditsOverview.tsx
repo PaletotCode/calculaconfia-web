@@ -83,6 +83,12 @@ export default function CreditsOverview({ onBuyCredits }: CreditsOverviewProps) 
     ? `Convite especial: use meu código ${shareData?.referral_code} e acesse a CalculaConfia para fazer sua simulação. Toque no link para começar: ${shareLink}`
     : `Descubra quanto você pode recuperar com a CalculaConfia: ${shareLink}`;
 
+  const referralCodeDisplay = referralQuery.isLoading
+    ? "Carregando..."
+    : referralQuery.isError
+      ? "Indisponível"
+      : shareData?.referral_code?.toUpperCase() || "--";
+
   const handleShare = useCallback(async () => {
     try {
       if (typeof navigator !== "undefined" && navigator.share) {
@@ -235,6 +241,14 @@ export default function CreditsOverview({ onBuyCredits }: CreditsOverviewProps) 
               <h2 className="text-2xl font-semibold">Compartilhe seu código e ganhe créditos extras</h2>
               <p className="text-sm text-slate-200/80">
                 Você pode compartilhar seu código com no máximo uma pessoa. Quando ela concluir a primeira compra, você recebe créditos bônus para utilizar nas próximas simulações.
+              </p>
+            </div>
+
+            <div className="rounded-3xl bg-gradient-to-br from-white/20 via-white/10 to-transparent p-5 text-center shadow-lg">
+              <p className="text-[11px] font-semibold uppercase tracking-[0.4em] text-white/70">Seu código de convite</p>
+              <p className="mt-3 font-mono text-3xl tracking-[0.35em] text-white sm:text-4xl">{referralCodeDisplay}</p>
+              <p className="mt-2 text-xs text-slate-200/80">
+                Compartilhe este código durante o cadastro para garantir o bônus de indicação.
               </p>
             </div>
 

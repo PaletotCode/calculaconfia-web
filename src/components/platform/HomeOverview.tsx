@@ -16,7 +16,7 @@ import {
 
 import { parseHistoryMetadata } from "@/utils/history-metadata";
 import useAuth from "@/hooks/useAuth";
-import ReferralCelebrationCard from "./ReferralCelebrationCard";
+import ReferralCelebrationModal from "./ReferralCelebrationModal";
 
 const currencyFormatter = new Intl.NumberFormat("pt-BR", {
   style: "currency",
@@ -167,23 +167,23 @@ export default function HomeOverview({ onNavigate, historyLimit = 4 }: HomeOverv
   };
 
   return (
-    <div className="flex h-full min-h-[calc(100vh-140px)] w-full items-center justify-center bg-gradient-to-br from-slate-100 via-white to-slate-200 px-4 pb-24 pt-8 md:pb-28 md:pt-12">
-      <div className="flex w-full max-w-5xl flex-col gap-8">
-        {showReferralCelebration ? (
-          <ReferralCelebrationCard
-            onDismiss={handleReferralCelebrationDismiss}
-            className="w-full"
-          />
-        ) : null}
-        <header className="space-y-2 text-left">
-          <p className="text-sm font-medium uppercase tracking-wide text-teal-600">Visão geral</p>
-          <h1 className="text-3xl font-bold text-slate-900 md:text-4xl">Bem-vindo de volta à CalculaConfia</h1>
-          <p className="max-w-2xl text-sm text-slate-600 md:text-base">
-            Acompanhe seu saldo, suas indicações e o resultado das últimas simulações em um só lugar. Clique em qualquer card para acessar a visão detalhada.
-          </p>
-        </header>
+    <>
+      <ReferralCelebrationModal
+        open={showReferralCelebration}
+        onClose={handleReferralCelebrationDismiss}
+        referralCode={referralQuery.data?.referral_code}
+      />
+      <div className="flex h-full min-h-[calc(100vh-140px)] w-full items-center justify-center bg-gradient-to-br from-slate-100 via-white to-slate-200 px-4 pb-24 pt-8 md:pb-28 md:pt-12">
+        <div className="flex w-full max-w-5xl flex-col gap-8">
+          <header className="space-y-2 text-left">
+            <p className="text-sm font-medium uppercase tracking-wide text-teal-600">Visão geral</p>
+            <h1 className="text-3xl font-bold text-slate-900 md:text-4xl">Bem-vindo de volta à CalculaConfia</h1>
+            <p className="max-w-2xl text-sm text-slate-600 md:text-base">
+              Acompanhe seu saldo, suas indicações e o resultado das últimas simulações em um só lugar. Clique em qualquer card para acessar a visão detalhada.
+            </p>
+          </header>
 
-        <div className="grid gap-4 md:grid-cols-2">
+          <div className="grid gap-4 md:grid-cols-2">
           <button
             type="button"
             onClick={() => handleNavigate("credits")}
@@ -348,5 +348,6 @@ export default function HomeOverview({ onNavigate, historyLimit = 4 }: HomeOverv
         </div>
       </div>
     </div>
+    </>
   );
 }

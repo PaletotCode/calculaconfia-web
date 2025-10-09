@@ -19,7 +19,7 @@ import FullscreenSlides, { type Slide } from "./FullscreenSlides";
 import type { SlidesNavigationStateChange } from "./slides-navigation";
 import { mobileSlideCardBase, mobileSlideSectionSpacing } from "../mobile";
 import useAuth from "@/hooks/useAuth";
-import ReferralCelebrationCard from "../ReferralCelebrationCard";
+import ReferralCelebrationModal from "../ReferralCelebrationModal";
 
 interface HomePageProps {
   onNavigateToHistory?: () => void;
@@ -180,14 +180,6 @@ export default function HomePage({
         ariaLabel: "Apresentação da plataforma",
         content: (
           <div className={clsx(baseSlideContainer, "text-center")}>
-            {showReferralCelebration ? (
-              <div className="mb-6 w-full text-left">
-                <ReferralCelebrationCard
-                  onDismiss={handleReferralCelebrationDismiss}
-                  className="w-full text-left"
-                />
-              </div>
-            ) : null}
             <div className={clsx(mobileSlideSectionSpacing, "md:space-y-4")}>
               <span className="inline-flex items-center gap-2 rounded-full bg-teal-100 px-4 py-1 text-xs font-semibold uppercase tracking-wide text-teal-700">
                 <LucideIcon name="Sparkles" className="h-4 w-4" />
@@ -357,9 +349,16 @@ export default function HomePage({
     ];
 
   return (
-    <FullscreenSlides
-      slides={slides}
-      onSlideStateChange={onSlideStateChange}
-    />
+    <>
+      <ReferralCelebrationModal
+        open={showReferralCelebration}
+        onClose={handleReferralCelebrationDismiss}
+        referralCode={referralQuery.data?.referral_code}
+      />
+      <FullscreenSlides
+        slides={slides}
+        onSlideStateChange={onSlideStateChange}
+      />
+    </>
   );
 }
