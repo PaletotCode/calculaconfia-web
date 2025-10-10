@@ -184,8 +184,8 @@ function PlatformContent() {
       <Calculator onRequestBuyCredits={openPaymentCard} />
 
       {isPaymentCardOpen && (
-        <div className="fixed inset-0 z-[60] flex items-start justify-center overflow-y-auto bg-black/60 px-4 py-6 sm:py-8 md:items-center">
-          <div className="relative flex w-full max-w-lg flex-col rounded-2xl border border-slate-200 bg-white p-4 shadow-2xl sm:p-6">
+        <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/60 px-4 py-6 sm:px-6 sm:py-10">
+          <div className="relative flex w-full max-w-lg flex-col overflow-y-auto rounded-2xl border border-slate-200 bg-white p-4 shadow-2xl max-h-[calc(100vh-3rem)] sm:max-h-[calc(100vh-5rem)] sm:p-6 md:max-h-[calc(100vh-6rem)] lg:max-h-[calc(100vh-8rem)]">
             <button
               type="button"
               onClick={closePaymentCard}
