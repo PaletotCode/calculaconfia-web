@@ -185,7 +185,7 @@ function PlatformContent() {
 
       {isPaymentCardOpen && (
         <div className="fixed inset-0 z-[60] flex items-start justify-center overflow-y-auto bg-black/60 px-4 py-6 sm:py-8 md:items-center">
-          <div className="relative flex w-full max-w-md flex-col rounded-2xl border border-slate-200 bg-white p-5 shadow-2xl sm:p-6">
+          <div className="relative flex w-full max-w-lg flex-col rounded-2xl border border-slate-200 bg-white p-4 shadow-2xl sm:p-6">
             <button
               type="button"
               onClick={closePaymentCard}
@@ -203,7 +203,7 @@ function PlatformContent() {
                 {extractErrorMessage(error)}
               </div>
             )}
-            <div className="mt-6 flex-1">
+            <div className="mt-5 flex-1">
               {preferenceId ? (
                 <MercadoPagoBrick
                   preferenceId={preferenceId}

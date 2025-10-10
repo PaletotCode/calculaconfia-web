@@ -222,11 +222,15 @@ const FullscreenSlides = forwardRef<FullscreenSlidesHandle, FullscreenSlidesProp
         const elapsed = now - lastWheelAt.current;
 
         if (isWheelLocked.current && elapsed < WHEEL_COOLDOWN_MS) {
-          event.preventDefault();
+          if (event.cancelable) {
+            event.preventDefault();
+          }
           return;
         }
 
-        event.preventDefault();
+        if (event.cancelable) {
+          event.preventDefault();
+        }
 
         if (deltaRaw > 0) {
           goToNext();

@@ -1,7 +1,8 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
+import clsx from "clsx";
 import { LucideIcon } from "@/components/LucideIcon";
 import {
   getCreditsBalance,
@@ -119,6 +120,17 @@ export default function HomeOverview({ onNavigate, historyLimit = 4 }: HomeOverv
   };
 
   const totalCredits = balanceQuery.data?.valid_credits ?? 0;
+  const referralCode = referralQuery.data?.referral_code
+    ? referralQuery.data.referral_code.toUpperCase()
+    : null;
+  const hasReferralCode = Boolean(referralCode);
+
+  const handleShareReferral = useCallback(() => {
+    if (!hasReferralCode) {
+      return;
+    }
+    setShowReferralCelebration(true);
+  }, [hasReferralCode]);
 
   const detailedHistoryMap = useMemo(() => {
     const map = new Map<number, DetailedHistoryItem>();
@@ -184,10 +196,17 @@ export default function HomeOverview({ onNavigate, historyLimit = 4 }: HomeOverv
           </header>
 
           <div className="grid gap-4 md:grid-cols-2">
-          <button
-            type="button"
+          <div
+            role="button"
+            tabIndex={0}
             onClick={() => handleNavigate("credits")}
-            className="group relative overflow-hidden rounded-3xl bg-white/80 p-6 text-left shadow-xl ring-1 ring-slate-200 transition-all hover:-translate-y-1 hover:shadow-2xl focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-teal-300"
+            onKeyDown={(event) => {
+              if (event.key === "Enter" || event.key === " ") {
+                event.preventDefault();
+                handleNavigate("credits");
+              }
+            }}
+            className="group relative cursor-pointer overflow-hidden rounded-3xl bg-white/80 p-6 text-left shadow-xl ring-1 ring-slate-200 transition-all hover:-translate-y-1 hover:shadow-2xl focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-teal-300"
           >
             <div className="pointer-events-none absolute inset-0 bg-gradient-to-br from-teal-500/10 via-transparent to-slate-900/10 opacity-0 transition group-hover:opacity-100" />
             <div className="relative flex items-start justify-between gap-4">
@@ -213,7 +232,38 @@ export default function HomeOverview({ onNavigate, historyLimit = 4 }: HomeOverv
                 <LucideIcon name="PiggyBank" className="h-7 w-7" />
               </div>
             </div>
-          </button>
+
+            <div className="mt-4 flex flex-col gap-3">
+              <p className="text-sm text-slate-500">
+                {hasReferralCode ? (
+                  <>
+                    Seu código de convite:{" "}
+                    <span className="font-semibold text-teal-600">{referralCode}</span>
+                  </>
+                ) : (
+                  "Seu código de convite aparecerá aqui quando estiver disponível."
+                )}
+              </p>
+              <button
+                type="button"
+                onClick={(event) => {
+                  event.stopPropagation();
+                  handleShareReferral();
+                }}
+                disabled={!hasReferralCode}
+                className={clsx(
+                  "inline-flex items-center justify-center gap-2 rounded-full px-4 py-2 text-sm font-semibold transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-teal-300",
+                  hasReferralCode
+                    ? "bg-teal-600 text-white hover:bg-teal-500 animate-pulse"
+                    : "cursor-not-allowed bg-slate-200 text-slate-500"
+                )}
+                aria-label="Compartilhar código de convite"
+              >
+                <LucideIcon name="Share2" className="h-4 w-4" />
+                Compartilhar código
+              </button>
+            </div>
+          </div>
 
           <button
             type="button"

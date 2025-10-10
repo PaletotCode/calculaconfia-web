@@ -179,8 +179,8 @@ export default function MercadoPagoBrick({
         : "";
 
     return (
-      <div className="flex flex-col gap-4 rounded-2xl border border-slate-200 bg-white p-4 shadow-sm sm:p-5">
-        <div className="space-y-2">
+      <div className="flex flex-col gap-3 rounded-2xl border border-slate-200 bg-white p-4 shadow-sm sm:gap-4 sm:p-5">
+        <div className="space-y-1.5 sm:space-y-2">
           <div className="flex items-start gap-2">
             <span className="flex h-9 w-9 items-center justify-center rounded-full bg-green-100 text-green-600">
               <LucideIcon name="QrCode" className="h-5 w-5" />
@@ -208,7 +208,7 @@ export default function MercadoPagoBrick({
               <img
                 src={qrCodeImageSrc}
                 alt="QR Code do pagamento PIX"
-                className="h-44 w-44 max-w-full object-contain sm:h-52 sm:w-52"
+                className="h-40 w-40 max-w-full object-contain sm:h-48 sm:w-48"
               />
             </div>
           </div>
